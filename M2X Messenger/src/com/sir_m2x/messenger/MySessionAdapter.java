@@ -141,6 +141,7 @@ public class MySessionAdapter extends SessionAdapter
 			Intent intent = new Intent();
 			intent.setAction(MessengerService.INTENT_BUZZ);
 			intent.putExtra(Utils.qualify("from"), from);
+			intent.putExtra(Utils.qualify("message"), "BUZZ!!!");
 			wrapper.sendBroadcast(intent);
 		}
 	}
