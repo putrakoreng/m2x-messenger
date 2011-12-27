@@ -311,6 +311,9 @@ public class MessengerService extends Service
 			{
 				// TODO don't fire notification if the ChatWindowTabActivity is open
 				String sender = intent.getExtras().getString(Utils.qualify("from"));
+				if (intent.getExtras().getString(Utils.qualify("message")) == null)
+					return;
+				
 				String message = Html.fromHtml(intent.getExtras().getString(Utils.qualify("message"))).toString();		//in order to strip the HTML tags! 
 				Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 				v.vibrate(250);
