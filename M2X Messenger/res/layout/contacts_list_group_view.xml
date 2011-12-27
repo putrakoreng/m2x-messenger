@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- 	Copyright (c) Mehran Maghoumi 2011 -->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal" >
+
+    <TextView
+        android:id="@+id/txtGroupName"
+        android:layout_width="0dp"
+        android:layout_height="55dp"
+        android:layout_marginLeft="37dp"
+        android:layout_weight="1"
+        android:gravity="left|center"
+        android:text="Group name"
+        android:textSize="19sp" android:layout_gravity="center"/>
+    
+<!--     <TextView -->
+<!--         android:id="@+id/txtNewImCount" -->
+<!--         android:layout_width="wrap_content" -->
+<!--         android:layout_height="50dp" -->
+<!--         android:layout_marginRight="2dp" -->
+<!--         android:gravity="center_vertical|center_horizontal|center" -->
+<!--         android:text="5" -->
+<!--         android:visibility="visible" /> -->
+
+    <ImageView
+        android:id="@+id/imgEnvelope"
+        android:layout_width="16dp"
+        android:layout_height="50dp"
+        android:layout_marginRight="10dp"
+        android:src="@drawable/envelope"
+        android:visibility="visible" android:layout_gravity="center"/>
+    
+    <TextView
+        android:id="@+id/txtGroupCount"
+        android:layout_width="wrap_content"
+        android:layout_height="50dp"
+        android:layout_marginRight="10dp"
+        android:gravity="center_vertical|center_horizontal|center"
+        android:text="5/10"
+        android:textSize="15sp" android:layout_gravity="center"/>
+
+</LinearLayout>

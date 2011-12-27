@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="status_prompt">Select a status</string>
+
+    <string-array name="status_array">
+        <item>Available</item>
+        <item>Busy</item>
+        <item>Invisible</item>
+    </string-array>
+
+</resources>
