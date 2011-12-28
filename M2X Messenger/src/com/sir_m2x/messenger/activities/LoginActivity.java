@@ -53,158 +53,157 @@ import com.sir_m2x.messenger.utils.Utils;
 /**
  * This is the initial screen that the user is going to see.
  * It handles the login process and is responsible for taking the username and password of the user.
- *  
+ * 
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
  *
  */
 public class LoginActivity extends Activity
 {
-	private ProgressDialog pd = null;	
-	
+	private ProgressDialog pd = null;
+
 	private final String[] statusArray = {"Available", "Busy", "Away", "Invisible", "Custom"};
 	private Status loginStatus = Status.AVAILABLE;
-	
+
 	private EditText txtUsername = null;
 	private EditText txtPassword = null;
 	private Spinner spnStatus = null;
 	private EditText txtCustomMessage = null;
 	private CheckBox chkBusy= null;
-	
+
 	@Override
-	public void onCreate(Bundle savedInstanceState)
+	public void onCreate(final Bundle savedInstanceState)
 	{
 		if (isServiceRunning("com.sir_m2x.messenger.services.MessengerService"))
 			startActivity(new Intent(LoginActivity.this, ContactsListActivity.class));
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
-		
-		pd = new ProgressDialog(LoginActivity.this);
-		pd.setIndeterminate(true);
-		pd.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-		pd.setMessage("Signing in...");
-		pd.setCancelable(false);
 
-		((Button) findViewById(R.id.btnSignIn)).setOnClickListener(btnSingIn_Click);
-		
-		txtUsername = (EditText)findViewById(R.id.txtUsername);
-		txtPassword = (EditText)findViewById(R.id.txtPassword);
-		spnStatus = (Spinner)findViewById(R.id.spnStatus);
-		txtCustomMessage = (EditText)findViewById(R.id.txtCustomMessage);
-		chkBusy = (CheckBox)findViewById(R.id.chkBusy);
-		
-		
+		this.pd = new ProgressDialog(LoginActivity.this);
+		this.pd.setIndeterminate(true);
+		this.pd.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+		this.pd.setMessage("Signing in...");
+		this.pd.setCancelable(false);
+
+		((Button) findViewById(R.id.btnSignIn)).setOnClickListener(this.btnSingIn_Click);
+
+		this.txtUsername = (EditText)findViewById(R.id.txtUsername);
+		this.txtPassword = (EditText)findViewById(R.id.txtPassword);
+		this.spnStatus = (Spinner)findViewById(R.id.spnStatus);
+		this.txtCustomMessage = (EditText)findViewById(R.id.txtCustomMessage);
+		this.chkBusy = (CheckBox)findViewById(R.id.chkBusy);
+
+
 		@SuppressWarnings({ "rawtypes", "unchecked" })
-		ArrayAdapter adapter = new ArrayAdapter(this, android.R.layout.simple_spinner_item, statusArray);
+		ArrayAdapter adapter = new ArrayAdapter(this, android.R.layout.simple_spinner_item, this.statusArray);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		spnStatus.setAdapter(adapter);
-		spnStatus.setOnItemSelectedListener(spnItem_Selected);
-		spnStatus.setSelection(0);
-		
+		this.spnStatus.setAdapter(adapter);
+		this.spnStatus.setOnItemSelectedListener(this.spnItem_Selected);
+		this.spnStatus.setSelection(0);
+
 		readSavedPreferences();
 	}
-	
+
 	private void readSavedPreferences()
 	{
 		SharedPreferences preferences = getSharedPreferences(Utils.qualify("LOGIN_PREFERENCES"), 0);
-		
-		txtUsername.setText(preferences.getString("username", ""));
-		txtPassword.setText(preferences.getString("password", ""));
-		spnStatus.setSelection(preferences.getInt("status", 0));
-		txtCustomMessage.setText(preferences.getString("customStatus", ""));
-		chkBusy.setChecked(preferences.getBoolean("busy", false));
+
+		this.txtUsername.setText(preferences.getString("username", ""));
+		this.txtPassword.setText(preferences.getString("password", ""));
+		this.spnStatus.setSelection(preferences.getInt("status", 0));
+		this.txtCustomMessage.setText(preferences.getString("customStatus", ""));
+		this.chkBusy.setChecked(preferences.getBoolean("busy", false));
 	}
-	
+
 	private void savePreferences()
 	{
 		SharedPreferences preferences = getSharedPreferences(Utils.qualify("LOGIN_PREFERENCES"), 0);
 		SharedPreferences.Editor editor = preferences.edit();
-		
-		editor.putString("username", txtUsername.getText().toString());
-		editor.putString("password", txtPassword.getText().toString());
-		editor.putInt("status", spnStatus.getSelectedItemPosition());
-		editor.putString("customStatus", txtCustomMessage.getText().toString());
-		editor.putBoolean("busy", chkBusy.isChecked());
-		
+
+		editor.putString("username", this.txtUsername.getText().toString());
+		editor.putString("password", this.txtPassword.getText().toString());
+		editor.putInt("status", this.spnStatus.getSelectedItemPosition());
+		editor.putString("customStatus", this.txtCustomMessage.getText().toString());
+		editor.putBoolean("busy", this.chkBusy.isChecked());
+
 		editor.commit();
-		
+
 	}
 
 	OnItemSelectedListener spnItem_Selected = new OnItemSelectedListener()
 	{
 
 		@Override
-		public void onItemSelected(AdapterView<?> arg0, View arg1, int arg2,
-				long arg3)
+		public void onItemSelected(final AdapterView<?> arg0, final View arg1, final int arg2,
+				final long arg3)
 		{
 			((TableRow)findViewById(R.id.rowCustom)).setVisibility(View.GONE);
-			
+
 			switch(arg2)
 			{
 				case 0:
-					loginStatus = Status.AVAILABLE;
+					LoginActivity.this.loginStatus = Status.AVAILABLE;
 					break;
 				case 1:
-					loginStatus = Status.BUSY;
+					LoginActivity.this.loginStatus = Status.BUSY;
 					break;
 				case 2:
-					loginStatus = Status.NOTATDESK;
+					LoginActivity.this.loginStatus = Status.NOTATDESK;
 					break;
 				case 3:
-					loginStatus = Status.INVISIBLE;
+					LoginActivity.this.loginStatus = Status.INVISIBLE;
 					break;
 				case 4:
-					loginStatus = Status.CUSTOM;
+					LoginActivity.this.loginStatus = Status.CUSTOM;
 					((TableRow)findViewById(R.id.rowCustom)).setVisibility(View.VISIBLE);
 					break;
 			}
 		}
 
 		@Override
-		public void onNothingSelected(AdapterView<?> arg0)
+		public void onNothingSelected(final AdapterView<?> arg0)
 		{
-			loginStatus = Status.AVAILABLE;			
+			LoginActivity.this.loginStatus = Status.AVAILABLE;
 		}
 	};
 
 	View.OnClickListener btnSingIn_Click = new OnClickListener()
 	{
 		@Override
-		public void onClick(View arg0)
+		public void onClick(final View arg0)
 		{
-			String username = txtUsername.getText().toString();
-			String password = txtPassword.getText().toString();
+			String username = LoginActivity.this.txtUsername.getText().toString();
+			String password = LoginActivity.this.txtPassword.getText().toString();
 			((Button) arg0).requestFocus();
 
-			pd.show();
+			LoginActivity.this.pd.show();
 			AsyncLogin al = new AsyncLogin();
 			al.execute(new String[] { username, password });
-
 		}
 	};
 
 	private class AsyncLogin extends
-			AsyncTask<String, Void, org.openymsg.network.Session>
+	AsyncTask<String, Void, org.openymsg.network.Session>
 	{
 		private Exception getEx()
 		{
-			return ex;
+			return this.ex;
 		}
 
-		private void setEx(Exception ex)
+		private void setEx(final Exception ex)
 		{
 			this.ex = ex;
 		}
 
 		private Exception ex = null;
 		@Override
-		protected Session doInBackground(String... arg0)
+		protected Session doInBackground(final String... arg0)
 		{
 			org.openymsg.network.Session ys = new org.openymsg.network.Session();
 			ys.addSessionListener(new MySessionAdapter(getApplicationContext()));
 			try
 			{
-				if (loginStatus != org.openymsg.network.Status.CUSTOM)
-					ys.setStatus(loginStatus);
+				if (LoginActivity.this.loginStatus != org.openymsg.network.Status.CUSTOM)
+					ys.setStatus(LoginActivity.this.loginStatus);
 				ys.login(arg0[0], arg0[1]);
 			}
 			catch (Exception ex)
@@ -216,26 +215,24 @@ public class LoginActivity extends Activity
 		}
 
 		@Override
-		protected void onPostExecute(org.openymsg.network.Session result)
+		protected void onPostExecute(final org.openymsg.network.Session result)
 		{
-			pd.dismiss();
+			LoginActivity.this.pd.dismiss();
 			if (getEx() != null)
 			{
 				String message = "";
 				if (getEx().toString().toLowerCase().contains("host"))
 					message = "Could not connect to server, try again!";
-				Toast.makeText(LoginActivity.this, message.isEmpty() ? ex.toString() : message, Toast.LENGTH_LONG).show();
+				Toast.makeText(LoginActivity.this, message.isEmpty() ? this.ex.toString() : message, Toast.LENGTH_LONG).show();
 				return;
 			}
-			
+
 			try
 			{
-				if (loginStatus != org.openymsg.network.Status.CUSTOM)
-					result.setStatus(loginStatus);	//in case the user has selected a status other than invisible
+				if (LoginActivity.this.loginStatus != org.openymsg.network.Status.CUSTOM)
+					result.setStatus(LoginActivity.this.loginStatus);	//in case the user has selected a status other than invisible
 				else
-				{
-					result.setStatus(txtCustomMessage.getText().toString(), chkBusy.isChecked());
-				}
+					result.setStatus(LoginActivity.this.txtCustomMessage.getText().toString(), LoginActivity.this.chkBusy.isChecked());
 			}
 			catch(Exception e)
 			{
@@ -263,15 +260,15 @@ public class LoginActivity extends Activity
 			}
 		}
 
-	}	
-	
-	public boolean isServiceRunning(String className)
+	}
+
+	public boolean isServiceRunning(final String className)
 	{
 		ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
 		for(RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE))
 			if (service.service.getClassName().equals(className))
 				return true;
-		
+
 		return false;
 	}
 }

@@ -49,10 +49,12 @@ import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.services.MessengerService;
 import com.sir_m2x.messenger.utils.IM;
 import com.sir_m2x.messenger.utils.Utils;
+
 /**
  * A single chat window with all the features
+ * 
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
- *
+ * 
  */
 public class ChatWindowActivity extends Activity
 {
@@ -69,18 +71,14 @@ public class ChatWindowActivity extends Activity
 		listAdapter.notifyDataSetChanged();
 		lv.setAdapter(listAdapter);
 
-		registerReceiver(imListener, new IntentFilter(
-				MessengerService.INTENT_NEW_IM));
-		registerReceiver(imListener, new IntentFilter(
-				MessengerService.INTENT_BUZZ));
-		registerReceiver(imListener, new IntentFilter(
-				MessengerService.INTENT_DESTROY));
+		registerReceiver(imListener, new IntentFilter(MessengerService.INTENT_NEW_IM));
+		registerReceiver(imListener, new IntentFilter(MessengerService.INTENT_BUZZ));
+		registerReceiver(imListener, new IntentFilter(MessengerService.INTENT_DESTROY));
 
 		// indicating that all the messages from this contact has been read
 		synchronized (MessengerService.getUnreadIMs())
 		{
-			HashMap<String, Integer> unreadIMs = MessengerService
-					.getUnreadIMs();
+			HashMap<String, Integer> unreadIMs = MessengerService.getUnreadIMs();
 			unreadIMs.remove(friendId);
 		}
 
@@ -105,8 +103,7 @@ public class ChatWindowActivity extends Activity
 		Button btnSend = (Button) findViewById(R.id.btnSend);
 		btnSend.setOnClickListener(btnSend_Click);
 		imListener = new ChatWindowListener();
-		this.friendId = getIntent().getExtras().getString(
-				Utils.qualify("friendId"));
+		this.friendId = getIntent().getExtras().getString(Utils.qualify("friendId"));
 
 		lv = (ListView) findViewById(R.id.listView1);
 
@@ -136,8 +133,7 @@ public class ChatWindowActivity extends Activity
 	{
 
 		@Override
-		public void onTextChanged(CharSequence s, int start, int before,
-				int count)
+		public void onTextChanged(CharSequence s, int start, int before, int count)
 		{
 			if (isTypingSelf || txtMessage.getText().toString().equals(""))
 			{
@@ -149,8 +145,7 @@ public class ChatWindowActivity extends Activity
 			try
 			{
 				isTypingSelf = true;
-				MessengerService.getSession().sendTypingNotification(friendId,
-						true);
+				MessengerService.getSession().sendTypingNotification(friendId, true);
 			}
 			catch (Exception e)
 			{
@@ -160,8 +155,7 @@ public class ChatWindowActivity extends Activity
 		}
 
 		@Override
-		public void beforeTextChanged(CharSequence s, int start, int count,
-				int after)
+		public void beforeTextChanged(CharSequence s, int start, int count, int after)
 		{
 		}
 
@@ -201,8 +195,7 @@ public class ChatWindowActivity extends Activity
 			return;
 		try
 		{
-			MessengerService.getSession().sendMessage(
-					ChatWindowActivity.this.friendId, im.getMessage());
+			MessengerService.getSession().sendMessage(ChatWindowActivity.this.friendId, im.getMessage());
 			MessengerService.getFriendsInChat().get(friendId).add(im);
 			listAdapter.notifyDataSetChanged();
 			// lv.smoothScrollToPosition(MessengerService.getFriendsInChat()
@@ -222,39 +215,21 @@ public class ChatWindowActivity extends Activity
 		@Override
 		public void onReceive(Context context, Intent intent)
 		{
-			if (intent.getExtras().getString(Utils.qualify("from"))
-					.equals(friendId) && (intent.getAction().equals(MessengerService.INTENT_NEW_IM)
-					|| intent.getAction().equals(MessengerService.INTENT_BUZZ) ))
+			if ((intent.getAction().equals(MessengerService.INTENT_NEW_IM) || intent.getAction().equals(MessengerService.INTENT_BUZZ))
+					&& intent.getExtras().getString(Utils.qualify("from")).equals(friendId))
 			{
-				// TODO Better implementation to avoid the
-				// DataSetChangedException
 				listAdapter.notifyDataSetChanged();
 
 				synchronized (MessengerService.getUnreadIMs())
 				{
-					HashMap<String, Integer> unreadIMs = MessengerService
-							.getUnreadIMs();
+					HashMap<String, Integer> unreadIMs = MessengerService.getUnreadIMs();
 					unreadIMs.remove(friendId);
 				}
-
-				// lv.smoothScrollToPosition(MessengerService.getFriendsInChat()
-				// .get(friendId).size() - 1);
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_DESTROY))
 			{
-				// lv.invalidate();
 				finish();
 			}
-			// else if (intent.getAction()
-			// .equals("com.sir_m2x.messenger.IS_TYPING")
-			// && intent.getExtras().getString("from").equals(friendId))
-			// {
-			// ImageView iv = (ImageView) findViewById(R.id.imgIsTyping);
-			// if (intent.getExtras().getBoolean("isTyping"))
-			// iv.setVisibility(ImageView.VISIBLE);
-			// else
-			// iv.setVisibility(ImageView.GONE);
-			// }
 		}
 	}
 
@@ -274,57 +249,48 @@ public class ChatWindowActivity extends Activity
 
 				String sender = "";
 				boolean isOfflineMessage = false;
-				
-				try//TODO fix?
+
+				try
+				//TODO fix?
 				{
-					sender = MessengerService.getFriendsInChat().get(friendId)
-							.get(position).getSender();
-					isOfflineMessage = MessengerService.getFriendsInChat().get(friendId)
-							.get(position).isOfflineMessage();
-					
+					sender = MessengerService.getFriendsInChat().get(friendId).get(position).getSender();
+					isOfflineMessage = MessengerService.getFriendsInChat().get(friendId).get(position).isOfflineMessage();
+
 				}
 				catch (Exception e)
 				{
 					e.toString();
 				}
-				boolean isSenderSelf = sender
-						.equals(MessengerService.getMyId());
+				boolean isSenderSelf = sender.equals(MessengerService.getMyId());
 
 				LayoutInflater inflator = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 				View v;
 
 				if (isSenderSelf)
 				{
-					v = inflator.inflate(R.layout.chat_window_row_self, parent,
-							false);
+					v = inflator.inflate(R.layout.chat_window_row_self, parent, false);
 				}
 				else
 				{
-					v = inflator.inflate(R.layout.chat_window_row_friend,
-							parent, false);
-					LinearLayout l = (LinearLayout)v.findViewById(R.id.layoutHolder);
+					v = inflator.inflate(R.layout.chat_window_row_friend, parent, false);
+					LinearLayout l = (LinearLayout) v.findViewById(R.id.layoutHolder);
 					if (isOfflineMessage)
 					{
 						l.setBackgroundColor(Color.parseColor("#FFFFF0"));
-						
+
 					}
-					else if (MessengerService.getFriendsInChat().get(friendId)
-							.get(position).isBuzz())
+					else if (MessengerService.getFriendsInChat().get(friendId).get(position).isBuzz())
 					{
 						l.setBackgroundColor(Color.parseColor("#FFF0F0"));
 					}
 
 				}
 
-				TextView tv = (TextView) v
-						.findViewById(R.id.friendMessageTextView);
-				tv.setText(MessengerService.getFriendsInChat().get(friendId)
-						.get(position).toHtml());
-				TextView timeStamp = (TextView)v.findViewById(R.id.timeStampTextView);
-				timeStamp.setText(MessengerService.getFriendsInChat().get(friendId)
-						.get(position).getTime());
-				ImageView iv = (ImageView) v
-						.findViewById(R.id.imgFriendAvatarChat);
+				TextView tv = (TextView) v.findViewById(R.id.friendMessageTextView);
+				tv.setText(MessengerService.getFriendsInChat().get(friendId).get(position).toHtml());
+				TextView timeStamp = (TextView) v.findViewById(R.id.timeStampTextView);
+				timeStamp.setText(MessengerService.getFriendsInChat().get(friendId).get(position).getTime());
+				ImageView iv = (ImageView) v.findViewById(R.id.imgFriendAvatarChat);
 
 				// Filling the correct avatar
 
@@ -334,8 +300,7 @@ public class ChatWindowActivity extends Activity
 				}
 				else
 				{
-					Bitmap friendAvatar = MessengerService.getFriendAvatars()
-							.get(friendId);
+					Bitmap friendAvatar = MessengerService.getFriendAvatars().get(friendId);
 					if (friendAvatar != null)
 						iv.setImageBitmap(friendAvatar);
 				}
@@ -355,8 +320,7 @@ public class ChatWindowActivity extends Activity
 			synchronized (MessengerService.getFriendsInChat())
 			{
 
-				return MessengerService.getFriendsInChat().get(friendId)
-						.get(position);
+				return MessengerService.getFriendsInChat().get(friendId).get(position);
 			}
 		}
 
@@ -366,8 +330,7 @@ public class ChatWindowActivity extends Activity
 			synchronized (MessengerService.getFriendsInChat())
 			{
 				if (MessengerService.getFriendsInChat().get(friendId) != null)
-					return MessengerService.getFriendsInChat().get(friendId)
-							.size();
+					return MessengerService.getFriendsInChat().get(friendId).size();
 				return 0;
 			}
 		}
@@ -411,8 +374,7 @@ public class ChatWindowActivity extends Activity
 					try
 					{
 						isTypingSelf = false;
-						MessengerService.getSession().sendTypingNotification(
-								friendId, false);
+						MessengerService.getSession().sendTypingNotification(friendId, false);
 					}
 					catch (IOException e)
 					{

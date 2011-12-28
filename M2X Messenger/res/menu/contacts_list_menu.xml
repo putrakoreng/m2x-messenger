@@ -2,18 +2,24 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android" >
 
     <item
-        android:id="@+id/mnuSignOut"
-        android:icon="@android:drawable/ic_lock_power_off"
-        android:title="Sign out">
-    </item>
-    <item
         android:id="@+id/mnuShowConversations"
         android:icon="@android:drawable/ic_menu_agenda"
         android:title="Show Conversations">
     </item>
     <item
         android:id="@+id/mnuLog"
-        android:title="Log window">
+        android:icon="@android:drawable/ic_dialog_info"
+        android:title="Log Window">
+    </item>
+    <item
+        android:id="@+id/mnuStatus"
+        android:icon="@android:drawable/ic_menu_day"
+        android:title="Change Status">
+    </item>
+    <item
+        android:id="@+id/mnuSignOut"
+        android:icon="@android:drawable/ic_lock_power_off"
+        android:title="Sign Out">
     </item>
 
 </menu>

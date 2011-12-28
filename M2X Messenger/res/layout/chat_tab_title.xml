@@ -24,6 +24,15 @@
         android:layout_marginBottom="5dp"
         android:visibility="gone"
         android:src="@drawable/pen"/>
+    
+    <ImageView
+        android:id="@+id/imgUnreadIm"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp"
+        android:visibility="gone"
+        android:src="@drawable/envelope"/>
 
 </LinearLayout>
         

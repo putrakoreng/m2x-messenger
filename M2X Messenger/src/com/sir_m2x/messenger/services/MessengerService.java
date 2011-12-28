@@ -309,7 +309,6 @@ public class MessengerService extends Service
 		{
 			if (intent.getAction().equals(MessengerService.INTENT_NEW_IM))
 			{
-				// TODO don't fire notification if the ChatWindowTabActivity is open
 				String sender = intent.getExtras().getString(Utils.qualify("from"));
 				if (intent.getExtras().getString(Utils.qualify("message")) == null)
 					return;
