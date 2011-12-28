@@ -292,7 +292,7 @@ public class ContactsListActivity extends ExpandableListActivity
 		{
 			case R.id.mnuSignOut:
 				stopService(new Intent(this, MessengerService.class));
-				finish(); // TODO return back to the login screen
+				finish();
 				break;
 
 			case R.id.mnuShowConversations:
@@ -303,6 +303,10 @@ public class ContactsListActivity extends ExpandableListActivity
 
 			case R.id.mnuLog:
 				startActivity(new Intent(this, LogWindowActivity.class));
+				break;
+			case R.id.mnuStatus:
+				startActivityForResult((new Intent(this, ChangeStatusActivity.class)), 0);
+				break;
 			default:
 				break;
 		}

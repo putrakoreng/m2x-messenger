@@ -45,10 +45,11 @@ import com.sir_m2x.messenger.utils.IM;
 import com.sir_m2x.messenger.utils.Utils;
 
 /**
- * A tab activity to contain several ChatWindowActivity instances.
- * Used for creating tabbed chat window experience
+ * A tab activity to contain several ChatWindowActivity instances. Used for
+ * creating tabbed chat window experience
+ * 
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
- *
+ * 
  */
 public class ChatWindowTabActivity extends TabActivity
 {
@@ -57,38 +58,23 @@ public class ChatWindowTabActivity extends TabActivity
 	public static boolean isActive = false;
 
 	@Override
-	protected void onStart()
-	{
-		isActive = true;
-		super.onStart();
-	}
-	
-	@Override
-	protected void onStop()
-	{
-		isActive = false;
-		super.onStop();
-	}
-	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.chat_window_tabhost);
 		listener = new ChatWindowListener();
-//		registerReceiver(listener, new IntentFilter(
-//				MessengerService.INTENT_IS_TYPING));
-//		registerReceiver(listener, new IntentFilter(
-//				MessengerService.INTENT_NEW_IM_ADDED));
 		String friendId;
 		if (getIntent().hasExtra(Utils.qualify("friendId")))
+		{
 			friendId = getIntent().getExtras().getString(Utils.qualify("friendId"));
+			lastOpen = friendId;
+		}
 		else
 			friendId = lastOpen;
 
 		if (!MessengerService.getFriendsInChat().keySet().contains(friendId))
 		{
-			MessengerService.getFriendsInChat().put(friendId,
-					new LinkedList<IM>());
+			MessengerService.getFriendsInChat().put(friendId, new LinkedList<IM>());
 		}
 		createTabs(friendId);
 		getTabHost().setOnTabChangedListener(tabChangedListener);
@@ -101,9 +87,9 @@ public class ChatWindowTabActivity extends TabActivity
 		Notification notify = new Notification(R.drawable.ic_stat_notify, null, System.currentTimeMillis());
 		Intent intent2 = new Intent(getApplicationContext(), ContactsListActivity.class);
 		PendingIntent i = PendingIntent.getActivity(getApplicationContext(), 0, intent2, 0);
-		
+
 		String currentStatus;
-		switch(MessengerService.getSession().getStatus())
+		switch (MessengerService.getSession().getStatus())
 		{
 			case AVAILABLE:
 				currentStatus = "Online";
@@ -120,9 +106,9 @@ public class ChatWindowTabActivity extends TabActivity
 			default:
 				currentStatus = "Busy";
 		}
-		
+
 		notify.setLatestEventInfo(getApplicationContext(), "M2X Messenger", MessengerService.getMyId() + " -- " + currentStatus, i);
-		nm.notify(MessengerService.NOTIFICATION_SIGNED_IN, notify);		
+		nm.notify(MessengerService.NOTIFICATION_SIGNED_IN, notify);
 	}
 
 	private void createTabs(String friendIdToFocus)
@@ -138,8 +124,7 @@ public class ChatWindowTabActivity extends TabActivity
 			intent = new Intent().setClass(this, ChatWindowActivity.class);
 			intent.putExtra(Utils.qualify("friendId"), friendId);
 
-			spec = tabHost.newTabSpec(friendId)
-					.setIndicator(createTabView(friendId)).setContent(intent);
+			spec = tabHost.newTabSpec(friendId).setIndicator(createTabView(friendId)).setContent(intent);
 			tabHost.addTab(spec);
 		}
 
@@ -169,28 +154,20 @@ public class ChatWindowTabActivity extends TabActivity
 	@Override
 	protected void onResume()
 	{
-		registerReceiver(listener, new IntentFilter(
-				MessengerService.INTENT_IS_TYPING));
-		registerReceiver(listener, new IntentFilter(
-				MessengerService.INTENT_NEW_IM_ADDED));
-		registerReceiver(listener, new IntentFilter(
-				MessengerService.INTENT_DESTROY));
+		isActive = true;
+		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_IS_TYPING));
+		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_NEW_IM_ADDED));
+		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_NEW_IM));
+		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_DESTROY));
 		super.onResume();
-	}
-	
-	@Override
-	protected void onPause()
-	{
-		unregisterReceiver(listener);
-		super.onPause();
 	}
 
 	@Override
-	protected void onDestroy()
+	protected void onPause()
 	{
-		// unregisterReceiver(listener);
-		// lastOpen = getTabHost().getCurrentTab();
-		super.onDestroy();
+		isActive = false;
+		unregisterReceiver(listener);
+		super.onPause();
 	}
 
 	@Override
@@ -212,13 +189,13 @@ public class ChatWindowTabActivity extends TabActivity
 			MessengerService.getFriendsInChat().get(tabTag).clear();
 			MessengerService.getFriendsInChat().remove(tabTag);
 			// tabHost.getTabContentView().findViewById(R.id.listView1).invalidate();
-			tabHost.setCurrentTab(0); // TO-DO **** VERY IMPORTANT
+			tabHost.setCurrentTab(0); // TODO **** VERY IMPORTANT
 			tabHost.clearAllTabs();
-	
+
 			// Intent intent = new Intent("com.sir_m2x.messenger.DESTROY_WINDOW");
 			// intent.putExtra("from", tabTag);
 			// sendBroadcast(intent);
-	
+
 			Integer tabToChoose;
 			if (tabId == 0)
 				tabToChoose = 0;
@@ -239,7 +216,7 @@ public class ChatWindowTabActivity extends TabActivity
 				intent.setAction(MessengerService.INTENT_BUZZ);
 				intent.putExtra(Utils.qualify("from"), MessengerService.getMyId());
 				sendBroadcast(intent);
-				
+
 				intent = new Intent();
 				intent.setAction(MessengerService.INTENT_NEW_IM);
 				intent.putExtra(Utils.qualify("from"), tabTag);
@@ -272,16 +249,26 @@ public class ChatWindowTabActivity extends TabActivity
 				else
 					iv.setVisibility(View.GONE);
 			}
-			else if (intent.getAction()
-					.equals(MessengerService.INTENT_NEW_IM_ADDED))
+			else if (intent.getAction().equals(MessengerService.INTENT_NEW_IM))
+			{
+				
+				String from = intent.getExtras().getString(Utils.qualify("from"));
+				View v = getTabHost().findViewWithTag(from);
+				if (v == null)
+					return;
+				if (getTabHost().getCurrentTabTag().equals(from))
+					return;
+				ImageView iv = (ImageView) v.findViewById(R.id.imgUnreadIm);
+				iv.setVisibility(View.VISIBLE);
+			}
+			else if (intent.getAction().equals(MessengerService.INTENT_NEW_IM_ADDED))
 			{
 				TabHost tabHost = getTabHost();
 				tabHost.setCurrentTab(0);
 				tabHost.clearAllTabs();
 				createTabs(lastOpen);
 			}
-			else if (intent.getAction()
-					.equals(MessengerService.INTENT_DESTROY))
+			else if (intent.getAction().equals(MessengerService.INTENT_DESTROY))
 				finish();
 		}
 	}
@@ -292,6 +279,12 @@ public class ChatWindowTabActivity extends TabActivity
 		public void onTabChanged(String tabId)
 		{
 			lastOpen = tabId;
+			View v = getTabHost().findViewWithTag(tabId);
+			ImageView iv = (ImageView) v.findViewById(R.id.imgUnreadIm);
+			if (iv == null)
+				return;
+			
+			iv.setVisibility(View.GONE);
 		}
 	};
 }
