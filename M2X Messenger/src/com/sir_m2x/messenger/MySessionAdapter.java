@@ -55,36 +55,36 @@ public class MySessionAdapter extends SessionAdapter
 
 	
 	@Override
-	public void inputExceptionThrown(SessionExceptionEvent event)
+	public void inputExceptionThrown(final SessionExceptionEvent event)
 	{
 		Log.wtf("WTF", "inputExceptionThrown");
 		event.getException().printStackTrace();
 	}
 	@Override
-	public void errorPacketReceived(SessionErrorEvent event)
+	public void errorPacketReceived(final SessionErrorEvent event)
 	{
 		Log.wtf("WTF", "Error packet received");
 		super.errorPacketReceived(event);
 	}
-	public MySessionAdapter(Context context)
+	public MySessionAdapter(final Context context)
 	{
 		MySessionAdapter.context = context;
 	}
 	
 	@Override
-	public void friendAddedReceived(SessionFriendEvent event)
+	public void friendAddedReceived(final SessionFriendEvent event)
 	{
 		super.friendAddedReceived(event);
 	}
 
 	@Override
-	public void chatMessageReceived(SessionChatEvent event)
+	public void chatMessageReceived(final SessionChatEvent event)
 	{
 
 	}
 
 	@Override
-	public void buzzReceived(SessionEvent event)
+	public void buzzReceived(final SessionEvent event)
 	{
 		String from = event.getFrom();
 		IM im = new IM(from, "BUZZ!!!", event.getTimestamp(), false, true);
@@ -131,9 +131,7 @@ public class MySessionAdapter extends SessionAdapter
 					unreadIMs.put(from, ++count);
 				}
 				else
-				{
 					unreadIMs.put(from, new Integer(1));
-				}
 			}
 
 			ContextWrapper wrapper = new ContextWrapper(
@@ -147,7 +145,7 @@ public class MySessionAdapter extends SessionAdapter
 	}
 	
 	@Override
-	public void offlineMessageReceived(SessionEvent event)
+	public void offlineMessageReceived(final SessionEvent event)
 	{
 		
 		try
@@ -213,9 +211,7 @@ public class MySessionAdapter extends SessionAdapter
 					unreadIMs.put(from, ++count);
 				}
 				else
-				{
 					unreadIMs.put(from, new Integer(1));
-				}
 			}
 
 			ContextWrapper wrapper = new ContextWrapper(
@@ -229,7 +225,7 @@ public class MySessionAdapter extends SessionAdapter
 	}
 
 	@Override
-	public void messageReceived(SessionEvent event)
+	public void messageReceived(final SessionEvent event)
 	{
 		String from = event.getFrom();
 		IM im = new IM(from, event.getMessage(), event.getTimestamp());
@@ -277,9 +273,7 @@ public class MySessionAdapter extends SessionAdapter
 					unreadIMs.put(from, ++count);
 				}
 				else
-				{
 					unreadIMs.put(from, new Integer(1));
-				}
 			}
 
 			ContextWrapper wrapper = new ContextWrapper(
@@ -293,7 +287,7 @@ public class MySessionAdapter extends SessionAdapter
 	}
 
 	@Override
-	public void notifyReceived(SessionNotifyEvent event)
+	public void notifyReceived(final SessionNotifyEvent event)
 	{
 		if (event.isTyping())
 		{
@@ -326,14 +320,14 @@ public class MySessionAdapter extends SessionAdapter
 	}
 
 	@Override
-	public void chatExitReceived(SessionChatEvent event)
+	public void chatExitReceived(final SessionChatEvent event)
 	{
 		Log.d("M2X", event.getChatUser().toString());
 		// TODO Auto-generated method stub
 	}
 
 	@Override
-	public void friendsUpdateReceived(SessionFriendEvent event)
+	public void friendsUpdateReceived(final SessionFriendEvent event)
 	{
 		String id = event.getUser().getId().toString();
 		String statusMessage = event.getUser().getCustomStatusMessage();
@@ -348,10 +342,11 @@ public class MySessionAdapter extends SessionAdapter
 		
 		if (statusMessage != null && !statusMessage.isEmpty())
 		MessengerService.getEventLog().log(id, statusMessage, new Date(System.currentTimeMillis()));
+		Log.d("M2X", "update  received for " + id);
 	}
 	
 	@Override
-	public void friendSignedOn(SessionFriendEvent event)
+	public void friendSignedOn(final SessionFriendEvent event)
 	{
 		YahooUser u = event.getUser();
 		String id = u.getId().toString();
@@ -364,11 +359,12 @@ public class MySessionAdapter extends SessionAdapter
 		wrapper.sendBroadcast(intent);
 		
 		MessengerService.getEventLog().log(id, "signed on", new Date(System.currentTimeMillis()));
+		Log.d("M2X", "Signed on received for " + id);
 
 	}
 	
 	@Override
-	public void friendSignedOff(SessionFriendEvent event)
+	public void friendSignedOff(final SessionFriendEvent event)
 	{
 		if (event == null) //when we sign out, this event is fired with event == null
 			return;
@@ -383,10 +379,11 @@ public class MySessionAdapter extends SessionAdapter
 		wrapper.sendBroadcast(intent);
 		
 		MessengerService.getEventLog().log(id, "signed off", new Date(System.currentTimeMillis()));
+		Log.d("M2X", "Signed off received for " + id);
 	}
 	
 	@Override
-	public void pictureReceived(SessionPictureEvent ev)
+	public void pictureReceived(final SessionPictureEvent ev)
 	{
 		byte[] pictureData = ev.getPictureData();
 		

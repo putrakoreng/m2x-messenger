@@ -46,13 +46,18 @@ import org.openymsg.addressBook.YahooAddressBookEntry;
  */
 public class YahooUser
 {
+	/**
+	 * A comparator to compare YahooUsers against one another.
+	 * @return
+	 * 		The implemented comparator
+	 */
 	public static Comparator<YahooUser> getComparator()
 	{
 		return new Comparator<YahooUser>()
 		{
 			@Override
-			public int compare(YahooUser lhs,
-					YahooUser rhs)
+			public int compare(final YahooUser lhs,
+					final YahooUser rhs)
 			{						
 				return lhs.getId().compareTo(rhs.getId());
 			}
@@ -60,19 +65,24 @@ public class YahooUser
 	}
 	public final String getGroup()
 	{
-		return groupIds.toArray()[0].toString();
+		return this.groupIds.toArray()[0].toString();
 	}
 	
-	public void changeGroup(String from, String to)
+	public void changeGroup(final String from, final String to)
 	{
-		groupIds.remove(from);
-		groupIds.add(to);
+		this.groupIds.remove(from);
+		this.groupIds.add(to);
 	}
 	
 	/**
 	 * A flag to indicate that this user is pending and not currently on the friends list.
 	 */
 	private boolean isPending = false;
+	
+	/**
+	 * A flag to indicate that this user has sent us a friend request.
+	 */
+	private boolean hasSentFriendRequest = false;
 	
 	/**
 	 * A flag to indicate that this user is typing a message
@@ -94,7 +104,7 @@ public class YahooUser
 	 */
 	protected Status status = Status.OFFLINE;
 
-	protected int stealth; // Stealth status
+	protected StealthStatus stealth = StealthStatus.NO_STEALTH; // Stealth status
 
 	protected boolean onChat = false;
 	protected boolean onPager = false;
@@ -141,7 +151,7 @@ public class YahooUser
 
 	public YahooProtocol getProtocol()
 	{
-		return protocol;
+		return this.protocol;
 	}
 
 	/**
@@ -157,24 +167,22 @@ public class YahooUser
 			final YahooProtocol protocol)
 	{
 		this.userId = userId.toLowerCase();
-		groupIds = new HashSet<String>();
+		this.groupIds = new HashSet<String>();
 
 		if (groupId != null && groupId.length() != 0)
-		{
-			groupIds.add(groupId);
-		}
+			this.groupIds.add(groupId);
 
 		this.protocol = protocol;
 	}
 
 	public YahooUser(final String userId, final String groupId,
-			YahooProtocol protocol, YahooAddressBookEntry addressBookEntry)
+			final YahooProtocol protocol, final YahooAddressBookEntry addressBookEntry)
 	{
 		this(userId, groupId, protocol);
 		this.addressBookEntry = addressBookEntry;
 	}
 
-	public YahooUser(final String userId, Set<String> groupIds,
+	public YahooUser(final String userId, final Set<String> groupIds,
 			final YahooProtocol protocol)
 	{
 		this.userId = userId.toLowerCase();
@@ -184,7 +192,7 @@ public class YahooUser
 	}
 
 	public YahooUser(final String userId, final Set<String> groupIds,
-			YahooProtocol protocol, YahooAddressBookEntry addressBookEntry)
+			final YahooProtocol protocol, final YahooAddressBookEntry addressBookEntry)
 	{
 		this(userId, groupIds, protocol);
 		this.addressBookEntry = addressBookEntry;
@@ -204,7 +212,7 @@ public class YahooUser
 		this(userId, (String) null, YahooProtocol.YAHOO);
 	}
 
-	public YahooUser(final String userId, YahooAddressBookEntry addressBookEntry)
+	public YahooUser(final String userId, final YahooAddressBookEntry addressBookEntry)
 	{
 		this(userId);
 		this.addressBookEntry = addressBookEntry;
@@ -217,7 +225,7 @@ public class YahooUser
 	 */
 	public String getId()
 	{
-		return userId;
+		return this.userId;
 	}
 
 	/**
@@ -246,7 +254,7 @@ public class YahooUser
 	 */
 	public boolean isIgnored()
 	{
-		return ignored;
+		return this.ignored;
 	}
 
 	/**
@@ -260,9 +268,9 @@ public class YahooUser
 	 * @param blocked
 	 *            <tt>true</tt> if this user is on our StealthBlocked list.
 	 */
-	void setStealthBlocked(boolean blocked)
+	void setStealthBlocked(final boolean blocked)
 	{
-		stealthBlocked = blocked;
+		this.stealthBlocked = blocked;
 	}
 
 	/**
@@ -273,7 +281,7 @@ public class YahooUser
 	 */
 	public boolean isStealthBlocked()
 	{
-		return stealthBlocked;
+		return this.stealthBlocked;
 	}
 
 	/**
@@ -291,8 +299,8 @@ public class YahooUser
 	 */
 	public void setCustom(final String message, final String status)
 	{
-		customStatusMessage = message;
-		customStatus = status;
+		this.customStatusMessage = message;
+		this.customStatus = status;
 	}
 
 	/**
@@ -303,7 +311,7 @@ public class YahooUser
 	 */
 	public String getCustomStatusMessage()
 	{
-		return customStatusMessage;
+		return this.customStatusMessage;
 	}
 
 	/**
@@ -314,7 +322,7 @@ public class YahooUser
 	 */
 	public String getCustomStatus()
 	{
-		return customStatus;
+		return this.customStatus;
 	}
 
 	/**
@@ -328,7 +336,7 @@ public class YahooUser
 	 */
 	void setIdleTime(final long seconds)
 	{
-		idleTime = seconds;
+		this.idleTime = seconds;
 	}
 
 	/**
@@ -339,7 +347,7 @@ public class YahooUser
 	 */
 	public long getIdleTime()
 	{
-		return idleTime;
+		return this.idleTime;
 	}
 
 	/**
@@ -353,7 +361,7 @@ public class YahooUser
 	 *            The stealth mode.
 	 */
 	// TODO: figure out what values are valid here.
-	void setStealth(int stealth)
+	public void setStealth(final StealthStatus stealth)
 	{
 		this.stealth = stealth;
 	}
@@ -363,9 +371,9 @@ public class YahooUser
 	 * 
 	 * @return the stealth modus of this user.
 	 */
-	public int getStealth()
+	public StealthStatus getStealth()
 	{
-		return stealth;
+		return this.stealth;
 	}
 
 	/**
@@ -375,15 +383,33 @@ public class YahooUser
 	 */
 	public boolean isPending()
 	{
-		return isPending;
+		return this.isPending;
 	}
 	
 	/**
 	 * Changes the pending state of this user
 	 */
-	public void setPending(boolean isPending)
+	public void setPending(final boolean isPending)
 	{
 		this.isPending = isPending;
+	}
+	
+	
+	/**
+	 * Determine whether this user has sent us a friend request. 		
+	 */
+	public boolean hasSentFriendRequest()
+	{
+		return this.hasSentFriendRequest;
+	}
+	/**
+	 * Change the friend request status of this user
+	 * @param hasSentFriendRequest
+	 * 		The new request status for this user.
+	 */
+	public void setHasSentFriendRequest(final boolean hasSentFriendRequest)
+	{
+		this.hasSentFriendRequest = hasSentFriendRequest;
 	}
 	/**
 	 * Adds this user to an (additional) user.
@@ -397,13 +423,13 @@ public class YahooUser
 	 */
 	public void addGroupId(final String groupId)
 	{
-		groupIds.add(groupId);
+		this.groupIds.add(groupId);
 	}
 	
 	public boolean removeGroupId(final String groupId)
 	{
-		if (groupIds.contains(groupId))
-			groupIds.remove(groupId);
+		if (this.groupIds.contains(groupId))
+			this.groupIds.remove(groupId);
 		
 		return false;		
 	}
@@ -417,7 +443,7 @@ public class YahooUser
 	 */
 	public Set<String> getGroupIds()
 	{
-		return groupIds;
+		return this.groupIds;
 	}
 
 	/**
@@ -427,7 +453,7 @@ public class YahooUser
 	 */
 	public Status getStatus()
 	{
-		return status;
+		return this.status;
 	}
 
 	/**
@@ -438,12 +464,12 @@ public class YahooUser
 
 	public boolean isOnChat()
 	{
-		return onChat;
+		return this.onChat;
 	}
 
 	public boolean isOnPager()
 	{
-		return onPager;
+		return this.onPager;
 	}
 
 //	public boolean isLoggedIn()
@@ -453,10 +479,10 @@ public class YahooUser
 
 	public boolean isTyping()
 	{
-		return isTyping;
+		return this.isTyping;
 	}
 
-	public void setIsTyping(boolean isTyping)
+	public void setIsTyping(final boolean isTyping)
 	{
 		this.isTyping = isTyping;
 	}
@@ -471,7 +497,7 @@ public class YahooUser
 	 */
 	public boolean isFriend()
 	{
-		return !groupIds.isEmpty();
+		return !this.groupIds.isEmpty();
 	}
 
 	/**
@@ -495,7 +521,7 @@ public class YahooUser
 	@Override
 	public String toString()
 	{
-		return userId;
+		return this.userId;
 		// return "YahooUser [ID=" + userId + ", status=" + status.name() +
 		// ", ignored=" + ignored + ", stealthBlock="
 		// + stealthBlocked + ", customStatusMessage=" + customStatusMessage +
@@ -511,7 +537,7 @@ public class YahooUser
 	@Override
 	public int hashCode()
 	{
-		return (userId == null) ? 1 : userId.hashCode();
+		return (this.userId == null) ? 1 : this.userId.hashCode();
 	}
 
 	/*
@@ -520,32 +546,22 @@ public class YahooUser
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj)
+	public boolean equals(final Object obj)
 	{
 		if (this == obj)
-		{
 			return true;
-		}
 		if (obj == null)
-		{
 			return false;
-		}
 		if (!(obj instanceof YahooUser))
-		{
 			return false;
-		}
 		final YahooUser other = (YahooUser) obj;
-		if (userId == null)
+		if (this.userId == null)
 		{
 			if (other.userId != null)
-			{
 				return false;
-			}
 		}
-		else if (!userId.equals(other.userId))
-		{
+		else if (!this.userId.equals(other.userId))
 			return false;
-		}
 		return true;
 	}
 
@@ -557,7 +573,7 @@ public class YahooUser
 	 * @param newVisibility
 	 *            replacement for current onChat and onPager values
 	 */
-	public void update(Status newStatus, String newVisibility)
+	public void update(final Status newStatus, final String newVisibility)
 	{
 		// This is the new version, where 13=combined pager/chat
 		final int iVisibility = (newVisibility == null) ? 0 : Integer
@@ -575,7 +591,7 @@ public class YahooUser
 	 * @param newOnPager
 	 *            replacement for current onPager value
 	 */
-	public void update(Status newStatus, boolean newOnChat, boolean newOnPager)
+	public void update(final Status newStatus, final boolean newOnChat, final boolean newOnPager)
 	{
 //		if ((this.onChat && newOnChat) || (this.onPager && newOnPager))
 //			onlineStatusChanged = false;
@@ -602,7 +618,7 @@ public class YahooUser
 	 * @param newStatus
 	 *            replacement for current Status value
 	 */
-	public void update(Status newStatus)
+	public void update(final Status newStatus)
 	{
 			
 		// This is the old version, when 13=pager and 17=chat
@@ -610,8 +626,8 @@ public class YahooUser
 
 		if (this.status != Status.CUSTOM)
 		{
-			customStatusMessage = null;
-			customStatus = null;
+			this.customStatusMessage = null;
+			this.customStatus = null;
 		}
 	}
 
@@ -632,7 +648,7 @@ public class YahooUser
 
 	public YahooAddressBookEntry getAddressBookEntry()
 	{
-		return addressBookEntry;
+		return this.addressBookEntry;
 	}
 	
 //	public void setAddressBookEntry(YahooAddressBookEntry addressBookEntry)
@@ -640,7 +656,7 @@ public class YahooUser
 //		this.addressBookEntry = addressBookEntry;
 //	}
 
-	public void update(YahooProtocol protocol)
+	public void update(final YahooProtocol protocol)
 	{
 		this.protocol = protocol;
 	}

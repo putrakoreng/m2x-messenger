@@ -18,7 +18,10 @@
 package com.sir_m2x.messenger.activities;
 
 import android.app.ListActivity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -32,10 +35,11 @@ import com.sir_m2x.messenger.services.MessengerService;
 import com.sir_m2x.messenger.utils.EventLogger;
 
 /**
- * A simple log window to show various events during the execution of the program.
+ * A simple log window to show various events during the execution of the
+ * program.
  * 
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
- *
+ * 
  */
 public class LogWindowActivity extends ListActivity
 {
@@ -43,39 +47,37 @@ public class LogWindowActivity extends ListActivity
 	{
 
 		@Override
-		public View getView(int position, View convertView, ViewGroup parent)
+		public View getView(final int position, final View convertView, final ViewGroup parent)
 		{
-			View v = ((LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE))
-					.inflate(R.layout.chat_window_row_friend, parent, false);
+			View v = ((LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE)).inflate(R.layout.chat_window_row_friend, parent, false);
 			TextView txtMessage = (TextView) v.findViewById(R.id.friendMessageTextView);
 			TextView txtTimeStamp = (TextView) v.findViewById(R.id.timeStampTextView);
 			ImageView img = (ImageView) v.findViewById(R.id.imgFriendAvatarChat);
-			
-			EventLogger.LogFormat log = (EventLogger.LogFormat)getItem(position);
+
+			EventLogger.LogFormat log = (EventLogger.LogFormat) getItem(position);
 			String id = log.getWho();
-			
+
 			txtMessage.setText(log.eventToHtml());
 			txtTimeStamp.setText(log.timeToHtml());
-			
-			if (id.equals(MessengerService.getMyId()) && MessengerService.getMyAvatar()!=null)
+
+			if (id.equals(MessengerService.getMyId()) && MessengerService.getMyAvatar() != null)
 				img.setImageBitmap(MessengerService.getMyAvatar());
 			else if (MessengerService.getFriendAvatars().containsKey(id))
 				img.setImageBitmap(MessengerService.getFriendAvatars().get(id));
 			else
 				img.setImageResource(R.drawable.yahoo_no_avatar);
-			
-			
+
 			return v;
 		}
 
 		@Override
-		public long getItemId(int arg0)
+		public long getItemId(final int arg0)
 		{
 			return arg0;
 		}
 
 		@Override
-		public Object getItem(int arg0)
+		public Object getItem(final int arg0)
 		{
 			return MessengerService.getEventLog().getEventLog().get(arg0);
 		}
@@ -86,13 +88,47 @@ public class LogWindowActivity extends ListActivity
 			return MessengerService.getEventLog().getEventLog().size();
 		}
 	};
+	
+	BroadcastReceiver updateReceiver = new BroadcastReceiver()
+	{
+
+		@Override
+		public void onReceive(final Context context, final Intent intent)
+		{
+			if (intent.getAction().equals(MessengerService.INTENT_FRIEND_UPDATE_RECEIVED) || intent.getAction().equals(MessengerService.INTENT_FRIEND_SIGNED_ON)
+					|| intent.getAction().equals(MessengerService.INTENT_FRIEND_SIGNED_OFF))
+				LogWindowActivity.this.adapter.notifyDataSetChanged();
+		}
+	};
 
 	@Override
-	protected void onCreate(Bundle savedInstanceState)
+	protected void onCreate(final Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.log_window);
-		setListAdapter(adapter);
+		setListAdapter(this.adapter);
+	}
+	
+	/* (non-Javadoc)
+	 * @see android.app.Activity#onResume()
+	 */
+	@Override
+	protected void onResume()
+	{
+		registerReceiver(this.updateReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_ON));
+		registerReceiver(this.updateReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_UPDATE_RECEIVED));
+		registerReceiver(this.updateReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_OFF));
+		super.onResume();
+	}
+	
+	/* (non-Javadoc)
+	 * @see android.app.Activity#onPause()
+	 */
+	@Override
+	protected void onPause()
+	{
+		unregisterReceiver(this.updateReceiver);
+		super.onPause();
 	}
 
 }

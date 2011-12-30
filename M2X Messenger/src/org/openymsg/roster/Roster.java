@@ -1,19 +1,35 @@
 package org.openymsg.roster;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openymsg.addressBook.YahooAddressBookEntry;
-import org.openymsg.network.*;
+import org.openymsg.network.ContactListType;
+import org.openymsg.network.FireEvent;
+import org.openymsg.network.FriendManager;
+import org.openymsg.network.ServiceType;
+import org.openymsg.network.Status;
+import org.openymsg.network.StealthStatus;
+import org.openymsg.network.YahooProtocol;
+import org.openymsg.network.YahooUser;
 import org.openymsg.network.event.SessionEvent;
 import org.openymsg.network.event.SessionFriendAcceptedEvent;
 import org.openymsg.network.event.SessionFriendEvent;
 import org.openymsg.network.event.SessionFriendRejectedEvent;
 import org.openymsg.network.event.SessionListEvent;
 import org.openymsg.network.event.SessionListener;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A Roster object is a representation of the contact list of a particular user. The Roster is a set of all users to
@@ -29,6 +45,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * 
  */
 public class Roster implements Set<YahooUser>, SessionListener {
+	
+	/**
+	 * A flag to indicate that processing the friends list has finished and the roster is ready now.
+	 */
+	private boolean rosterReady = false;
 	
     private static final Log log = LogFactory.getLog(Roster.class);
 
@@ -62,11 +83,10 @@ public class Roster implements Set<YahooUser>, SessionListener {
      *            The object used to relay changes made to this Roster to the Yahoo network.
      */
     public Roster(final FriendManager manager) {
-        if (manager == null) {
-            throw new IllegalArgumentException("Argument 'manager' cannot be null");
-        }
+        if (manager == null)
+			throw new IllegalArgumentException("Argument 'manager' cannot be null");
 
-        friendManager = manager;
+        this.friendManager = manager;
     }
 
     // Event Listening management methods
@@ -78,12 +98,11 @@ public class Roster implements Set<YahooUser>, SessionListener {
      *            The new listener that gets notified of any roster changes.
      */
     public void addRosterListener(final RosterListener listener) {
-        if (listener == null) {
-            throw new IllegalArgumentException("Argument 'listener' cannot be null.");
-        }
+        if (listener == null)
+			throw new IllegalArgumentException("Argument 'listener' cannot be null.");
 
-        synchronized (listeners) {
-            listeners.add(listener);
+        synchronized (this.listeners) {
+            this.listeners.add(listener);
         }
 
         log.debug("Added new RosterListener.");
@@ -97,12 +116,11 @@ public class Roster implements Set<YahooUser>, SessionListener {
      *            The listener that should be removed.
      */
     public void removeRosterListener(final RosterListener listener) {
-        if (listener == null) {
-            throw new IllegalArgumentException("Argument 'listener' cannot be null.");
-        }
+        if (listener == null)
+			throw new IllegalArgumentException("Argument 'listener' cannot be null.");
 
-        synchronized (listeners) {
-            listeners.remove(listener);
+        synchronized (this.listeners) {
+            this.listeners.remove(listener);
         }
 
         log.debug("Removed RosterListener.");
@@ -117,13 +135,12 @@ public class Roster implements Set<YahooUser>, SessionListener {
     void broadcastEvent(final RosterEvent event) {
         final RosterListener[] copies;
 
-        synchronized (listeners) {
-            copies = listeners.toArray(new RosterListener[listeners.size()]);
+        synchronized (this.listeners) {
+            copies = this.listeners.toArray(new RosterListener[this.listeners.size()]);
         }
 
-        for (final RosterListener rosterListener : copies) {
-            rosterListener.rosterChanged(event);
-        }
+        for (final RosterListener rosterListener : copies)
+			rosterListener.rosterChanged(event);
 
         log.trace("Broadcasted RosterEvent to " + copies.length + " listeners: " + event);
     }
@@ -143,42 +160,37 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * @throws IllegalArgumentException
      *             if some aspect of the specified user prevents it from being added to this set.
      */
-    public boolean add(YahooUser user) {
-        if (user == null) {
-            throw new NullPointerException();
-        }
+    @Override
+	public boolean add(final YahooUser user) {
+        if (user == null)
+			throw new NullPointerException();
 
         final String id = user.getId();
-        if (id == null || id.length() == 0) {
-            throw new IllegalArgumentException("The user to be added must have a valid, non-empty String ID field set.");
-        }
+        if (id == null || id.length() == 0)
+			throw new IllegalArgumentException("The user to be added must have a valid, non-empty String ID field set.");
 
-        if (user.getGroupIds() == null || user.getGroupIds().isEmpty()) {
-            throw new IllegalArgumentException("The user to be added must have at least on groupId.");
-        }
+        if (user.getGroupIds() == null || user.getGroupIds().isEmpty())
+			throw new IllegalArgumentException("The user to be added must have at least on groupId.");
 
         log.trace("Adding new user: " + user);
 
         YahooProtocol yahooProtocol = YahooProtocol.YAHOO;
-        if (user.getProtocol() == null) {
-            log.debug("default protocol used for: " + id);
-        }
-        else {
-            yahooProtocol = user.getProtocol();
-        }
+        if (user.getProtocol() == null)
+			log.debug("default protocol used for: " + id);
+		else
+			yahooProtocol = user.getProtocol();
 
         // TODO : input validation on userId/groupId?
 
-        for (final String groupId : user.getGroupIds()) {
-            try {
+        for (final String groupId : user.getGroupIds())
+			try {
                 log.trace("Adding new user: " + user + ", group: " + groupId);
-                friendManager.sendNewFriendRequest(user.getId(), groupId, yahooProtocol);
+                this.friendManager.sendNewFriendRequest(user.getId(), groupId, yahooProtocol);
             }
             catch (IOException ex) {
                 log.error("Failed adding user: " + user, ex);
                 throw new RuntimeException("Unexpected exception.", ex);
             }
-        }
         return true;
         // return syncedAdd(user); //add user when getting the ack
     }
@@ -198,28 +210,27 @@ public class Roster implements Set<YahooUser>, SessionListener {
      *             if some aspect of the specified user prevents it from being added to this set.
      */
     private boolean syncedAdd(YahooUser user) {
-        if (user == null) {
-            throw new NullPointerException();
-        }
+        if (user == null)
+			throw new NullPointerException();
 
         final String id = user.getId();
-        if (id == null || id.length() == 0) {
-            throw new IllegalArgumentException("The user to be added must have a valid, non-empty String ID field set.");
-        }
+        if (id == null || id.length() == 0)
+			throw new IllegalArgumentException("The user to be added must have a valid, non-empty String ID field set.");
 
         log.trace("Adding new user: " + user);
         YahooAddressBookEntry addressBookEntry = this.addressBookUsersById.get(id);
 
-        synchronized (usersById) {
+        synchronized (this.usersById) {
             // if (usersById.containsKey(id)) {
             // log.debug("Roster already contained this userId "
             // + "(backend storage will not be updated): " + id);
             // return false;
             // }
-//            if (addressBookEntry != null) {		//CULPRIT ==> CHANGES REFERENCES!
-//                user = this.createMergedUser(addressBookEntry, id, user)
-//            }
-            usersById.put(id, user);
+            StealthStatus previousStatus = user.getStealth();
+        	if (addressBookEntry != null)
+				user = this.createMergedUser(addressBookEntry, id, user);
+        	user.setStealth(previousStatus);
+            this.usersById.put(id, user);
             
             log.trace("Added new user: " + user);
         }
@@ -243,14 +254,13 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * @throws NullPointerException
      *             if the argument is null.
      */
-    public boolean remove(Object userObject) {
-        if (userObject == null) {
-            throw new NullPointerException();
-        }
+    @Override
+	public boolean remove(final Object userObject) {
+        if (userObject == null)
+			throw new NullPointerException();
 
-        if (!(userObject instanceof YahooUser)) {
-            throw new ClassCastException("This method needs a YahooUser value.");
-        }
+        if (!(userObject instanceof YahooUser))
+			throw new ClassCastException("This method needs a YahooUser value.");
 
         final YahooUser user = (YahooUser) userObject;
 
@@ -260,14 +270,13 @@ public class Roster implements Set<YahooUser>, SessionListener {
         }
         log.trace("Removing a user: " + user);
 
-        for (final String groupId : user.getGroupIds()) {
-            try {
-                friendManager.removeFriendFromGroup(user.getId(), groupId);
+        for (final String groupId : user.getGroupIds())
+			try {
+                this.friendManager.removeFriendFromGroup(user.getId(), groupId);
             }
             catch (IOException ex) {
                 throw new RuntimeException("Unexpected exception.", ex);
             }
-        }
         return true;
         // return syncedRemove(user.getId()); // remover user when getting the ack
     }
@@ -285,18 +294,17 @@ public class Roster implements Set<YahooUser>, SessionListener {
      *             if the argument is null or an empty String.
      */
     private boolean syncedRemove(final String userId) {
-        if (userId == null || userId.length() == 0) {
-            throw new IllegalArgumentException("Argument 'userId' cannot be null or an empty String.");
-        }
+        if (userId == null || userId.length() == 0)
+			throw new IllegalArgumentException("Argument 'userId' cannot be null or an empty String.");
 
         log.trace("Removing user by userId: " + userId);
         final YahooUser user;
-        synchronized (usersById) {
-            if (!usersById.containsKey(userId)) {
+        synchronized (this.usersById) {
+            if (!this.usersById.containsKey(userId)) {
                 log.debug("Roster does not contain this userId " + "(backend storage will not be updated): " + userId);
                 return false;
             }
-            user = usersById.remove(userId);
+            user = this.usersById.remove(userId);
             log.trace("Removed user: " + user);
         }
 
@@ -306,12 +314,25 @@ public class Roster implements Set<YahooUser>, SessionListener {
         return true;
     }
     
-    private void setPending(YahooUser user)
+    private void setPending(final YahooUser user)
     {
     	user.setPending(true);
     }
 
     /**
+     * A public accessor to verify that the current roster is ready and the list processing operations
+     * have finished.
+     * 
+     * @return
+     * 		True -- if the roster is ready
+     * 		False -- if the roster is not ready yet
+     */
+    public boolean isRosterReady()
+	{
+		return this.rosterReady;
+	}
+
+	/**
      * Utility method that updates the user from the backend in a thread-safe manner. This method also triggers an Event
      * to be sent out to the applicable listeners.
      * <p>
@@ -328,35 +349,29 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * 
      */
     private void syncedUpdate(final String userId, YahooUser user) {
-        if (userId == null || userId.length() == 0) {
-            throw new IllegalArgumentException("Argument 'userId' cannot be null or an empty String.");
-        }
+        if (userId == null || userId.length() == 0)
+			throw new IllegalArgumentException("Argument 'userId' cannot be null or an empty String.");
 
-        if (user == null) {
-            throw new NullPointerException();
-        }
+        if (user == null)
+			throw new NullPointerException();
 
-        if (!userId.equals(user.getId())) {
-            throw new IllegalArgumentException(
+        if (!userId.equals(user.getId()))
+			throw new IllegalArgumentException(
                     "The user object that is updated must have the same userId as provided in the userId argument (updating a userID is illegal).");
-        }
 
         YahooAddressBookEntry addressBookEntry = this.addressBookUsersById.get(userId);
 
-        synchronized (usersById) {
-            if (!usersById.containsKey(userId)) {
-                throw new IllegalStateException("No user on roster with this id: " + userId);
-            }
-            if (user.getGroupIds().isEmpty()) {
-                // this is an early user warning
-                for (String groupId : usersById.get(userId).getGroupIds()) {
-                    user.addGroupId(groupId);
-                }
-            }
-            if (addressBookEntry != null) {
-                user = this.createMergedUser(addressBookEntry, userId, user);
-            }
-            usersById.put(userId, user);
+        synchronized (this.usersById) {
+            if (!this.usersById.containsKey(userId))
+				throw new IllegalStateException("No user on roster with this id: " + userId);
+            if (user.getGroupIds().isEmpty())
+				// this is an early user warning
+                for (String groupId : this.usersById.get(userId).getGroupIds())
+					user.addGroupId(groupId);
+            if (addressBookEntry != null)
+				user = this.createMergedUser(addressBookEntry, userId, user);
+            user.setStealth(this.usersById.get(userId).getStealth());		//preserve the stealth status of this user
+            this.usersById.put(userId, user);
         }
 
         log.trace("Updated user identified by userId: " + userId);
@@ -378,16 +393,15 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * @throws NullPointerException
      *             if the specified element is null.
      */
-    public boolean contains(Object user) {
-        if (user == null) {
-            throw new NullPointerException();
-        }
+    @Override
+	public boolean contains(final Object user) {
+        if (user == null)
+			throw new NullPointerException();
 
-        if (!(user instanceof YahooUser)) {
-            throw new ClassCastException("This method needs a YahooUser value.");
-        }
+        if (!(user instanceof YahooUser))
+			throw new ClassCastException("This method needs a YahooUser value.");
 
-        return usersById.containsKey(((YahooUser) user).getId());
+        return this.usersById.containsKey(((YahooUser) user).getId());
     }
 
     /**
@@ -401,22 +415,18 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * @throws IllegalArgumentException
      *             if the specified userId is an empty String.
      */
-    public boolean containsUser(String userId) {
-        if (userId == null) {
-            throw new NullPointerException();
-        }
+    public boolean containsUser(final String userId) {
+        if (userId == null)
+			throw new NullPointerException();
 
-        if (userId.length() == 0) {
-            throw new IllegalArgumentException("Argument 'userId' cannot be an empty String.");
-        }
-        for (String idOfUser : this.usersById.keySet()) {
-            if (idOfUser.toLowerCase().equals(userId.toLowerCase())) {
-                if (!idOfUser.equals(userId)) {
-                    log.debug("contains user with mixed case: " + idOfUser + " looking for: " + userId);
-                }
+        if (userId.length() == 0)
+			throw new IllegalArgumentException("Argument 'userId' cannot be an empty String.");
+        for (String idOfUser : this.usersById.keySet())
+			if (idOfUser.toLowerCase().equals(userId.toLowerCase())) {
+                if (!idOfUser.equals(userId))
+					log.debug("contains user with mixed case: " + idOfUser + " looking for: " + userId);
                 return true;
             }
-        }
         return false;
     }
 
@@ -425,16 +435,14 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * 
      * @see java.util.Set#containsAll(java.util.Collection)
      */
-    public boolean containsAll(Collection<?> c) {
-        if (c == null) {
-            throw new NullPointerException();
-        }
+    @Override
+	public boolean containsAll(final Collection<?> c) {
+        if (c == null)
+			throw new NullPointerException();
 
-        for (final Object object : c) {
-            if (!contains(object)) {
-                return false;
-            }
-        }
+        for (final Object object : c)
+			if (!contains(object))
+				return false;
         return true;
     }
 
@@ -443,8 +451,9 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * 
      * @see java.util.Set#isEmpty()
      */
-    public boolean isEmpty() {
-        return usersById.isEmpty();
+    @Override
+	public boolean isEmpty() {
+        return this.usersById.isEmpty();
     }
 
     /*
@@ -452,8 +461,9 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * 
      * @see java.util.Set#size()
      */
-    public int size() {
-        return usersById.size();
+    @Override
+	public int size() {
+        return this.usersById.size();
     }
 
     /**
@@ -463,19 +473,23 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * 
      * @return an iterator over the users on this roster.
      */
-    public Iterator<YahooUser> iterator() {
+    @Override
+	public Iterator<YahooUser> iterator() {
         return new Iterator<YahooUser>() {
-            private final Iterator<YahooUser> i = usersById.values().iterator();
+            private final Iterator<YahooUser> i = Roster.this.usersById.values().iterator();
 
-            public boolean hasNext() {
-                return i.hasNext();
+            @Override
+			public boolean hasNext() {
+                return this.i.hasNext();
             }
 
-            public YahooUser next() {
-                return i.next();
+            @Override
+			public YahooUser next() {
+                return this.i.next();
             }
 
-            public void remove() {
+            @Override
+			public void remove() {
                 throw new UnsupportedOperationException();
             }
         };
@@ -489,11 +503,10 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * @return the User matched by the ID, or null if no such user exists on this roster.
      */
     public YahooUser getUser(final String userId) {
-        if (userId == null || userId.length() == 0) {
-            throw new IllegalArgumentException("Argument 'userId' cannot be null or an empty String.");
-        }
+        if (userId == null || userId.length() == 0)
+			throw new IllegalArgumentException("Argument 'userId' cannot be null or an empty String.");
 
-        return usersById.get(userId);
+        return this.usersById.get(userId);
     }
     
 //    public TreeMap<String, ArrayList<YahooUser>> getGroups()
@@ -536,29 +549,23 @@ public class Roster implements Set<YahooUser>, SessionListener {
   {
   	TreeMap<String, ArrayList<YahooUser>> groups = new TreeMap<String, ArrayList<YahooUser>>();
   	
-  	for(YahooUser user : usersById.values())
+  	synchronized (this.usersById)
   	{
-  		for(String groupName : user.getGroupIds())
-  		{
-  			if (!groups.containsKey(groupName))
-  	  		{
-  	  			ArrayList<YahooUser> usersInGroup = new ArrayList<YahooUser>();
-  	  			usersInGroup.add(user);  	  			
-  	  			groups.put(groupName, usersInGroup);
-  	  			    			
-  	  		}
-  			else		//group already exists, just add the user to that group
-  			{
-  				groups.get(groupName).add(user);
-  			}
-  			
-  		}
+	  	for(YahooUser user : this.usersById.values())
+			for(String groupName : user.getGroupIds())
+				if (!groups.containsKey(groupName))
+	  	  		{
+	  	  			ArrayList<YahooUser> usersInGroup = new ArrayList<YahooUser>();
+	  	  			usersInGroup.add(user);  	  			
+	  	  			groups.put(groupName, usersInGroup);
+	  	  			    			
+	  	  		}
+				else
+					groups.get(groupName).add(user);
   	}
   	
   	for (String groupName : groups.keySet())
-  	{
 		Collections.sort(groups.get(groupName), YahooUser.getComparator());
-  	}
   	
   	return groups;
   	
@@ -569,8 +576,9 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * 
      * @see java.util.Set#toArray()
      */
-    public Object[] toArray() {
-        return usersById.values().toArray();
+    @Override
+	public Object[] toArray() {
+        return this.usersById.values().toArray();
     }
 
     /*
@@ -578,8 +586,9 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * 
      * @see java.util.Set#toArray(T[])
      */
-    public <T> T[] toArray(T[] a) {
-        return usersById.values().toArray(a);
+    @Override
+	public <T> T[] toArray(final T[] a) {
+        return this.usersById.values().toArray(a);
     }
 
     // unsupported bulk operations
@@ -590,7 +599,8 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * @throws UnsupportedOperationException
      *             removeAll is not supported by this set.
      */
-    public boolean removeAll(Collection<?> c) {
+    @Override
+	public boolean removeAll(final Collection<?> c) {
         throw new UnsupportedOperationException();
     }
 
@@ -600,7 +610,8 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * @throws UnsupportedOperationException
      *             removeAll is not supported by this set.
      */
-    public boolean retainAll(Collection<?> c) {
+    @Override
+	public boolean retainAll(final Collection<?> c) {
         throw new UnsupportedOperationException();
     }
 
@@ -610,7 +621,8 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * @throws UnsupportedOperationException
      *             removeAll is not supported by this set.
      */
-    public boolean addAll(Collection<? extends YahooUser> c) {
+    @Override
+	public boolean addAll(final Collection<? extends YahooUser> c) {
         throw new UnsupportedOperationException();
     }
 
@@ -620,7 +632,8 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * @throws UnsupportedOperationException
      *             removeAll is not supported by this set.
      */
-    public void clear() {
+    @Override
+	public void clear() {
         throw new UnsupportedOperationException();
     }
 
@@ -629,7 +642,8 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * 
      * @see org.openymsg.network.event.SessionListener#dispatch(org.openymsg.network.FireEvent)
      */
-    public void dispatch(FireEvent event) {
+    @Override
+	public void dispatch(final FireEvent event) {
         final SessionEvent sEvent = event.getEvent();
         final ServiceType sType = event.getType();
         if (!(sEvent instanceof SessionFriendEvent) && sType != ServiceType.LIST) {
@@ -646,6 +660,13 @@ public class Roster implements Set<YahooUser>, SessionListener {
                     syncedUpdate(contact.getId(), contact);
                 }
             }
+            else if (lEvent.getType() == ContactListType.StealthBlocked) {
+            	final Set<YahooUser> contacts = lEvent.getContacts();
+                for (final YahooUser contact : contacts) {
+                	contact.setStealth(StealthStatus.STEALTH_PERMENANT);
+                    syncedUpdate(contact.getId(), contact);
+                }
+            }
             else if (lEvent.getType() != ContactListType.Friends) {
                 log.trace("Ignoring non-Friends list");
                 return;
@@ -653,18 +674,17 @@ public class Roster implements Set<YahooUser>, SessionListener {
             log.trace("Session just received the inital user list. " + "Initializing this roster, as triggered by: "
                     + event);
             final Set<YahooUser> contacts = lEvent.getContacts();
-            for (final YahooUser contact : contacts) {
-                syncedAdd(contact);
-            }
+            for (final YahooUser contact : contacts)
+				syncedAdd(contact);
+            this.rosterReady = true;
             return;
         }
 
         final SessionFriendEvent fEvent = (SessionFriendEvent) sEvent;
         final YahooUser user = fEvent.getUser();
 
-        if (fEvent.isFailure()) {
-            return;
-        }
+        if (fEvent.isFailure())
+			return;
         switch (event.getType()) {
         case FRIENDADD:
             log.trace("Adding user to roster, as triggered by " + "SessionFriendEvent: " + event);
@@ -696,10 +716,9 @@ public class Roster implements Set<YahooUser>, SessionListener {
                 log.debug("Removing user from roster as triggered by " + "SessionFriendRejectedEvent: " + event);
                 syncedRemove(user.getId());
             }
-            else {
-                log.info("Ignoring SessionFriendEvent of type " + event.getType() + " that contains an event that we"
+			else
+				log.info("Ignoring SessionFriendEvent of type " + event.getType() + " that contains an event that we"
                         + " do not know how to process: " + fEvent);
-            }
             break;
         default:
             log.info("Ignoring SessionFriendEvent that came" + " with an unsupported ServiceType: " + event.getType());
@@ -707,7 +726,7 @@ public class Roster implements Set<YahooUser>, SessionListener {
         }
     }
 
-    public void addOrUpdateAddressBook(YahooAddressBookEntry addressBookEntry) {
+    public void addOrUpdateAddressBook(final YahooAddressBookEntry addressBookEntry) {
         String userId = addressBookEntry.getId();
         log.trace("Adding to address book: " + addressBookEntry);
         synchronized (this.addressBookUsersById) {
@@ -716,13 +735,13 @@ public class Roster implements Set<YahooUser>, SessionListener {
 
         boolean isUpdate = false;
         YahooUser newUser = null;
-        synchronized (usersById) {
-            YahooUser user = usersById.get(userId);
+        synchronized (this.usersById) {
+            YahooUser user = this.usersById.get(userId);
             if (user != null) {
                 isUpdate = true;
                 newUser = createMergedUser(addressBookEntry, userId, user);
                 log.trace("updated user with addressBook: " + user);
-                usersById.put(userId, newUser);
+                this.usersById.put(userId, newUser);
             }
         }
 
@@ -740,7 +759,7 @@ public class Roster implements Set<YahooUser>, SessionListener {
      * This method creates a new YahooUser and therefore changes the reference
      * of the passed 'user' variable.
      */
-    private YahooUser createMergedUser(YahooAddressBookEntry addressBookEntry, String userId, YahooUser user) {
+    private YahooUser createMergedUser(final YahooAddressBookEntry addressBookEntry, final String userId, final YahooUser user) {
         YahooUser newUser;
         Set<String> groupIds = new HashSet<String>(user.getGroupIds()); // returns an unmodifiable set
         YahooProtocol protocol = user.getProtocol();
@@ -749,9 +768,8 @@ public class Roster implements Set<YahooUser>, SessionListener {
         String customMessage = user.getCustomStatusMessage();
         String customStatus = user.getCustomStatus();
         newUser.update(status, user.isOnChat(), user.isOnPager());
-        if (status.equals(Status.CUSTOM)) {
-            newUser.setCustom(customMessage, customStatus);
-        }
+        if (status.equals(Status.CUSTOM))
+			newUser.setCustom(customMessage, customStatus);
 
        return newUser;
     }

@@ -52,7 +52,6 @@ public class ChangeStatusActivity extends Activity
 	private Spinner spnStatus = null;
 	private EditText txtCustomMessage = null;
 	private CheckBox chkBusy = null;
-	private final Integer x = null;
 
 
 	@Override
@@ -66,6 +65,7 @@ public class ChangeStatusActivity extends Activity
 		this.txtCustomMessage = (EditText) findViewById(R.id.txtCustomMessage);
 		this.chkBusy = (CheckBox) findViewById(R.id.chkBusy);
 
+		@SuppressWarnings({ "rawtypes", "unchecked" })
 		ArrayAdapter adapter = new ArrayAdapter(this, android.R.layout.simple_spinner_item, this.statusArray);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		this.spnStatus.setAdapter(adapter);
@@ -96,7 +96,6 @@ public class ChangeStatusActivity extends Activity
 				break;
 		}
 		this.spnStatus.setSelection(currentSelection);
-		this.txtCustomMessage.setText("");
 		this.btnOk.setOnClickListener(this.btnOk_Listener);
 		this.btnCancel.setOnClickListener(this.btnCancel_Listener);
 	}

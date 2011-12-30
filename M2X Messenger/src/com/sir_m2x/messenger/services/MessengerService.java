@@ -70,6 +70,9 @@ public class MessengerService extends Service
 	 * Notification constants
 	 */
 	public static final int NOTIFICATION_SIGNED_IN = 0;
+	public static final int NOTIFICATION_CONTACT_REQUEST = 1;
+	public static final int NOTIFICATION_CONTACT_ACCEPTED = 2;
+	public static final int NOTIFICATION_CONTACT_REJECTED = 3;
 	
 	/*
 	 * Intent constants
@@ -112,7 +115,7 @@ public class MessengerService extends Service
 		return session;
 	}
 
-	public static void setSession(Session session)
+	public static void setSession(final Session session)
 	{
 		MessengerService.session = session;
 	}
@@ -123,7 +126,7 @@ public class MessengerService extends Service
 	}
 
 	public static void setFriendsInChat(
-			java.util.LinkedHashMap<String, LinkedList<IM>> friendsInChat)
+			final java.util.LinkedHashMap<String, LinkedList<IM>> friendsInChat)
 	{
 		MessengerService.friendsInChat = friendsInChat;
 	}
@@ -133,7 +136,7 @@ public class MessengerService extends Service
 		return myAvatar;
 	}
 
-	public static void setMyAvatar(Bitmap myAvatar)
+	public static void setMyAvatar(final Bitmap myAvatar)
 	{
 		MessengerService.myAvatar = myAvatar;
 	}
@@ -143,7 +146,7 @@ public class MessengerService extends Service
 		return friendAvatars;
 	}
 
-	public static void setFriendAvatars(HashMap<String, Bitmap> friendAvatars)
+	public static void setFriendAvatars(final HashMap<String, Bitmap> friendAvatars)
 	{
 		MessengerService.friendAvatars = friendAvatars;
 	}
@@ -153,17 +156,17 @@ public class MessengerService extends Service
 		return myId;
 	}
 
-	public static void setMyId(String myId)
+	public static void setMyId(final String myId)
 	{
 		MessengerService.myId = myId;
 	}
 
 	public Handler getToastHandler()
 	{
-		return toastHandler;
+		return this.toastHandler;
 	}
 
-	public void setToastHandler(Handler toastHandler)
+	public void setToastHandler(final Handler toastHandler)
 	{
 		this.toastHandler = toastHandler;
 	}
@@ -181,7 +184,7 @@ public class MessengerService extends Service
 	private Handler toastHandler = new Handler()
 	{
 		@Override
-		public void handleMessage(android.os.Message msg)
+		public void handleMessage(final android.os.Message msg)
 		{
 //			synchronized (getAlertMessages())
 //			{
@@ -229,16 +232,16 @@ public class MessengerService extends Service
 //	};
 
 	@Override
-	public int onStartCommand(Intent intent, int flags, int startId)
+	public int onStartCommand(final Intent intent, final int flags, final int startId)
 	{
-		session.addSessionListener(sessionListener);
-		registerReceiver(serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_NEW_IM));
-		registerReceiver(serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_BUZZ));
-		registerReceiver(serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_ON));
-		registerReceiver(serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_UPDATE_RECEIVED));
-		registerReceiver(serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_OFF));
-		registerReceiver(serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_EVENT));
-		registerReceiver(serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_DESTROY));
+		session.addSessionListener(this.sessionListener);
+		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_NEW_IM));
+		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_BUZZ));
+		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_ON));
+		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_UPDATE_RECEIVED));
+		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_OFF));
+		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_EVENT));
+		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_DESTROY));
 		
 		NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 		Notification notify = new Notification(R.drawable.ic_stat_notify, "Connected to Yahoo!", System.currentTimeMillis());
@@ -294,7 +297,7 @@ public class MessengerService extends Service
 		FriendsList.getMasterList().clear();
 		
 		//unregister broadcast receivers
-		unregisterReceiver(serviceBroadcastReceiver);
+		unregisterReceiver(this.serviceBroadcastReceiver);
 		//Toast.makeText(getApplicationContext(), "Logged out", Toast.LENGTH_LONG).show();
 		sendBroadcast(new Intent(INTENT_DESTROY));
 		startActivity(new Intent(getApplicationContext(), LoginActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -305,7 +308,7 @@ public class MessengerService extends Service
 	{
 
 		@Override
-		public void onReceive(Context context, Intent intent)
+		public void onReceive(final Context context, final Intent intent)
 		{
 			if (intent.getAction().equals(MessengerService.INTENT_NEW_IM))
 			{
@@ -384,7 +387,7 @@ public class MessengerService extends Service
 		}
 	};
 	
-	private void PlayAudio(Uri uri, int streamType)
+	private void PlayAudio(final Uri uri, final int streamType)
 	{
 		MediaPlayer mp = new MediaPlayer();
 		try
@@ -404,7 +407,7 @@ public class MessengerService extends Service
 	{
 		
 		@Override
-		public void dispatch(FireEvent event)
+		public void dispatch(final FireEvent event)
 		{
 			//TODO IMPLEMENT LISTENER TO RESPONSE TO VARIOUS SITUATIONS
 			if (event.getEvent() instanceof SessionLogoutEvent)			
@@ -415,7 +418,7 @@ public class MessengerService extends Service
 	};
 
 	@Override
-	public IBinder onBind(Intent intent)
+	public IBinder onBind(final Intent intent)
 	{
 		// TODO Auto-generated method stub
 		return null;
