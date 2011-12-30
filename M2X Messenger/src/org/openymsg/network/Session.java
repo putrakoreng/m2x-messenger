@@ -35,6 +35,9 @@ import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -54,8 +57,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.X509TrustManager;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -90,6 +95,7 @@ import org.openymsg.network.event.SessionNotifyEvent;
 import org.openymsg.network.event.SessionPictureEvent;
 import org.openymsg.network.event.SessionPictureHandler;
 import org.openymsg.roster.Roster;
+
 
 /**
  * Written by FISH, Feb 2003 , Copyright FISH 2003 - 2007
@@ -1631,34 +1637,16 @@ public class Session implements StatusConstants, FriendManager {
         body.addElement("10", String.valueOf(this.status.getValue()));
         body.addElement("19", "");
         sendPacket(body, ServiceType.Y6_STATUS_UPDATE);
-        
-//		PacketBodyBuffer body = new PacketBodyBuffer();
-//		if (this.status != Status.INVISIBLE)
-//		{
-//			if (wasInvisible)
-//			{
-//				body.addElement("13", "1");		//a visibility toggle (to set the status to online)
-//				sendPacket(body, ServiceType.Y6_VISIBLE_TOGGLE);
-//				body = new PacketBodyBuffer();
-//			}
-//			
-//			body.addElement("10", String.valueOf(this.status.getValue()));
-//			body.addElement("19", "");
-//			sendPacket(body, ServiceType.Y6_STATUS_UPDATE);
-//		}
-//		else		//if the new status is "invisible" a Y6_VISIBLE_TOGGLE must be sent!
-//					//as a Y6_STATUS_UPDATE will not work and we will still be online.
-//		{
-//			if(wasInvisible)
-//				return;		//if we were invisible, we don't want to send out another visibility toggle!
-//							//because if we did, we would pop up like Christmas tree on our friends list!
-//							//Yeah baby! I care about your privacy ;-]
-//			body.addElement("13", "2");
-//			sendPacket(body, ServiceType.Y6_VISIBLE_TOGGLE);
-//		}	
 	}
 	
 	
+	/**
+	 * 	Transmit the desired visibility to Yahoo network. Basically a visible/invisible toggle
+	 * 
+	 * @param toggleOn
+	 * 		Set to true if you want to be present on the Yahoo network, otherwise set to false
+	 * @throws IOException
+	 */
 	protected void transmitVisibleToggle(final boolean toggleOn) throws IOException
 	{
 		PacketBodyBuffer body = new PacketBodyBuffer();
@@ -2160,6 +2148,7 @@ public class Session implements StatusConstants, FriendManager {
 		uc.setConnectTimeout(LOGIN_HTTP_TIMEOUT);
 
 		if (uc instanceof HttpsURLConnection) {
+			trustEveryone();
 			HttpsURLConnection httpUc = (HttpsURLConnection) uc;
 
 			if (!this.yahooLoginHost.equalsIgnoreCase(LOGIN_YAHOO_COM))
@@ -4127,5 +4116,33 @@ public class Session implements StatusConstants, FriendManager {
 
 	public Collection<YahooConference> getConferences() {
 		return Collections.unmodifiableCollection(this.conferences.values()) ;
+	}
+
+
+
+	private void trustEveryone() {
+	        try {
+	                HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier(){
+	                        @Override
+							public boolean verify(final String hostname, final SSLSession session) {
+	                                return true;
+	                        }});
+	                SSLContext context = SSLContext.getInstance("TLS");
+	                context.init(null, new X509TrustManager[]{new X509TrustManager(){
+	                        @Override
+							public void checkClientTrusted(final X509Certificate[] chain,
+	                                        final String authType) throws CertificateException {}
+	                        @Override
+							public void checkServerTrusted(final X509Certificate[] chain,
+	                                        final String authType) throws CertificateException {}
+	                        @Override
+							public X509Certificate[] getAcceptedIssuers() {
+	                                return new X509Certificate[0];
+	                        }}}, new SecureRandom());
+	                HttpsURLConnection.setDefaultSSLSocketFactory(
+	                                context.getSocketFactory());
+	        } catch (Exception e) { // should never happen
+	                e.printStackTrace();
+	        }
 	}
 }

@@ -73,6 +73,8 @@ public class LoginActivity extends Activity
 	@Override
 	public void onCreate(final Bundle savedInstanceState)
 	{
+		System.setProperty("http.keepAlive", "false");
+		
 		if (isServiceRunning("com.sir_m2x.messenger.services.MessengerService"))
 			startActivity(new Intent(LoginActivity.this, ContactsListActivity.class));
 		super.onCreate(savedInstanceState);
