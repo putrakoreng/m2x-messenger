@@ -42,7 +42,7 @@ public class Utils
 	 * @return
 	 * 		A bitmap containing the avatar which is received. 
 	 */
-	public static Bitmap getYahooAvatar(String userId)
+	public static Bitmap getYahooAvatar(final String userId)
 	{
 		try
 		{
@@ -82,17 +82,14 @@ public class Utils
 				{
 					String id = r.getId();
 					if (!MessengerService.getFriendAvatars().containsKey(id))
+					//synchronized (MessengerService.friendAvatars)
 					{
-						//synchronized (MessengerService.friendAvatars)
+						Bitmap avatar = getYahooAvatar(r.getId());
+						if (avatar != null)
 						{
-							Bitmap avatar = getYahooAvatar(r.getId());
-							if (avatar != null)
-							{
-								MessengerService.getFriendAvatars().put(id, avatar);
-								Log.d("M2X", "Avatar loaded for " + id);
-							}
+							MessengerService.getFriendAvatars().put(id, avatar);
+							Log.d("M2X", "Avatar loaded for " + id);
 						}
-
 					}
 				}
 
@@ -110,8 +107,32 @@ public class Utils
 	 * @return
 	 *		The qualified string.
 	 */
-	public static String qualify(String string)
+	public static String qualify(final String string)
 	{
 		return "com.sir_m2x.messenger." + string;
+	}
+	
+	/**
+	 * A convenience method to convert a string to its italic equivalent in HTML
+	 * @param string
+	 * 		String to convert
+	 * @return
+	 * 		The string enclosed in proper italic HTML tags.
+	 */
+	public static String toItalic(final String string)
+	{
+		return "<i>" + string + "</i>";
+	}
+	
+	/**
+	 * A convenience method to convert a string to its bold equivalent in HTML
+	 * @param string
+	 * 		String to convert
+	 * @return
+	 * 		The string enclosed in proper bold HTML tags.
+	 */
+	public static String toBold(final String string)
+	{
+		return "<b>" + string + "</b>";
 	}
 }

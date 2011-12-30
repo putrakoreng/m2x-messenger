@@ -229,8 +229,8 @@ public class LoginActivity extends Activity
 
 			try
 			{
-				if (LoginActivity.this.loginStatus != org.openymsg.network.Status.CUSTOM)
-					result.setStatus(LoginActivity.this.loginStatus);	//in case the user has selected a status other than invisible
+				if (LoginActivity.this.loginStatus != org.openymsg.network.Status.CUSTOM /*&& LoginActivity.this.loginStatus != org.openymsg.network.Status.INVISIBLE*/)
+					result.setStatus(LoginActivity.this.loginStatus);	//in case the user has selected a status other than invisible or custom status
 				else
 					result.setStatus(LoginActivity.this.txtCustomMessage.getText().toString(), LoginActivity.this.chkBusy.isChecked());
 			}
@@ -251,6 +251,7 @@ public class LoginActivity extends Activity
 				catch (InterruptedException e)
 				{
 				}
+				while(!result.getRoster().isRosterReady());		//wait for the roster to become fully ready.
 				Utils.getAllAvatars();
 				FriendsList.fillFriends(result.getRoster().getGroups());
 				result.addSessionListener(new FriendsList());

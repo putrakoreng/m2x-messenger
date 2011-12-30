@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.TreeMap;
 
 import org.openymsg.network.Status;
+import org.openymsg.network.StealthStatus;
 import org.openymsg.network.YahooUser;
 
 import android.app.AlertDialog;
@@ -64,28 +65,28 @@ public class ContactsListActivity extends ExpandableListActivity
 	private ContactsListAdapter adapter;
 
 	@Override
-	public void onCreate(Bundle savedInstanceState)
+	public void onCreate(final Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 		setContentView(R.layout.contacts_list);
-		adapter = new ContactsListAdapter();
-		setListAdapter(adapter);
+		this.adapter = new ContactsListAdapter();
+		setListAdapter(this.adapter);
 		registerForContextMenu(getExpandableListView());
 	}
 
 	@Override
 	protected void onResume()
 	{
-		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_IS_TYPING));
-		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_NEW_IM));
-		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_BUZZ));
-		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_ON));
-		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_FRIEND_UPDATE_RECEIVED));
-		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_OFF));
-		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_LIST_CHANGED));
-		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_DESTROY));
-		adapter.notifyDataSetChanged();
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_IS_TYPING));
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_NEW_IM));
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_BUZZ));
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_ON));
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_FRIEND_UPDATE_RECEIVED));
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_OFF));
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_LIST_CHANGED));
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_DESTROY));
+		this.adapter.notifyDataSetChanged();
 		super.onResume();
 	}
 
@@ -98,16 +99,16 @@ public class ContactsListActivity extends ExpandableListActivity
 	@Override
 	protected void onDestroy()
 	{
-		unregisterReceiver(listener); // to be able to close the activity via
+		unregisterReceiver(this.listener); // to be able to close the activity via
 										// INTENT_DESTROY broadcast
 		super.onDestroy();
 	}
 
 	@Override
-	public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id)
+	public boolean onChildClick(final ExpandableListView parent, final View v, final int groupPosition, final int childPosition, final long id)
 	{
 		Intent intent = new Intent(ContactsListActivity.this, ChatWindowTabActivity.class);
-		intent.putExtra(Utils.qualify("friendId"), adapter.getChild(groupPosition, childPosition).toString());
+		intent.putExtra(Utils.qualify("friendId"), this.adapter.getChild(groupPosition, childPosition).toString());
 		startActivity(intent);
 
 		return true;
@@ -116,19 +117,19 @@ public class ContactsListActivity extends ExpandableListActivity
 	private class ContactsListAdapter extends BaseExpandableListAdapter
 	{
 		@Override
-		public Object getChild(int groupPosition, int childPosition)
+		public Object getChild(final int groupPosition, final int childPosition)
 		{
 			return FriendsList.getMasterList().get(FriendsList.getMasterList().keySet().toArray()[groupPosition]).get(childPosition);
 		}
 
 		@Override
-		public long getChildId(int groupPosition, int childPosition)
+		public long getChildId(final int groupPosition, final int childPosition)
 		{
 			return childPosition;
 		}
 
 		@Override
-		public View getChildView(int groupPosition, int childPosition, boolean isLastChild, View convertView, ViewGroup parent)
+		public View getChildView(final int groupPosition, final int childPosition, final boolean isLastChild, final View convertView, final ViewGroup parent)
 		{
 			YahooUser user = (YahooUser) getChild(groupPosition, childPosition);
 			String friendId = user.getId().toString();
@@ -155,7 +156,11 @@ public class ContactsListActivity extends ExpandableListActivity
 			if (user.getStatus() != Status.OFFLINE)
 				isOnline = true;
 
-			String friendIdAndStatus = isOnline ? "<b>" + friendId + "</b>" : "<i>" + friendId + "</i>";
+			String friendIdAndStatus = isOnline ? Utils.toBold(friendId ) : friendId;
+			
+			if(user.getStealth() == StealthStatus.STEALTH_PERMENANT)
+				friendIdAndStatus = Utils.toItalic(friendIdAndStatus);
+			
 			if (user.getCustomStatus() != null)
 				friendIdAndStatus += " -- <small>" + user.getCustomStatusMessage() + "</small>";
 			if (user.isPending())
@@ -179,13 +184,13 @@ public class ContactsListActivity extends ExpandableListActivity
 		}
 
 		@Override
-		public int getChildrenCount(int groupPosition)
+		public int getChildrenCount(final int groupPosition)
 		{
 			return FriendsList.getMasterList().get(FriendsList.getMasterList().keySet().toArray()[groupPosition]).size();
 		}
 
 		@Override
-		public Object getGroup(int groupPosition)
+		public Object getGroup(final int groupPosition)
 		{
 			return FriendsList.getMasterList().keySet().toArray()[groupPosition];
 		}
@@ -195,37 +200,37 @@ public class ContactsListActivity extends ExpandableListActivity
 		public int getGroupCount()
 		{
 			// TODO What's with the random NullPoinderException??!
-			try
-			{
+//			try
+//			{
 				return FriendsList.getMasterList().keySet().size();
 
-			}
-			catch (Exception ex)
-			{
-				try
-				{
-					Thread.sleep(1000);
-				}
-				catch (InterruptedException e)
-				{
-					e.printStackTrace();
-				}
-				finally
-				{
-					return FriendsList.getMasterList().keySet().size();
-				}
-
-			}
+//			}
+//			catch (Exception ex)
+//			{
+//				try
+//				{
+//					Thread.sleep(1000);
+//				}
+//				catch (InterruptedException e)
+//				{
+//					e.printStackTrace();
+//				}
+//				finally
+//				{
+//					return FriendsList.getMasterList().keySet().size();
+//				}
+//
+//			}
 		}
 
 		@Override
-		public long getGroupId(int groupPosition)
+		public long getGroupId(final int groupPosition)
 		{
 			return groupPosition;
 		}
 
 		@Override
-		public View getGroupView(int groupPosition, boolean isExpanded, View convertView, ViewGroup parent)
+		public View getGroupView(final int groupPosition, final boolean isExpanded, final View convertView, final ViewGroup parent)
 		{
 			LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 			View v = inflater.inflate(R.layout.contacts_list_group_view, parent, false);
@@ -270,7 +275,7 @@ public class ContactsListActivity extends ExpandableListActivity
 		}
 
 		@Override
-		public boolean isChildSelectable(int groupPosition, int childPosition)
+		public boolean isChildSelectable(final int groupPosition, final int childPosition)
 		{
 			return true;
 		}
@@ -278,7 +283,7 @@ public class ContactsListActivity extends ExpandableListActivity
 	}
 
 	@Override
-	public boolean onCreateOptionsMenu(Menu menu)
+	public boolean onCreateOptionsMenu(final Menu menu)
 	{
 		MenuInflater inflator = getMenuInflater();
 		inflator.inflate(R.menu.contacts_list_menu, menu);
@@ -286,13 +291,31 @@ public class ContactsListActivity extends ExpandableListActivity
 	}
 
 	@Override
-	public boolean onOptionsItemSelected(MenuItem item)
+	public boolean onOptionsItemSelected(final MenuItem item)
 	{
 		switch (item.getItemId())
 		{
 			case R.id.mnuSignOut:
-				stopService(new Intent(this, MessengerService.class));
-				finish();
+				AlertDialog.Builder builder = new AlertDialog.Builder(this);
+				//confirm sign out
+				builder.setTitle("Confirm sign out").setMessage("Are you sure you want to sing out?").setPositiveButton("Yes", new OnClickListener()
+				{
+					
+					@Override
+					public void onClick(final DialogInterface dialog, final int which)
+					{
+						stopService(new Intent(ContactsListActivity.this, MessengerService.class));
+						finish();						
+					}
+				}).setNegativeButton("No", new OnClickListener()
+				{
+					
+					@Override
+					public void onClick(final DialogInterface dialog, final int which)
+					{
+						dialog.cancel();
+					}
+				}).show();
 				break;
 
 			case R.id.mnuShowConversations:
@@ -314,7 +337,7 @@ public class ContactsListActivity extends ExpandableListActivity
 	}
 
 	@Override
-	public void onCreateContextMenu(android.view.ContextMenu menu, View v, android.view.ContextMenu.ContextMenuInfo menuInfo)
+	public void onCreateContextMenu(final android.view.ContextMenu menu, final View v, final android.view.ContextMenu.ContextMenuInfo menuInfo)
 	{
 		super.onCreateContextMenu(menu, v, menuInfo);
 		ExpandableListContextMenuInfo info = (ExpandableListContextMenuInfo) menuInfo;
@@ -325,32 +348,38 @@ public class ContactsListActivity extends ExpandableListActivity
 
 		if (type == ExpandableListView.PACKED_POSITION_TYPE_CHILD) // Show the pop-up menu for a friend
 		{
-			YahooUser user = (YahooUser) adapter.getChild(group, child);
+			YahooUser user = (YahooUser) this.adapter.getChild(group, child);
 			menu.setHeaderTitle(user.getId());
-			menu.add(1, 1, 0, "Remove from friends"); // the first choice is to remove this friend
+			
+			//The stealth choices
+			menu.add(1, 1, 0, "Appear online to " + user.getId()).setChecked(user.getStealth() == StealthStatus.NO_STEALTH);
+			//TODO implement this for session stealth support
+			//menu.add(1, 2, 0, "Appear offline to " + user.getId()).setChecked(user.getStealth() == StealthStatus.STEALTH_SESSION);
+			menu.add(1, 3, 0, "Appear permenantly offline to " + user.getId()).setChecked(user.getStealth() == StealthStatus.STEALTH_PERMENANT);
+			
+			menu.add(2, 4, 0, "Remove from friends"); // the next choice is to remove this friend
 
-			int i = 2;
+			int i = 5;
 			TreeMap<String, ArrayList<YahooUser>> groups = FriendsList.getMasterList();
 
 			for (String groupName : groups.keySet()) // generate the list of all groups
 			{
-				MenuItem item = menu.add(2, i, 0, groupName);
+				MenuItem item = menu.add(3, i, 0, groupName);
 				for (String g : user.getGroupIds())
-				{
 					if (g.equals(groupName))
 					{
 						item.setChecked(true); // check off the default group
 						break;
 					}
-				}
 				i++;
 			}
 
-			menu.setGroupCheckable(2, true, true);
+			menu.setGroupCheckable(1, true, true);
+			menu.setGroupCheckable(3, true, true);
 		}
 		else if (type == ExpandableListView.PACKED_POSITION_TYPE_GROUP) // Show the pop-up menu for a group
 		{
-			String groupName = adapter.getGroup(group).toString();
+			String groupName = this.adapter.getGroup(group).toString();
 			menu.setHeaderTitle(groupName);
 			menu.add(1, 1, 0, "Add a friend");
 			menu.add(1, 2, 0, "Delete");
@@ -359,7 +388,7 @@ public class ContactsListActivity extends ExpandableListActivity
 	};
 
 	@Override
-	public boolean onContextItemSelected(MenuItem item)
+	public boolean onContextItemSelected(final MenuItem item)
 	{
 
 		ExpandableListContextMenuInfo info = (ExpandableListContextMenuInfo) item.getMenuInfo();
@@ -369,10 +398,49 @@ public class ContactsListActivity extends ExpandableListActivity
 
 		if (type == ExpandableListView.PACKED_POSITION_TYPE_CHILD) //a child item is selected
 		{
-			final YahooUser user = (YahooUser) adapter.getChild(group, child);
+			final YahooUser user = (YahooUser) this.adapter.getChild(group, child);
 			final String sourceGroup = user.getGroup();
 
-			if (item.getItemId() == 1) //Delete
+			if (item.getItemId() == 1)	// Appear online
+			{
+				try
+				{
+					FriendsList.changeStealth(user.getId(), StealthStatus.NO_STEALTH);
+					this.adapter.notifyDataSetChanged();
+				}
+				catch (IOException e)
+				{
+					e.printStackTrace();
+				}
+				return true;
+			}
+			//TODO implement this for session stealth support
+//			else if (item.getItemId() == 2)	// Appear offline
+//			{
+//				try
+//				{
+//					FriendsList.changeStealth(user.getId(), StealthStatus.STEALTH_SESSION);
+//				}
+//				catch (IOException e)
+//				{
+//					e.printStackTrace();
+//				}
+//				return true;
+//			}
+			else if (item.getItemId() == 3)	//Appear permenantly offline
+			{
+				try
+				{
+					FriendsList.changeStealth(user.getId(), StealthStatus.STEALTH_PERMENANT);
+					this.adapter.notifyDataSetChanged();
+				}
+				catch (IOException e)
+				{
+					e.printStackTrace();
+				}
+				return true;
+			}
+			else if (item.getItemId() == 4) //Delete
 			{
 				AlertDialog.Builder builder = new AlertDialog.Builder(this);
 				builder.setTitle("Remove friend");
@@ -382,12 +450,12 @@ public class ContactsListActivity extends ExpandableListActivity
 				{
 
 					@Override
-					public void onClick(DialogInterface dialog, int which)
+					public void onClick(final DialogInterface dialog, final int which)
 					{
 						try
 						{
 							FriendsList.removeFriendFromGroup(user.getId(), sourceGroup);
-							adapter.notifyDataSetChanged();
+							ContactsListActivity.this.adapter.notifyDataSetChanged();
 						}
 						catch (IOException e)
 						{
@@ -400,7 +468,7 @@ public class ContactsListActivity extends ExpandableListActivity
 				{
 
 					@Override
-					public void onClick(DialogInterface dialog, int which)
+					public void onClick(final DialogInterface dialog, final int which)
 					{
 						dialog.cancel();
 					}
@@ -409,7 +477,8 @@ public class ContactsListActivity extends ExpandableListActivity
 				builder.create().show();
 				return true;
 			}
-
+				
+			// Else : change the group of the current user
 			String destinationGroup = item.getTitle().toString();
 
 			try
@@ -418,7 +487,6 @@ public class ContactsListActivity extends ExpandableListActivity
 			}
 			catch (IOException e)
 			{
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 
@@ -427,7 +495,7 @@ public class ContactsListActivity extends ExpandableListActivity
 		else if (type == ExpandableListView.PACKED_POSITION_TYPE_GROUP) //a group item is selected
 		{
 
-			final String groupName = adapter.getGroup(group).toString();
+			final String groupName = this.adapter.getGroup(group).toString();
 			AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
 			switch (item.getItemId())
@@ -438,7 +506,7 @@ public class ContactsListActivity extends ExpandableListActivity
 					{
 
 						@Override
-						public void onClick(DialogInterface dialog, int which)
+						public void onClick(final DialogInterface dialog, final int which)
 						{
 							String friendId = txtId.getText().toString();
 							if (friendId == null || friendId.isEmpty())
@@ -446,7 +514,7 @@ public class ContactsListActivity extends ExpandableListActivity
 							try
 							{
 								FriendsList.addFriend(friendId, groupName);
-								adapter.notifyDataSetChanged();
+								ContactsListActivity.this.adapter.notifyDataSetChanged();
 							}
 							catch (Exception ex)
 							{
@@ -457,7 +525,7 @@ public class ContactsListActivity extends ExpandableListActivity
 					{
 
 						@Override
-						public void onClick(DialogInterface dialog, int which)
+						public void onClick(final DialogInterface dialog, final int which)
 						{
 							dialog.cancel();
 						}
@@ -467,12 +535,12 @@ public class ContactsListActivity extends ExpandableListActivity
 					builder.setTitle("Confrim delete").setMessage("Are you sure you want to delete group \"" + groupName + "\"?").setPositiveButton("Yes", new OnClickListener()
 					{
 						@Override
-						public void onClick(DialogInterface dialog, int which)
+						public void onClick(final DialogInterface dialog, final int which)
 						{
 							try
 							{
 								FriendsList.deleteGroup(groupName);
-								adapter.notifyDataSetChanged();
+								ContactsListActivity.this.adapter.notifyDataSetChanged();
 							}
 							catch (Exception ex)
 							{
@@ -483,7 +551,7 @@ public class ContactsListActivity extends ExpandableListActivity
 					}).setNegativeButton("No", new OnClickListener()
 					{
 						@Override
-						public void onClick(DialogInterface dialog, int which)
+						public void onClick(final DialogInterface dialog, final int which)
 						{
 							dialog.cancel();
 						}
@@ -495,7 +563,7 @@ public class ContactsListActivity extends ExpandableListActivity
 					builder.setTitle("Group rename").setMessage("Enter a new name for this group:").setView(txtGroupNewName).setPositiveButton("OK", new OnClickListener()
 					{
 						@Override
-						public void onClick(DialogInterface dialog, int which)
+						public void onClick(final DialogInterface dialog, final int which)
 						{
 							String groupNewName = txtGroupNewName.getText().toString();
 							if (groupName == null || groupName.isEmpty())
@@ -503,7 +571,7 @@ public class ContactsListActivity extends ExpandableListActivity
 							try
 							{
 								FriendsList.renameGroup(groupName, groupNewName);
-								adapter.notifyDataSetChanged();
+								ContactsListActivity.this.adapter.notifyDataSetChanged();
 							}
 							catch (Exception e)
 							{
@@ -513,7 +581,7 @@ public class ContactsListActivity extends ExpandableListActivity
 					}).setNegativeButton("Cancel", new OnClickListener()
 					{
 						@Override
-						public void onClick(DialogInterface dialog, int which)
+						public void onClick(final DialogInterface dialog, final int which)
 						{
 							dialog.cancel();
 						}
@@ -523,7 +591,7 @@ public class ContactsListActivity extends ExpandableListActivity
 			}
 		}
 
-		adapter.notifyDataSetChanged();
+		this.adapter.notifyDataSetChanged();
 		return true;
 	};
 
@@ -531,17 +599,15 @@ public class ContactsListActivity extends ExpandableListActivity
 	{
 
 		@Override
-		public void onReceive(Context context, Intent intent)
+		public void onReceive(final Context context, final Intent intent)
 		{
 			if (intent.getAction().equals(MessengerService.INTENT_NEW_IM) || intent.getAction().equals(MessengerService.INTENT_IS_TYPING)
 					|| intent.getAction().equals(MessengerService.INTENT_BUZZ) || intent.getAction().equals(MessengerService.INTENT_FRIEND_SIGNED_ON)
 					|| intent.getAction().equals(MessengerService.INTENT_FRIEND_SIGNED_OFF) || intent.getAction().equals(MessengerService.INTENT_FRIEND_UPDATE_RECEIVED)
 					|| intent.getAction().equals(MessengerService.INTENT_LIST_CHANGED))
-				adapter.notifyDataSetChanged();
+				ContactsListActivity.this.adapter.notifyDataSetChanged();
 			else if (intent.getAction().equals(MessengerService.INTENT_DESTROY))
-			{
 				finish();
-			}
 		}
 	};
 

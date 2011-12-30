@@ -133,7 +133,7 @@ public class Session implements StatusConstants, FriendManager {
 	private String imvironment;
 
 	/** Yahoo status (presence) */
-	protected Status status;
+	protected Status status = Status.AVAILABLE; // set the initial presence to available
 
 	/** Message for custom status. */
 	private String customStatusMessage;
@@ -575,7 +575,19 @@ public class Session implements StatusConstants, FriendManager {
 		this.customStatusMessage = null;
 
 		if (this.sessionStatus != SessionState.UNSTARTED)
-			transmitNewStatus(wasInvisible);
+			if (status == Status.INVISIBLE)
+			{
+				if (wasInvisible)
+					return;
+				transmitVisibleToggle(false);
+				return;
+			}
+			else
+			{
+				if (wasInvisible)
+					transmitVisibleToggle(true);
+				transmitNewStatus();
+			}
 	}
 
 	/**
@@ -597,11 +609,31 @@ public class Session implements StatusConstants, FriendManager {
 		if (message == null)
 			throw new IllegalArgumentException("Cannot set custom state with null message");
 
+		boolean wasInvisible = this.status == Status.INVISIBLE; 
 		this.status = Status.CUSTOM;
 		this.customStatusMessage = message;
 		this.customStatusBusy = showBusyIcon;
 
-		transmitNewCustomStatus();
+		transmitNewCustomStatus(wasInvisible);
+	}
+	
+	/**
+	 * This is used to set our on/offline status for the current session only on a user-by-user basis.
+	 * 
+	 * @param userId
+	 * 		The id of the user whom we would like to change our stealth status for
+	 * @param newStealth
+	 * 		New stealth status
+	 * @throws IOException
+	 */
+	public synchronized void changeStealth(final String target, final StealthStatus newStealth) throws IOException
+	{
+		YahooUser user = this.roster.getUser(target);
+		if (user == null)
+			throw new IllegalArgumentException("Parameter \"userId\" cannot be null or empty string");
+		
+		transmitStealthSession(this.loginID.getId(), target, newStealth);
+		user.setStealth(newStealth);
 	}
 
 	public String getCustomStatusMessage() {
@@ -1594,31 +1626,46 @@ public class Session implements StatusConstants, FriendManager {
 	 * 
 	 * @throws IOException
 	 */
-	protected void transmitNewStatus(final boolean wasInvisible) throws IOException {
+	protected void transmitNewStatus() throws IOException {
+		final PacketBodyBuffer body = new PacketBodyBuffer();
+        body.addElement("10", String.valueOf(this.status.getValue()));
+        body.addElement("19", "");
+        sendPacket(body, ServiceType.Y6_STATUS_UPDATE);
+        
+//		PacketBodyBuffer body = new PacketBodyBuffer();
+//		if (this.status != Status.INVISIBLE)
+//		{
+//			if (wasInvisible)
+//			{
+//				body.addElement("13", "1");		//a visibility toggle (to set the status to online)
+//				sendPacket(body, ServiceType.Y6_VISIBLE_TOGGLE);
+//				body = new PacketBodyBuffer();
+//			}
+//			
+//			body.addElement("10", String.valueOf(this.status.getValue()));
+//			body.addElement("19", "");
+//			sendPacket(body, ServiceType.Y6_STATUS_UPDATE);
+//		}
+//		else		//if the new status is "invisible" a Y6_VISIBLE_TOGGLE must be sent!
+//					//as a Y6_STATUS_UPDATE will not work and we will still be online.
+//		{
+//			if(wasInvisible)
+//				return;		//if we were invisible, we don't want to send out another visibility toggle!
+//							//because if we did, we would pop up like Christmas tree on our friends list!
+//							//Yeah baby! I care about your privacy ;-]
+//			body.addElement("13", "2");
+//			sendPacket(body, ServiceType.Y6_VISIBLE_TOGGLE);
+//		}	
+	}
+	
+	
+	protected void transmitVisibleToggle(final boolean toggleOn) throws IOException
+	{
 		PacketBodyBuffer body = new PacketBodyBuffer();
-		if (this.status != Status.INVISIBLE)
-		{
-			if (wasInvisible)
-			{
-				body.addElement("13", "1");		//a visibility toggle (to set the status to online)
-				sendPacket(body, ServiceType.Y6_VISIBLE_TOGGLE);
-				body = new PacketBodyBuffer();
-			}
-			
-			body.addElement("10", String.valueOf(this.status.getValue()));
-			body.addElement("19", "");
-			sendPacket(body, ServiceType.Y6_STATUS_UPDATE);
-		}
-		else		//if the new status is "invisible" a Y6_VISIBLE_TOGGLE must be sent!
-					//as a Y6_STATUS_UPDATE will not work and we will still be online.
-		{
-			if(wasInvisible)
-				return;		//if we were invisible, we don't want to send out another visibility toggle!
-							//because if we did, we would pop up like Christmas tree on our friends list!
-							//Yeah baby! I care about your privacy ;-]
-			body.addElement("13", "2");
-			sendPacket(body, ServiceType.Y6_VISIBLE_TOGGLE);
-		}
+		String flag = toggleOn ? "1" : "2";
+		
+		body.addElement("13", flag);
+		sendPacket(body, ServiceType.Y6_VISIBLE_TOGGLE);
 	}
 
 	/**
@@ -1626,7 +1673,10 @@ public class Session implements StatusConstants, FriendManager {
 	 * 
 	 * @throws IOException
 	 */
-	protected void transmitNewCustomStatus() throws IOException {
+	protected void transmitNewCustomStatus(final boolean wasInvisible) throws IOException {
+		if (wasInvisible)
+			transmitVisibleToggle(true); // toggle on in case we were invisible
+		
 		final PacketBodyBuffer body = new PacketBodyBuffer();
 		body.addElement("10", "99");
 		body.addElement("19", this.customStatusMessage);
@@ -1637,7 +1687,7 @@ public class Session implements StatusConstants, FriendManager {
 		// body.addElement("187", "0");
 		sendPacket(body, ServiceType.Y6_STATUS_UPDATE, Status.AVAILABLE);
 	}
-
+	
 	/**
 	 * Transmit a LIST packet.
 	 */
@@ -1889,17 +1939,39 @@ public class Session implements StatusConstants, FriendManager {
 
 	/**
 	 * Transmit a STEALTHSESSION packet. This is used to set our on/offline status for the current session only on a
-	 * user-by-user basis. (???)
+	 * user-by-user basis
 	 */
-	protected void transmitStealthSession(final int stat, final int flag, final String yid, final String target) throws IOException {
+	protected void transmitStealthSession(final String yid, final String target, final StealthStatus newStealth) throws IOException {
+		String flag = newStealth == StealthStatus.STEALTH_PERMENANT? "2" : "1";
+		
 		PacketBodyBuffer body = new PacketBodyBuffer();
+		//TODO implement these for session stealth support!
+//		body.addElement("1", yid); // My id
+//		body.addElement("31", flag); // Stealth status
+//		body.addElement("13", "1"); // What is this for?
+//		body.addElement("302", "319");
+//		body.addElement("300", "319");
+//		body.addElement("7", target); // Friend who is target
+//		body.addElement("301", "319");
+//		body.addElement("303", "319");
+//		sendPacket(body, ServiceType.STEALTH_SESSION);
+		
+		flag = newStealth == StealthStatus.STEALTH_PERMENANT? "1" : "2";
+		body = new PacketBodyBuffer();
 		body.addElement("1", yid); // My id
-		body.addElement("31", stat + ""); // Status to change to
-		body.addElement("13", flag + ""); // What is this for?
+		body.addElement("31", flag); // Stealth status
+		body.addElement("13", "2"); // What is this for?
+		body.addElement("302", "319");
+		body.addElement("300", "319");
 		body.addElement("7", target); // Friend who is target
-		sendPacket(body, ServiceType.getServiceType(0xba));
+		body.addElement("301", "319");
+		body.addElement("303", "319");
+		sendPacket(body, ServiceType.STEALTH_PERM);
+		
+		//PERM : 2 ==> ONLINE
+		//		 1 ==> OFFLINE
 	}
-
+	
 	/**
 	 * Process an incoming ADDIGNORE packet. We get one of these when we ignore/unignore someone, although their purpose
 	 * is unknown as Yahoo follows up with a CONTACTIGNORE packet. The only disting- uising feature is the latter is
@@ -3194,6 +3266,7 @@ public class Session implements StatusConstants, FriendManager {
 		Set<YahooUser> usersOnPendingList = new HashSet<YahooUser>();
 
 		boolean isPending = false;
+		boolean isStealth = false;
 
 		for (YMSG9Packet qPkt : this.queueOfList15) {
 			Iterator<String[]> iter = qPkt.entries().iterator();
@@ -3233,6 +3306,9 @@ public class Session implements StatusConstants, FriendManager {
 								if (yu == null) {
 									/* This buddy is in a group */
 									yu = new YahooUser(username, currentListGroup.getName(), protocol);
+									if (isStealth)
+										yu.setStealth(StealthStatus.STEALTH_PERMENANT);
+									isStealth = false;
 									usersOnFriendsList.add(yu);
 								}
 								currentListGroup.addUser(yu);
@@ -3245,8 +3321,11 @@ public class Session implements StatusConstants, FriendManager {
 							}
 							if (isPending)
 								usersOnPendingList.add(yu);
+//							if (isStealth)
+//								yu.setStealth(StealthStatus.STEALTH_PERMENANT);
 							username = null;
 							isPending = false;
+							//isStealth = false;
 							protocol = YahooProtocol.YAHOO;
 						}
 						break;
@@ -3268,7 +3347,7 @@ public class Session implements StatusConstants, FriendManager {
 					case 59: /* somebody told cookies come here too, but im not sure */
 						break;
 					case 317: /* Stealth Setting */
-						// stealth = Integer.valueOf(value);
+						isStealth = true;
 						break;
 				}
 			}//end while
@@ -3296,8 +3375,11 @@ public class Session implements StatusConstants, FriendManager {
 				}
 				if (isPending)
 					usersOnPendingList.add(yu);
+				if (isStealth)
+					yu.setStealth(StealthStatus.STEALTH_PERMENANT);
 				username = null;
 				isPending = false;
+				isStealth = false;
 				protocol = YahooProtocol.YAHOO;
 			}
 
@@ -3330,12 +3412,13 @@ public class Session implements StatusConstants, FriendManager {
 		this.loginID.setPrimaryIdentity(true);
 
 		// Set initial presence to 'available'
-		try {
-			setStatus(Status.AVAILABLE);
-		}
-		catch (java.io.IOException e) {
-			log.trace("Failed to set status to available");
-		}
+		//CULPRIT : Ruining the initial status specified by the user
+//		try {
+//			setStatus(Status.AVAILABLE);
+//		}
+//		catch (java.io.IOException e) {
+//			log.trace("Failed to set status to available");
+//		}
 	}
 
 	/**
