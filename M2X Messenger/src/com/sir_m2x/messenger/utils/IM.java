@@ -32,59 +32,62 @@ public class IM
 {
 	public boolean isOfflineMessage()
 	{
-		return isOfflineMessage;
+		return this.isOfflineMessage;
 	}
 
-	public void setOfflineMessage(boolean isOfflineMessage)
+	public void setOfflineMessage(final boolean isOfflineMessage)
 	{
 		this.isOfflineMessage = isOfflineMessage;
 	}
 
 	public String getSender()
 	{
-		return sender;
+		return this.sender;
 	}
 
-	public void setSender(String sender)
+	public void setSender(final String sender)
 	{
 		this.sender = sender;
 	}
 
 	public String getMessage()
 	{
-		return message;
+		return this.message;
 	}
 
-	public void setMessage(String message)
+	public void setMessage(final String message)
 	{
 		this.message = message;
 	}
 
 	public Date getTimeStamp()
 	{
-		return timeStamp;
+		return this.timeStamp;
 	}
 	
 	public Spanned getTime()
 	{
 		Date today = new Date(System.currentTimeMillis());
-		String time = String.format("%02d:%02d " + (timeStamp.getHours() > 12 ? "PM" : "AM"), timeStamp.getHours() > 12 ? timeStamp.getHours() - 12 : timeStamp.getHours(),timeStamp.getMinutes());
-		String date = String.format("%d-%d-%d", timeStamp.getYear() + 1900, timeStamp.getMonth() + 1, timeStamp.getDate()); 
-		if (timeStamp.getYear() == today.getYear() && 
-			timeStamp.getMonth() == today.getMonth() &&
-			timeStamp.getDate() == today.getDate())
+		int hours = this.timeStamp.getHours() > 12 ? this.timeStamp.getHours() - 12 : this.timeStamp.getHours();
+		if (hours == 0)
+			hours = 12;
+		String time = String.format("%02d:%02d " + (this.timeStamp.getHours() > 12 ? "PM" : "AM"), hours,this.timeStamp.getMinutes());
+		String date = String.format("%d-%d-%d", this.timeStamp.getYear() + 1900, this.timeStamp.getMonth() + 1, this.timeStamp.getDate()); 
+		if (this.timeStamp.getYear() == today.getYear() && 
+			this.timeStamp.getMonth() == today.getMonth() &&
+			this.timeStamp.getDate() == today.getDate())
 			return Html.fromHtml("<small>" + time + "</small>");
 		return Html.fromHtml("<small>" + date + "  " + time + "</small>");
 	}
 
-	public void setTimeStamp(Date timeStamp)
+	public void setTimeStamp(final Date timeStamp)
 	{
 		this.timeStamp = timeStamp;
 	}
 	
 	public boolean isBuzz()
 	{
-		return isBuzz;
+		return this.isBuzz;
 	}
 
 	private String sender;
@@ -93,12 +96,12 @@ public class IM
 	private boolean isOfflineMessage = false;
 	private boolean isBuzz = false;
 	
-	public IM(String sender, String message, Date timeStamp)
+	public IM(final String sender, final String message, final Date timeStamp)
 	{
 		this(sender, message, timeStamp, false, false);
 	}
 	
-	public IM(String sender, String message, Date timeStamp, boolean isOfflineMessage, boolean isBuzz)
+	public IM(final String sender, final String message, final Date timeStamp, final boolean isOfflineMessage, final boolean isBuzz)
 	{
 		this.timeStamp = timeStamp;
 		this.message = message;
@@ -111,13 +114,13 @@ public class IM
 	@Override
 	public String toString()
 	{
-		return sender + ": " + message;
+		return this.sender + ": " + this.message;
 	}
 	
 	public Spanned toHtml()
 	{
-		if (isBuzz)
-			return Html.fromHtml("<html><body><b>"+ sender +":<br/><font color=\"red\">BUZZ!!!</font></b></body></html>");
-		return Html.fromHtml("<html><body><b>" + sender +"</b>: " + message + "</body></html>");
+		if (this.isBuzz)
+			return Html.fromHtml("<html><body><b>"+ this.sender +":<br/><font color=\"red\">BUZZ!!!</font></b></body></html>");
+		return Html.fromHtml("<html><body><b>" + this.sender +"</b>: " + this.message + "</body></html>");
 	}
 }

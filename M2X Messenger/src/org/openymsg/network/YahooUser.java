@@ -43,6 +43,7 @@ import org.openymsg.addressBook.YahooAddressBookEntry;
  * 
  * @author G. der Kinderen, Nimbuzz B.V. guus@nimbuzz.com
  * @author S.E. Morris
+ * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
  */
 public class YahooUser
 {
@@ -127,11 +128,12 @@ public class YahooUser
 	protected String customStatusMessage;
 
 	/**
-	 * A custom status. As yet I'm unsure if these are String identifiers, or
-	 * numeric or even boolean values.
+	 * <s>A custom status. As yet I'm unsure if these are String identifiers, or
+	 * numeric or even boolean values.</s>
+	 * [SirM2X] It appears that this is a flag which indicates that the custom status of the
+	 * user is has the busy sign.
 	 */
-	// TODO: Find out what values this can have (boolean, numeric, string?)
-	protected String customStatus;
+	protected boolean customBusy = false;
 
 	/**
 	 * The amount of seconds that the user has been idle (or -1 if the idle time
@@ -300,7 +302,16 @@ public class YahooUser
 	public void setCustom(final String message, final String status)
 	{
 		this.customStatusMessage = message;
-		this.customStatus = status;
+		if (status != null && status.equals("1"))
+			this.customBusy = true;
+		else
+			this.customBusy = false;
+	}
+	
+	public void setCustom(final String message, final boolean status)
+	{
+		this.customStatusMessage = message;
+		this.customBusy = status;
 	}
 
 	/**
@@ -320,9 +331,9 @@ public class YahooUser
 	 * 
 	 * @return The custom status or <tt>null</tt>.
 	 */
-	public String getCustomStatus()
+	public boolean isCustomStatusBusy()
 	{
-		return this.customStatus;
+		return this.customBusy;
 	}
 
 	/**
@@ -627,7 +638,7 @@ public class YahooUser
 		if (this.status != Status.CUSTOM)
 		{
 			this.customStatusMessage = null;
-			this.customStatus = null;
+			this.customBusy = false;
 		}
 	}
 

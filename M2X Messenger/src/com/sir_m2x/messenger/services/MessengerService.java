@@ -18,6 +18,7 @@
 package com.sir_m2x.messenger.services;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -29,9 +30,7 @@ import org.openymsg.network.event.SessionExceptionEvent;
 import org.openymsg.network.event.SessionListener;
 import org.openymsg.network.event.SessionLogoutEvent;
 
-import android.app.Notification;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -51,29 +50,22 @@ import android.widget.Toast;
 import com.sir_m2x.messenger.FriendsList;
 import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.activities.ChatWindowTabActivity;
-import com.sir_m2x.messenger.activities.ContactsListActivity;
 import com.sir_m2x.messenger.activities.LoginActivity;
 import com.sir_m2x.messenger.utils.EventLogger;
 import com.sir_m2x.messenger.utils.IM;
+import com.sir_m2x.messenger.utils.NotificationHelper;
 import com.sir_m2x.messenger.utils.Utils;
+
 /**
- * The messenger service which runs in the background and is responsible for holding session-specific
- * variables and show various notifications to the user.
- * This service is terminated upon sign out.
+ * The messenger service which runs in the background and is responsible for
+ * holding session-specific variables and show various notifications to the
+ * user. This service is terminated upon sign out.
  * 
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
- *
+ * 
  */
 public class MessengerService extends Service
 {
-	/*
-	 * Notification constants
-	 */
-	public static final int NOTIFICATION_SIGNED_IN = 0;
-	public static final int NOTIFICATION_CONTACT_REQUEST = 1;
-	public static final int NOTIFICATION_CONTACT_ACCEPTED = 2;
-	public static final int NOTIFICATION_CONTACT_REJECTED = 3;
-	
 	/*
 	 * Intent constants
 	 */
@@ -89,27 +81,27 @@ public class MessengerService extends Service
 	public static final String INTENT_FRIEND_SIGNED_OFF = "com.sir_m2x.messenger.FRIEND_SIGNED_OFF";
 	public static final String INTENT_FRIEND_EVENT = "com.sir_m2x.messenger.FRIEND_EVENT";
 	public static final String INTENT_LIST_CHANGED = "com.sir_m2x.messenger.LIST_CHANGED";
-		
+	public static final String INTENT_STATUS_CHANGED = "com.sir_m2x.messenger.STATUS_CHANGED";
+
 	private static Session session;
 	private static java.util.LinkedHashMap<String, LinkedList<IM>> friendsInChat = new LinkedHashMap<String, LinkedList<IM>>();
 	private static Bitmap myAvatar = null;
 	private static HashMap<String, Bitmap> friendAvatars = new HashMap<String, Bitmap>();
 	private static String myId;
-	private static HashMap<String,Integer> unreadIMs = new HashMap<String, Integer>();
+	private static HashMap<String, Integer> unreadIMs = new HashMap<String, Integer>();
 	private static EventLogger eventLog = new EventLogger();
-	
+	private static NotificationHelper notificationHelper = null;
+
 	public static EventLogger getEventLog()
 	{
 		return MessengerService.eventLog;
 	}
 
-	
 	public static HashMap<String, Integer> getUnreadIMs()
 	{
 		return unreadIMs;
 	}
 
-	
 	public static Session getSession()
 	{
 		return session;
@@ -125,8 +117,7 @@ public class MessengerService extends Service
 		return friendsInChat;
 	}
 
-	public static void setFriendsInChat(
-			final java.util.LinkedHashMap<String, LinkedList<IM>> friendsInChat)
+	public static void setFriendsInChat(final java.util.LinkedHashMap<String, LinkedList<IM>> friendsInChat)
 	{
 		MessengerService.friendsInChat = friendsInChat;
 	}
@@ -171,65 +162,70 @@ public class MessengerService extends Service
 		this.toastHandler = toastHandler;
 	}
 
-//	public Thread getShowToasts()
-//	{
-//		return showToasts;
-//	}
-//
-//	public void setShowToasts(Thread showToasts)
-//	{
-//		this.showToasts = showToasts;
-//	}
+	//	public Thread getShowToasts()
+	//	{
+	//		return showToasts;
+	//	}
+	//
+	//	public void setShowToasts(Thread showToasts)
+	//	{
+	//		this.showToasts = showToasts;
+	//	}
+
+	public static NotificationHelper getNotificationHelper()
+	{
+		return notificationHelper;
+	}
 
 	private Handler toastHandler = new Handler()
 	{
 		@Override
 		public void handleMessage(final android.os.Message msg)
 		{
-//			synchronized (getAlertMessages())
-//			{
-//				for (String alertMessage : getAlertMessages())
-//				{
-//					Toast.makeText(getApplicationContext(), alertMessage,
-//							Toast.LENGTH_LONG).show();
-//					try
-//					{
-//						Thread.sleep(1000);
-//					}
-//					catch (InterruptedException e)
-//					{
-//						e.printStackTrace();
-//					}
-//				}
-//				getAlertMessages().clear();
-//			}
+			//			synchronized (getAlertMessages())
+			//			{
+			//				for (String alertMessage : getAlertMessages())
+			//				{
+			//					Toast.makeText(getApplicationContext(), alertMessage,
+			//							Toast.LENGTH_LONG).show();
+			//					try
+			//					{
+			//						Thread.sleep(1000);
+			//					}
+			//					catch (InterruptedException e)
+			//					{
+			//						e.printStackTrace();
+			//					}
+			//				}
+			//				getAlertMessages().clear();
+			//			}
 		};
 	};
 
-//	private Thread showToasts = new Thread()
-//	{
-//		@Override
-//		public void run()
-//		{
-//			while (isMessageThreadRun())
-//			{
-//				if (!getAlertMessages().isEmpty())
-//				{
-//					Message msg = new Message();
-//					msg.setTarget(toastHandler);
-//					toastHandler.sendMessage(msg);
-//				}
-//				try
-//				{
-//					Thread.sleep(1000);
-//				}
-//				catch (Exception ex)
-//				{
-//					ex.printStackTrace();
-//				}
-//			}
-//		};
-//	};
+	//	private Thread showToasts = new Thread()
+	//	{
+	//		@Override
+	//		public void run()
+	//		{
+	//			while (isMessageThreadRun())
+	//			{
+	//				if (!getAlertMessages().isEmpty())
+	//				{
+	//					Message msg = new Message();
+	//					msg.setTarget(toastHandler);
+	//					toastHandler.sendMessage(msg);
+	//				}
+	//				try
+	//				{
+	//					Thread.sleep(1000);
+	//				}
+	//				catch (Exception ex)
+	//				{
+	//					ex.printStackTrace();
+	//				}
+	//			}
+	//		};
+	//	};
 
 	@Override
 	public int onStartCommand(final Intent intent, final int flags, final int startId)
@@ -242,35 +238,14 @@ public class MessengerService extends Service
 		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_OFF));
 		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_EVENT));
 		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_DESTROY));
-		
-		NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-		Notification notify = new Notification(R.drawable.ic_stat_notify, "Connected to Yahoo!", System.currentTimeMillis());
-		Intent intent2 = new Intent(getApplicationContext(), ContactsListActivity.class);
-		PendingIntent i = PendingIntent.getActivity(getApplicationContext(), 0, intent2, 0);
-		
-		String currentStatus;
-		switch(getSession().getStatus())
-		{
-			case AVAILABLE:
-				currentStatus = "Online";
-				break;
-			case INVISIBLE:
-				currentStatus = "Invisible";
-				break;
-			case NOTATDESK:
-				currentStatus = "Away";
-				break;
-			case CUSTOM:
-				currentStatus = getSession().getCustomStatusMessage();
-				break;
-			default:
-				currentStatus = "Busy";
-		}
-				
-		notify.setLatestEventInfo(getApplicationContext(), "M2X Messenger", getMyId() + " -- " + currentStatus, i);
-		nm.notify(MessengerService.NOTIFICATION_SIGNED_IN, notify);
+		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_STATUS_CHANGED));
+
+		MessengerService.notificationHelper = new NotificationHelper(getApplicationContext(), (NotificationManager) getSystemService(NOTIFICATION_SERVICE));
+		MessengerService.notificationHelper.showDefaultNotification(true, false);
+
 		return super.onStartCommand(intent, flags, startId);
 	}
+
 	@Override
 	public void onDestroy()
 	{
@@ -280,14 +255,14 @@ public class MessengerService extends Service
 				getSession().logout();
 			}
 			catch (IllegalStateException e)
-			{			
+			{
 			}
 			catch (IOException e)
 			{
 			}
-		
+
 		//cancel all notifications and destroy all data in memory
-		((NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE)).cancelAll();
+		((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).cancelAll();
 		getFriendsInChat().clear();
 		getFriendAvatars().clear();
 		setMyAvatar(null);
@@ -295,7 +270,7 @@ public class MessengerService extends Service
 		setMyId("");
 		eventLog.getEventLog().clear();
 		FriendsList.getMasterList().clear();
-		
+
 		//unregister broadcast receivers
 		unregisterReceiver(this.serviceBroadcastReceiver);
 		//Toast.makeText(getApplicationContext(), "Logged out", Toast.LENGTH_LONG).show();
@@ -303,7 +278,7 @@ public class MessengerService extends Service
 		startActivity(new Intent(getApplicationContext(), LoginActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
 		super.onDestroy();
 	}
-	
+
 	private final BroadcastReceiver serviceBroadcastReceiver = new BroadcastReceiver()
 	{
 
@@ -315,22 +290,21 @@ public class MessengerService extends Service
 				String sender = intent.getExtras().getString(Utils.qualify("from"));
 				if (intent.getExtras().getString(Utils.qualify("message")) == null)
 					return;
-				
-				String message = Html.fromHtml(intent.getExtras().getString(Utils.qualify("message"))).toString();		//in order to strip the HTML tags! 
+
+				String message = Html.fromHtml(intent.getExtras().getString(Utils.qualify("message"))).toString(); //in order to strip the HTML tags! 
 				Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 				v.vibrate(250);
-				
+
 				PlayAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.message), AudioManager.STREAM_NOTIFICATION);
 				if (ChatWindowTabActivity.isActive)
 					return;
-				
-				NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-				Notification notification = new Notification(R.drawable.ic_stat_notify, sender +": " + message, System.currentTimeMillis());
+
+				// raise a notification
 				Intent intent2 = new Intent(getApplicationContext(), ChatWindowTabActivity.class);
 				intent2.putExtra(Utils.qualify("friendId"), sender);
-				PendingIntent pending = PendingIntent.getActivity(getApplicationContext(), 0, intent2, 0);
-				notification.setLatestEventInfo(getApplicationContext(), "New message from " + sender + ": ", message, pending);
-				nm.notify(MessengerService.NOTIFICATION_SIGNED_IN, notification);				
+
+				notificationHelper.updateNotification(sender + ": " + message, "New message from " + sender + ": ", message, NotificationHelper.NOTIFICATION_SIGNED_IN,
+						R.drawable.ic_stat_notify, intent2);
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_BUZZ))
 			{
@@ -338,42 +312,42 @@ public class MessengerService extends Service
 				//String sender = intent.getExtras().getString(Utils.qualify("from"));
 				Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 				v.vibrate(500);
-				
+
 				PlayAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.buzz), AudioManager.STREAM_NOTIFICATION);
-				
+
 				//TODO fix notification
-//				NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-//				Notification notification = new Notification(android.R.drawable.stat_notify_more, sender +": BUZZ!!!", System.currentTimeMillis());
-//				Intent intent2 = new Intent(getApplicationContext(), ChatWindowTabActivity.class);
-//				intent2.putExtra(Utils.qualify("friendId"), sender);
-//				PendingIntent pending = PendingIntent.getActivity(getApplicationContext(), 0, intent2, 0);
-//				notification.setLatestEventInfo(getApplicationContext(),"New message from " + sender + ": BUZZ!!!", pending);
-//				nm.notify(MessengerService.NOTIFICATION_SIGNED_IN, notification);				
+				//				NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+				//				Notification notification = new Notification(android.R.drawable.stat_notify_more, sender +": BUZZ!!!", System.currentTimeMillis());
+				//				Intent intent2 = new Intent(getApplicationContext(), ChatWindowTabActivity.class);
+				//				intent2.putExtra(Utils.qualify("friendId"), sender);
+				//				PendingIntent pending = PendingIntent.getActivity(getApplicationContext(), 0, intent2, 0);
+				//				notification.setLatestEventInfo(getApplicationContext(),"New message from " + sender + ": BUZZ!!!", pending);
+				//				nm.notify(MessengerService.NOTIFICATION_SIGNED_IN, notification);				
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_FRIEND_SIGNED_ON))
 			{
 				String friendId = intent.getExtras().getString(Utils.qualify("who"));
 				PlayAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.online), AudioManager.STREAM_NOTIFICATION);
-				
+
 				Toast.makeText(getApplicationContext(), friendId + " has signed on", Toast.LENGTH_LONG).show();
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_FRIEND_SIGNED_OFF))
 			{
-				String friendId = intent.getExtras().getString(Utils.qualify("who"));		
+				String friendId = intent.getExtras().getString(Utils.qualify("who"));
 				PlayAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.offline), AudioManager.STREAM_NOTIFICATION);
-				
+
 				Toast.makeText(getApplicationContext(), friendId + " has signed off", Toast.LENGTH_LONG).show();
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_FRIEND_UPDATE_RECEIVED))
 			{
-//				String friendId = intent.getExtras().getString(Utils.qualify("who"));
-//				String statusMessage = intent.getExtras().getString(Utils.qualify("what"));
-				
+				//				String friendId = intent.getExtras().getString(Utils.qualify("who"));
+				//				String statusMessage = intent.getExtras().getString(Utils.qualify("what"));
+
 				//TODO handle a status update message if needed.
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_FRIEND_EVENT))
 			{
-				String message = intent.getExtras().getString(Utils.qualify("event"));				
+				String message = intent.getExtras().getString(Utils.qualify("event"));
 				Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_DESTROY))
@@ -383,10 +357,12 @@ public class MessengerService extends Service
 					Toast.makeText(getApplicationContext(), reason, Toast.LENGTH_LONG).show();
 				stopSelf();
 			}
+			else if (intent.getAction().equals(MessengerService.INTENT_STATUS_CHANGED))
+				notificationHelper.showDefaultNotification(false, true);
 
 		}
 	};
-	
+
 	private void PlayAudio(final Uri uri, final int streamType)
 	{
 		MediaPlayer mp = new MediaPlayer();
@@ -397,23 +373,26 @@ public class MessengerService extends Service
 			mp.prepare();
 			mp.start();
 		}
-		catch(Exception e)
+		catch (Exception e)
 		{
 			Log.w("M2X-Messenger", "Unable to play " + uri);
 		}
-		
+
 	}
+
 	private final SessionListener sessionListener = new SessionListener()
 	{
-		
+
 		@Override
 		public void dispatch(final FireEvent event)
 		{
 			//TODO IMPLEMENT LISTENER TO RESPONSE TO VARIOUS SITUATIONS
-			if (event.getEvent() instanceof SessionLogoutEvent)			
+			if (event.getEvent() instanceof SessionLogoutEvent)
 				sendBroadcast(new Intent(INTENT_DESTROY).putExtra(Utils.qualify("reason"), "You are now logged in with this ID somewhere else!"));
 			else if (event.getEvent() instanceof SessionExceptionEvent)
-				sendBroadcast(new Intent(INTENT_DESTROY).putExtra(Utils.qualify("reason"), "Connection lost..."));
+				sendBroadcast(new Intent(INTENT_DESTROY).putExtra(Utils.qualify("reason"), "Oops! Crashed or connection lost..."));
+			else
+				eventLog.log("M2X-Messenger", event.toString(), new Date(System.currentTimeMillis()));
 		}
 	};
 

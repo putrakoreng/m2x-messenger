@@ -19,9 +19,12 @@ package com.sir_m2x.messenger.activities;
 
 import java.util.Date;
 
+import org.openymsg.network.FireEvent;
 import org.openymsg.network.Session;
 import org.openymsg.network.SessionState;
 import org.openymsg.network.Status;
+import org.openymsg.network.event.SessionExceptionEvent;
+import org.openymsg.network.event.SessionListener;
 
 import android.app.Activity;
 import android.app.ActivityManager;
@@ -202,6 +205,7 @@ public class LoginActivity extends Activity
 		{
 			org.openymsg.network.Session ys = new org.openymsg.network.Session();
 			ys.addSessionListener(new MySessionAdapter(getApplicationContext()));
+			ys.addSessionListener(LoginActivity.this.preConnectionSessionListener);
 			try
 			{
 				if (LoginActivity.this.loginStatus != org.openymsg.network.Status.CUSTOM)
@@ -253,6 +257,7 @@ public class LoginActivity extends Activity
 				catch (InterruptedException e)
 				{
 				}
+				result.removeSessionListener(LoginActivity.this.preConnectionSessionListener);
 				while(!result.getRoster().isRosterReady());		//wait for the roster to become fully ready.
 				Utils.getAllAvatars();
 				FriendsList.fillFriends(result.getRoster().getGroups());
@@ -274,4 +279,15 @@ public class LoginActivity extends Activity
 
 		return false;
 	}
+	
+	SessionListener preConnectionSessionListener = new SessionListener()
+	{
+		
+		@Override
+		public void dispatch(final FireEvent event)
+		{
+			if (event.getEvent() instanceof SessionExceptionEvent)
+				Toast.makeText(getApplicationContext(), event.toString(), Toast.LENGTH_LONG).show();
+		}
+	};
 }

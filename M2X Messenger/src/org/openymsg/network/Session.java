@@ -104,6 +104,7 @@ import org.openymsg.roster.Roster;
  * 
  * @author G. der Kinderen, Nimbuzz B.V. guus@nimbuzz.com
  * @author S.E. Morris
+ * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
  */
 public class Session implements StatusConstants, FriendManager {
 	/**
