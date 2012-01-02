@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.sir_m2x.messenger.utils;
+package com.sir_m2x.messenger.helpers;
 
 import android.app.Notification;
 import android.app.NotificationManager;

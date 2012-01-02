@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/toast_layout_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@drawable/toast_background" android:paddingLeft="2dp" android:paddingRight="2dp" android:paddingTop="1dp">
+
+    <ImageView
+        android:id="@+id/imgIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="22dp"
+        android:src="@drawable/ic_stat_notify" android:layout_marginLeft="1dp" android:layout_marginTop="1dp"/>
+
+    <TextView
+        android:id="@+id/txtMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="fill_parent"
+        android:textColor="#FFF" android:text="sir_m2x has signed on" android:gravity="top|center" android:layout_marginLeft="1dp" android:paddingRight="2dp"/>
+
+</LinearLayout>
