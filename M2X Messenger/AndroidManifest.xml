@@ -99,6 +99,7 @@
                 <action android:name="com.sir_m2x.messenger.FRIEND_UPDATE_RECEIVED" />
                 <action android:name="com.sir_m2x.messenger.FRIEND_EVENT" />
                 <action android:name="com.sir_m2x.messenger.DESTROY" />
+                <action android:name="com.sir_m2x.messenger.STATUS_CHANGED" />
             </intent-filter>
         </service>
     </application>

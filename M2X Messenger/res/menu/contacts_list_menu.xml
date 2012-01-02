@@ -1,20 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android" >
 
-    <item
-        android:id="@+id/mnuShowConversations"
-        android:icon="@android:drawable/ic_menu_agenda"
-        android:title="Show Conversations">
-    </item>
+    <group>
+        <item
+            android:id="@+id/mnuNewIm"
+            android:icon="@drawable/ic_menu_compose"
+            android:title="New IM">
+        </item>
+        <item
+            android:id="@+id/mnuShowConversations"
+            android:icon="@drawable/ic_menu_start_conversation"
+            android:title="Show Conversations">
+        </item>
+        <item
+            android:id="@+id/mnuStatus"
+            android:icon="@drawable/ic_menu_myplaces"
+            android:title="Change Status">
+        </item>
+    </group>
+
     <item
         android:id="@+id/mnuLog"
-        android:icon="@android:drawable/ic_dialog_info"
+        android:icon="@android:drawable/ic_menu_agenda"
         android:title="Log Window">
-    </item>
-    <item
-        android:id="@+id/mnuStatus"
-        android:icon="@android:drawable/ic_menu_day"
-        android:title="Change Status">
     </item>
     <item
         android:id="@+id/mnuSignOut"

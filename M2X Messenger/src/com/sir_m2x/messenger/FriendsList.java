@@ -196,7 +196,7 @@ public class FriendsList extends SessionAdapter
 
 			YahooUser existingUser = FriendsList.allFriends.get(userId);
 			existingUser.update(user.getStatus(), user.isOnChat(), user.isOnPager());
-			existingUser.setCustom(user.getCustomStatusMessage(), user.getCustomStatus());
+			existingUser.setCustom(user.getCustomStatusMessage(), user.isCustomStatusBusy());
 		}
 		catch (Exception ex)
 		{

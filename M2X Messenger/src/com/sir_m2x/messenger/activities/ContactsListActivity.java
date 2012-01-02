@@ -141,7 +141,9 @@ public class ContactsListActivity extends ExpandableListActivity
 			ImageView imgIsTyping = (ImageView) v.findViewById(R.id.imgIsTyping);
 			ImageView imgEnvelope = (ImageView) v.findViewById(R.id.imgEnvelope);
 			ImageView imgAvatar = (ImageView) v.findViewById(R.id.imgAvatar);
+			ImageView imgBulb = (ImageView) v.findViewById(R.id.imgBulb);
 			boolean isOnline = false;
+			boolean isBusy = false;
 			int unread = 0;
 
 			if (MessengerService.getFriendAvatars().containsKey(friendId))
@@ -157,12 +159,17 @@ public class ContactsListActivity extends ExpandableListActivity
 				isOnline = true;
 
 			String friendIdAndStatus = isOnline ? Utils.toBold(friendId ) : friendId;
+			if (user.getStatus() == Status.BUSY)
+				isBusy = true;
 			
 			if(user.getStealth() == StealthStatus.STEALTH_PERMENANT)
 				friendIdAndStatus = Utils.toItalic(friendIdAndStatus);
 			
-			if (user.getCustomStatus() != null)
+			if (user.getCustomStatusMessage() != null)
+			{
 				friendIdAndStatus += " -- <small>" + user.getCustomStatusMessage() + "</small>";
+				isBusy = user.isCustomStatusBusy();
+			}
 			if (user.isPending())
 				friendIdAndStatus += "<br/><small><i>[Add request pending]</i></small>";
 
@@ -174,6 +181,11 @@ public class ContactsListActivity extends ExpandableListActivity
 				txtId.setTextColor(txtId.getTextColors().withAlpha(130));
 				imgAvatar.setAlpha(130);
 			}
+			
+			if (isBusy)
+				imgBulb.setVisibility(View.VISIBLE);
+			else
+				imgBulb.setVisibility(View.GONE);
 
 			txtUnreadCount.setVisibility(unread == 0 ? View.GONE : View.VISIBLE);
 			imgEnvelope.setVisibility(unread == 0 ? View.GONE : View.VISIBLE);
@@ -195,7 +207,6 @@ public class ContactsListActivity extends ExpandableListActivity
 			return FriendsList.getMasterList().keySet().toArray()[groupPosition];
 		}
 
-		@SuppressWarnings("finally")
 		@Override
 		public int getGroupCount()
 		{
@@ -329,6 +340,32 @@ public class ContactsListActivity extends ExpandableListActivity
 				break;
 			case R.id.mnuStatus:
 				startActivityForResult((new Intent(this, ChangeStatusActivity.class)), 0);
+				break;
+			case R.id.mnuNewIm:
+				final EditText txtId = new EditText(this);
+				AlertDialog.Builder dlgGetId = new AlertDialog.Builder(this);
+				// get the ID of the recipient 
+				dlgGetId.setTitle("New IM").setMessage("Enter the recipient's ID:").setView(txtId).setPositiveButton("OK", new OnClickListener()
+				{
+					@Override
+					public void onClick(final DialogInterface dialog, final int which)
+					{
+						String id = txtId.getText().toString();
+						if (id==null || id.isEmpty())
+							return;
+						
+						Intent intent = new Intent(ContactsListActivity.this, ChatWindowTabActivity.class);
+						intent.putExtra(Utils.qualify("friendId"), id);
+						startActivity(intent);
+					}
+				}).setNegativeButton("Cancel", new OnClickListener()
+				{
+					@Override
+					public void onClick(final DialogInterface dialog, final int which)
+					{
+						dialog.cancel();
+					}
+				}).show();
 				break;
 			default:
 				break;

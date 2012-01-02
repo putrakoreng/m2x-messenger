@@ -42,6 +42,7 @@ import org.openymsg.network.event.SessionListener;
  * subscription or unsubscription, most bulk operations (addAll, removeAll) are unsupported in this implementation.
  * 
  * @author Guus der Kinderen, guus@nimbuzz.com
+ * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
  * 
  */
 public class Roster implements Set<YahooUser>, SessionListener {
@@ -766,7 +767,7 @@ public class Roster implements Set<YahooUser>, SessionListener {
         newUser = new YahooUser(userId, groupIds, protocol, addressBookEntry);
         Status status = user.getStatus();
         String customMessage = user.getCustomStatusMessage();
-        String customStatus = user.getCustomStatus();
+        boolean customStatus = user.isCustomStatusBusy();
         newUser.update(status, user.isOnChat(), user.isOnPager());
         if (status.equals(Status.CUSTOM))
 			newUser.setCustom(customMessage, customStatus);

@@ -22,13 +22,21 @@
             android:layout_marginLeft="40dp"
             android:layout_marginTop="5dp"
             android:src="@drawable/yahoo_no_avatar" />
+        <ImageView
+            android:id="@+id/imgBulb"
+            android:layout_width="16dp"
+            android:layout_height="45dp"
+            android:layout_gravity="center"
+            android:layout_marginBottom="5dp"
+            android:layout_marginLeft="2dp"
+            android:src="@drawable/ic_list_busy" android:layout_marginTop="4.5dp"/>
 
         <TextView
             android:id="@+id/txtId"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginLeft="5dp"
+            android:layout_marginLeft="3.5dp"
             android:gravity="left|center"
             android:text="Contact ID"
             android:textSize="17sp"/>

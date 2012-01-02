@@ -20,6 +20,7 @@ package com.sir_m2x.messenger.activities;
 import org.openymsg.network.Status;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -153,7 +154,10 @@ public class ChangeStatusActivity extends Activity
 			{
 				e.printStackTrace();
 			}
-
+			
+			// update status bar notification
+			sendBroadcast(new Intent(MessengerService.INTENT_STATUS_CHANGED));
+			
 			finish();
 		}
 	};

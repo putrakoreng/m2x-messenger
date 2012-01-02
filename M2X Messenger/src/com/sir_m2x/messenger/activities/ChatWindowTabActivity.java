@@ -20,9 +20,6 @@ package com.sir_m2x.messenger.activities;
 import java.util.Date;
 import java.util.LinkedList;
 
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.TabActivity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -58,11 +55,11 @@ public class ChatWindowTabActivity extends TabActivity
 	public static boolean isActive = false;
 
 	@Override
-	public void onCreate(Bundle savedInstanceState)
+	public void onCreate(final Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.chat_window_tabhost);
-		listener = new ChatWindowListener();
+		this.listener = new ChatWindowListener();
 		String friendId;
 		if (getIntent().hasExtra(Utils.qualify("friendId")))
 		{
@@ -73,45 +70,15 @@ public class ChatWindowTabActivity extends TabActivity
 			friendId = lastOpen;
 
 		if (!MessengerService.getFriendsInChat().keySet().contains(friendId))
-		{
 			MessengerService.getFriendsInChat().put(friendId, new LinkedList<IM>());
-		}
 		createTabs(friendId);
-		getTabHost().setOnTabChangedListener(tabChangedListener);
-		showDefaultNotification();
+		getTabHost().setOnTabChangedListener(this.tabChangedListener);
+		
+		// reshow the default notification
+		MessengerService.getNotificationHelper().showDefaultNotification(false, false);
 	}
 
-	private void showDefaultNotification()
-	{
-		NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-		Notification notify = new Notification(R.drawable.ic_stat_notify, null, System.currentTimeMillis());
-		Intent intent2 = new Intent(getApplicationContext(), ContactsListActivity.class);
-		PendingIntent i = PendingIntent.getActivity(getApplicationContext(), 0, intent2, 0);
-
-		String currentStatus;
-		switch (MessengerService.getSession().getStatus())
-		{
-			case AVAILABLE:
-				currentStatus = "Online";
-				break;
-			case INVISIBLE:
-				currentStatus = "Invisible";
-				break;
-			case NOTATDESK:
-				currentStatus = "Away";
-				break;
-			case CUSTOM:
-				currentStatus = MessengerService.getSession().getCustomStatusMessage();
-				break;
-			default:
-				currentStatus = "Busy";
-		}
-
-		notify.setLatestEventInfo(getApplicationContext(), "M2X Messenger", MessengerService.getMyId() + " -- " + currentStatus, i);
-		nm.notify(MessengerService.NOTIFICATION_SIGNED_IN, notify);
-	}
-
-	private void createTabs(String friendIdToFocus)
+	private void createTabs(final String friendIdToFocus)
 	{
 		if (MessengerService.getFriendsInChat().size() == 0)
 			finish();
@@ -140,7 +107,7 @@ public class ChatWindowTabActivity extends TabActivity
 		}
 	}
 
-	private View createTabView(String title)
+	private View createTabView(final String title)
 	{
 		LayoutInflater inflator = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 		View v = inflator.inflate(R.layout.chat_tab_title, null);
@@ -155,10 +122,10 @@ public class ChatWindowTabActivity extends TabActivity
 	protected void onResume()
 	{
 		isActive = true;
-		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_IS_TYPING));
-		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_NEW_IM_ADDED));
-		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_NEW_IM));
-		registerReceiver(listener, new IntentFilter(MessengerService.INTENT_DESTROY));
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_IS_TYPING));
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_NEW_IM_ADDED));
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_NEW_IM));
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_DESTROY));
 		super.onResume();
 	}
 
@@ -166,12 +133,12 @@ public class ChatWindowTabActivity extends TabActivity
 	protected void onPause()
 	{
 		isActive = false;
-		unregisterReceiver(listener);
+		unregisterReceiver(this.listener);
 		super.onPause();
 	}
 
 	@Override
-	public boolean onCreateOptionsMenu(Menu menu)
+	public boolean onCreateOptionsMenu(final Menu menu)
 	{
 		MenuInflater inflater = getMenuInflater();
 		inflater.inflate(R.menu.menu_chat_window, menu);
@@ -179,7 +146,7 @@ public class ChatWindowTabActivity extends TabActivity
 	}
 
 	@Override
-	public boolean onOptionsItemSelected(MenuItem item)
+	public boolean onOptionsItemSelected(final MenuItem item)
 	{
 		if (item.getItemId() == R.id.mnuClose)
 		{
@@ -235,7 +202,7 @@ public class ChatWindowTabActivity extends TabActivity
 	{
 
 		@Override
-		public void onReceive(Context context, Intent intent)
+		public void onReceive(final Context context, final Intent intent)
 		{
 			if (intent.getAction().equals(MessengerService.INTENT_IS_TYPING))
 			{
@@ -276,7 +243,7 @@ public class ChatWindowTabActivity extends TabActivity
 	private final OnTabChangeListener tabChangedListener = new OnTabChangeListener()
 	{
 		@Override
-		public void onTabChanged(String tabId)
+		public void onTabChanged(final String tabId)
 		{
 			lastOpen = tabId;
 			View v = getTabHost().findViewWithTag(tabId);
