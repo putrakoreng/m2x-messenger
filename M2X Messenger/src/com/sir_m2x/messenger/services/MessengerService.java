@@ -51,9 +51,10 @@ import com.sir_m2x.messenger.FriendsList;
 import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.activities.ChatWindowTabActivity;
 import com.sir_m2x.messenger.activities.LoginActivity;
+import com.sir_m2x.messenger.helpers.NotificationHelper;
+import com.sir_m2x.messenger.helpers.ToastHelper;
 import com.sir_m2x.messenger.utils.EventLogger;
 import com.sir_m2x.messenger.utils.IM;
-import com.sir_m2x.messenger.utils.NotificationHelper;
 import com.sir_m2x.messenger.utils.Utils;
 
 /**
@@ -329,14 +330,16 @@ public class MessengerService extends Service
 				String friendId = intent.getExtras().getString(Utils.qualify("who"));
 				PlayAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.online), AudioManager.STREAM_NOTIFICATION);
 
-				Toast.makeText(getApplicationContext(), friendId + " has signed on", Toast.LENGTH_LONG).show();
+				ToastHelper.showToast(getApplicationContext(), R.drawable.ic_stat_notify, friendId + " has signed on", Toast.LENGTH_LONG);
+				//Toast.makeText(getApplicationContext(), friendId + " has signed on", Toast.LENGTH_LONG).show();
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_FRIEND_SIGNED_OFF))
 			{
 				String friendId = intent.getExtras().getString(Utils.qualify("who"));
 				PlayAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.offline), AudioManager.STREAM_NOTIFICATION);
 
-				Toast.makeText(getApplicationContext(), friendId + " has signed off", Toast.LENGTH_LONG).show();
+				ToastHelper.showToast(getApplicationContext(), R.drawable.ic_stat_notify_invisible, friendId + " has signed off", Toast.LENGTH_LONG);
+				//Toast.makeText(getApplicationContext(), friendId + " has signed off", Toast.LENGTH_LONG).show();
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_FRIEND_UPDATE_RECEIVED))
 			{
