@@ -18,7 +18,6 @@
 package com.sir_m2x.messenger.services;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -393,9 +392,7 @@ public class MessengerService extends Service
 			if (event.getEvent() instanceof SessionLogoutEvent)
 				sendBroadcast(new Intent(INTENT_DESTROY).putExtra(Utils.qualify("reason"), "You are now logged in with this ID somewhere else!"));
 			else if (event.getEvent() instanceof SessionExceptionEvent)
-				sendBroadcast(new Intent(INTENT_DESTROY).putExtra(Utils.qualify("reason"), "Oops! Crashed or connection lost..."));
-			else
-				eventLog.log("M2X-Messenger", event.toString(), new Date(System.currentTimeMillis()));
+				sendBroadcast(new Intent(INTENT_DESTROY).putExtra(Utils.qualify("reason"), "Oops! Crashed or lost connection..."));
 		}
 	};
 

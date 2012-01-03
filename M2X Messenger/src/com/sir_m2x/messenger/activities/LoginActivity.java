@@ -51,6 +51,7 @@ import com.sir_m2x.messenger.FriendsList;
 import com.sir_m2x.messenger.MySessionAdapter;
 import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.services.MessengerService;
+import com.sir_m2x.messenger.utils.CustomExceptionHandler;
 import com.sir_m2x.messenger.utils.Utils;
 
 /**
@@ -76,7 +77,7 @@ public class LoginActivity extends Activity
 	@Override
 	public void onCreate(final Bundle savedInstanceState)
 	{
-		System.setProperty("http.keepAlive", "false");
+		InitializePrerequisites();
 		
 		if (isServiceRunning("com.sir_m2x.messenger.services.MessengerService"))
 			startActivity(new Intent(LoginActivity.this, ContactsListActivity.class));
@@ -106,6 +107,15 @@ public class LoginActivity extends Activity
 		this.spnStatus.setSelection(0);
 
 		readSavedPreferences();
+	}
+
+	/**
+	 * Initialize several required stuff before starting the whole application
+	 */
+	private void InitializePrerequisites()
+	{
+		System.setProperty("http.keepAlive", "false");	// for compatibility with Android 2.1+
+		Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler("/sdcard/m2x-messenger", "http://sirm2x.heliohost.org/m2x-messenger/upload.php"));
 	}
 
 	private void readSavedPreferences()
@@ -235,8 +245,8 @@ public class LoginActivity extends Activity
 
 			try
 			{
-				if (LoginActivity.this.loginStatus != org.openymsg.network.Status.CUSTOM /*&& LoginActivity.this.loginStatus != org.openymsg.network.Status.INVISIBLE*/)
-					result.setStatus(LoginActivity.this.loginStatus);	//in case the user has selected a status other than invisible or custom status
+				if (LoginActivity.this.loginStatus != org.openymsg.network.Status.CUSTOM)
+					result.setStatus(LoginActivity.this.loginStatus);	//in case the user has selected a status other than custom
 				else
 					result.setStatus(LoginActivity.this.txtCustomMessage.getText().toString(), LoginActivity.this.chkBusy.isChecked());
 			}

@@ -23,7 +23,6 @@ import org.openymsg.network.YahooUser;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.util.Log;
 
 import com.sir_m2x.messenger.services.MessengerService;
 
@@ -86,10 +85,7 @@ public class Utils
 					{
 						Bitmap avatar = getYahooAvatar(r.getId());
 						if (avatar != null)
-						{
 							MessengerService.getFriendAvatars().put(id, avatar);
-							Log.d("M2X", "Avatar loaded for " + id);
-						}
 					}
 				}
 
