@@ -23,11 +23,17 @@ package org.openymsg.network;
  * 
  * @author G. der Kinderen, Nimbuzz B.V. guus@nimbuzz.com
  * @author S.E. Morris
+ * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
  */
 public enum SessionState {
     UNSTARTED, // Not logged in
     CONNECTING, // Started to logon
     CONNECTED, // Step one of logon successfully completed
     LOGGED_ON, // Step two of logon successfully completed
-    FAILED; // Dead by Error
+    FAILED, // Dead by Error
+    
+    // further states to detail the login process more clearly
+    INITIALIZING,  //when the pinger threads are starting
+    STAGE1,	//Stage 1 is about to be completed
+    STAGE2;	//State 2 is about to be completed
 }

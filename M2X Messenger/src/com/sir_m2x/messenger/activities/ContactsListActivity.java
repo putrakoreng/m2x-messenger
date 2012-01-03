@@ -57,8 +57,9 @@ import com.sir_m2x.messenger.utils.Utils;
 
 /**
  * The buddy list of the messenger
+ * 
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
- *
+ * 
  */
 public class ContactsListActivity extends ExpandableListActivity
 {
@@ -100,7 +101,7 @@ public class ContactsListActivity extends ExpandableListActivity
 	protected void onDestroy()
 	{
 		unregisterReceiver(this.listener); // to be able to close the activity via
-										// INTENT_DESTROY broadcast
+											// INTENT_DESTROY broadcast
 		super.onDestroy();
 	}
 
@@ -158,13 +159,13 @@ public class ContactsListActivity extends ExpandableListActivity
 			if (user.getStatus() != Status.OFFLINE)
 				isOnline = true;
 
-			String friendIdAndStatus = isOnline ? Utils.toBold(friendId ) : friendId;
+			String friendIdAndStatus = isOnline ? Utils.toBold(friendId) : friendId;
 			if (user.getStatus() == Status.BUSY)
 				isBusy = true;
-			
-			if(user.getStealth() == StealthStatus.STEALTH_PERMENANT)
+
+			if (user.getStealth() == StealthStatus.STEALTH_PERMENANT)
 				friendIdAndStatus = Utils.toItalic(friendIdAndStatus);
-			
+
 			if (user.getCustomStatusMessage() != null)
 			{
 				friendIdAndStatus += " -- <small>" + user.getCustomStatusMessage() + "</small>";
@@ -181,7 +182,7 @@ public class ContactsListActivity extends ExpandableListActivity
 				txtId.setTextColor(txtId.getTextColors().withAlpha(130));
 				imgAvatar.setAlpha(130);
 			}
-			
+
 			if (isBusy)
 				imgBulb.setVisibility(View.VISIBLE);
 			else
@@ -211,27 +212,26 @@ public class ContactsListActivity extends ExpandableListActivity
 		public int getGroupCount()
 		{
 			// TODO What's with the random NullPoinderException??!
-//			try
-//			{
-				return FriendsList.getMasterList().keySet().size();
+			// TODO What's with the random NullPoinderException??!
+			// TODO What's with the random NullPoinderException??!
+			// TODO What's with the random NullPoinderException??!
+			while (true)
+				try
+				{
+					return FriendsList.getMasterList().keySet().size();
 
-//			}
-//			catch (Exception ex)
-//			{
-//				try
-//				{
-//					Thread.sleep(1000);
-//				}
-//				catch (InterruptedException e)
-//				{
-//					e.printStackTrace();
-//				}
-//				finally
-//				{
-//					return FriendsList.getMasterList().keySet().size();
-//				}
-//
-//			}
+				}
+				catch (Exception ex)
+				{
+					try
+					{
+						Thread.sleep(1000);
+					}
+					catch (InterruptedException e)
+					{
+						e.printStackTrace();
+					}
+				}
 		}
 
 		@Override
@@ -311,16 +311,16 @@ public class ContactsListActivity extends ExpandableListActivity
 				//confirm sign out
 				builder.setTitle("Confirm sign out").setMessage("Are you sure you want to sing out?").setPositiveButton("Yes", new OnClickListener()
 				{
-					
+
 					@Override
 					public void onClick(final DialogInterface dialog, final int which)
 					{
 						stopService(new Intent(ContactsListActivity.this, MessengerService.class));
-						finish();						
+						finish();
 					}
 				}).setNegativeButton("No", new OnClickListener()
 				{
-					
+
 					@Override
 					public void onClick(final DialogInterface dialog, final int which)
 					{
@@ -351,9 +351,9 @@ public class ContactsListActivity extends ExpandableListActivity
 					public void onClick(final DialogInterface dialog, final int which)
 					{
 						String id = txtId.getText().toString();
-						if (id==null || id.isEmpty())
+						if (id == null || id.isEmpty())
 							return;
-						
+
 						Intent intent = new Intent(ContactsListActivity.this, ChatWindowTabActivity.class);
 						intent.putExtra(Utils.qualify("friendId"), id);
 						startActivity(intent);
@@ -387,13 +387,13 @@ public class ContactsListActivity extends ExpandableListActivity
 		{
 			YahooUser user = (YahooUser) this.adapter.getChild(group, child);
 			menu.setHeaderTitle(user.getId());
-			
+
 			//The stealth choices
 			menu.add(1, 1, 0, "Appear online to " + user.getId()).setChecked(user.getStealth() == StealthStatus.NO_STEALTH);
 			//TODO implement this for session stealth support
 			//menu.add(1, 2, 0, "Appear offline to " + user.getId()).setChecked(user.getStealth() == StealthStatus.STEALTH_SESSION);
 			menu.add(1, 3, 0, "Appear permenantly offline to " + user.getId()).setChecked(user.getStealth() == StealthStatus.STEALTH_PERMENANT);
-			
+
 			menu.add(2, 4, 0, "Remove from friends"); // the next choice is to remove this friend
 
 			int i = 5;
@@ -438,7 +438,7 @@ public class ContactsListActivity extends ExpandableListActivity
 			final YahooUser user = (YahooUser) this.adapter.getChild(group, child);
 			final String sourceGroup = user.getGroup();
 
-			if (item.getItemId() == 1)	// Appear online
+			if (item.getItemId() == 1) // Appear online
 			{
 				try
 				{
@@ -452,19 +452,19 @@ public class ContactsListActivity extends ExpandableListActivity
 				return true;
 			}
 			//TODO implement this for session stealth support
-//			else if (item.getItemId() == 2)	// Appear offline
-//			{
-//				try
-//				{
-//					FriendsList.changeStealth(user.getId(), StealthStatus.STEALTH_SESSION);
-//				}
-//				catch (IOException e)
-//				{
-//					e.printStackTrace();
-//				}
-//				return true;
-//			}
-			else if (item.getItemId() == 3)	//Appear permenantly offline
+			//			else if (item.getItemId() == 2)	// Appear offline
+			//			{
+			//				try
+			//				{
+			//					FriendsList.changeStealth(user.getId(), StealthStatus.STEALTH_SESSION);
+			//				}
+			//				catch (IOException e)
+			//				{
+			//					e.printStackTrace();
+			//				}
+			//				return true;
+			//			}
+			else if (item.getItemId() == 3) //Appear permenantly offline
 			{
 				try
 				{
@@ -514,7 +514,7 @@ public class ContactsListActivity extends ExpandableListActivity
 				builder.create().show();
 				return true;
 			}
-				
+
 			// Else : change the group of the current user
 			String destinationGroup = item.getTitle().toString();
 

@@ -18,7 +18,6 @@
 package com.sir_m2x.messenger.helpers;
 
 import android.content.Context;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageView;
@@ -35,7 +34,7 @@ import com.sir_m2x.messenger.R;
  */
 public class ToastHelper
 {
-	public static void showToast(final Context context, final int resIcon, final String message, final int Duration)
+	public static void showToast(final Context context, final int resIcon, final String message, final int duration, final int gravity)
 	{
 		LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 		View view = inflater.inflate(R.layout.toast_layout, null);
@@ -46,8 +45,9 @@ public class ToastHelper
 		txtMessage.setText(message);
 
 		Toast toast = new Toast(context);
-		toast.setGravity(Gravity.TOP|Gravity.RIGHT, 0, 0);
-		toast.setDuration(Duration);
+		if (gravity != -1)
+			toast.setGravity(gravity, 0, 0);
+		toast.setDuration(duration);
 		toast.setView(view);
 		toast.show();
 	}
