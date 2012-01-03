@@ -340,7 +340,7 @@ public class Session implements StatusConstants, FriendManager {
 		synchronized (this) {
 			if (this.sessionStatus != SessionState.UNSTARTED)
 				throw new IllegalStateException("Session should be unstarted");
-			this.sessionStatus = SessionState.CONNECTING;
+			this.sessionStatus = SessionState.INITIALIZING;
 		}
 
 		// Yahoo ID's are apparently always lower case
@@ -364,6 +364,7 @@ public class Session implements StatusConstants, FriendManager {
 
 			// Begin login process
 			log.trace("Transmitting auth...");
+			this.sessionStatus = SessionState.CONNECTING;
 			transmitAuth();
 
 			// Wait until connection or timeout
@@ -2071,6 +2072,7 @@ public class Session implements StatusConstants, FriendManager {
 				});
 
 			int responseCode = httpUc.getResponseCode();
+			this.sessionStatus = SessionState.STAGE1;
 			if (responseCode == HttpURLConnection.HTTP_OK) {
 				InputStream in = uc.getInputStream();
 
@@ -2137,7 +2139,7 @@ public class Session implements StatusConstants, FriendManager {
 			throw new LoginRefusedException("Login Failed, Unable to submit login url");
 		}
 
-		// throw new LoginRefusedException("Login Failed, unable to retrieve stage 1 url");
+		//throw new LoginRefusedException("Login Failed, unable to retrieve stage 1 url");
 	}
 
 	private String[] yahooAuth16Stage2(final String token, final String seed) throws LoginRefusedException, IOException,
@@ -2162,6 +2164,7 @@ public class Session implements StatusConstants, FriendManager {
 				});
 
 			int responseCode = httpUc.getResponseCode();
+			this.sessionStatus = SessionState.STAGE2;
 			if (responseCode == HttpURLConnection.HTTP_OK) {
 				InputStream in = uc.getInputStream();
 

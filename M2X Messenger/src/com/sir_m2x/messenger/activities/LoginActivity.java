@@ -17,9 +17,13 @@
  */
 package com.sir_m2x.messenger.activities;
 
+import java.io.IOException;
 import java.util.Date;
 
+import org.openymsg.network.AccountLockedException;
+import org.openymsg.network.FailedLoginException;
 import org.openymsg.network.FireEvent;
+import org.openymsg.network.LoginRefusedException;
 import org.openymsg.network.Session;
 import org.openymsg.network.SessionState;
 import org.openymsg.network.Status;
@@ -50,8 +54,8 @@ import android.widget.Toast;
 import com.sir_m2x.messenger.FriendsList;
 import com.sir_m2x.messenger.MySessionAdapter;
 import com.sir_m2x.messenger.R;
+import com.sir_m2x.messenger.helpers.ToastHelper;
 import com.sir_m2x.messenger.services.MessengerService;
-import com.sir_m2x.messenger.utils.CustomExceptionHandler;
 import com.sir_m2x.messenger.utils.Utils;
 
 /**
@@ -115,7 +119,7 @@ public class LoginActivity extends Activity
 	private void InitializePrerequisites()
 	{
 		System.setProperty("http.keepAlive", "false");	// for compatibility with Android 2.1+
-		Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler("/sdcard/m2x-messenger", "http://sirm2x.heliohost.org/m2x-messenger/upload.php"));
+		//Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler("/sdcard/m2x-messenger", "http://sirm2x.heliohost.org/m2x-messenger/upload.php"));
 	}
 
 	private void readSavedPreferences()
@@ -199,50 +203,134 @@ public class LoginActivity extends Activity
 	private class AsyncLogin extends
 	AsyncTask<String, Void, org.openymsg.network.Session>
 	{
-		private Exception getEx()
+		final org.openymsg.network.Session ys = new org.openymsg.network.Session();
+//		private Exception getEx()
+//		{
+//			return this.ex;
+//		}
+//
+//		private void setEx(final Exception ex)
+//		{
+//			this.ex = ex;
+//		}
+		
+		private Exception loginException = null;
+		
+		/* (non-Javadoc)
+		 * @see android.os.AsyncTask#onProgressUpdate(Progress[])
+		 */
+		@Override
+		protected void onProgressUpdate(final Void... values)
 		{
-			return this.ex;
+			super.onProgressUpdate(values);
+			switch(this.ys.getSessionStatus())
+			{
+				case INITIALIZING:
+					LoginActivity.this.pd.setMessage("Initializing...");
+					break;
+				case CONNECTING:
+					LoginActivity.this.pd.setMessage("Sending credentials...");
+					break;
+				case STAGE1:
+					LoginActivity.this.pd.setMessage("Authenticating...");
+					break;
+				case STAGE2:
+					LoginActivity.this.pd.setMessage("Authenticating(2)...");
+					break;
+				case CONNECTED:
+					LoginActivity.this.pd.setMessage("Loading list...");
+					break;
+				case LOGGED_ON:
+					LoginActivity.this.pd.setMessage("Logged on!");
+					break;
+				case FAILED:
+					LoginActivity.this.pd.setMessage("Failed!");
+					break;
+			}
+			
 		}
-
-		private void setEx(final Exception ex)
-		{
-			this.ex = ex;
-		}
-
-		private Exception ex = null;
+		
 		@Override
 		protected Session doInBackground(final String... arg0)
 		{
-			org.openymsg.network.Session ys = new org.openymsg.network.Session();
-			ys.addSessionListener(new MySessionAdapter(getApplicationContext()));
-			ys.addSessionListener(LoginActivity.this.preConnectionSessionListener);
-			try
+			this.ys.addSessionListener(new MySessionAdapter(getApplicationContext()));
+			this.ys.addSessionListener(LoginActivity.this.preConnectionSessionListener);
+			
+			/**
+			 * A thread to inform the user about the current status of the login progress
+			 */
+			Thread progressReportThread = new Thread()
 			{
-				if (LoginActivity.this.loginStatus != org.openymsg.network.Status.CUSTOM)
-					ys.setStatus(LoginActivity.this.loginStatus);
-				ys.login(arg0[0], arg0[1]);
-			}
-			catch (Exception ex)
-			{
-				setEx(ex);
-				ys = null;
-			}
-			return ys;
+				/* (non-Javadoc)
+				 * @see java.lang.Thread#run()
+				 */
+				@Override
+				public void run()
+				{
+					SessionState initialStatus = AsyncLogin.this.ys.getSessionStatus();
+					while (true)
+					{
+						if(AsyncLogin.this.ys.getSessionStatus()!=initialStatus)
+						{
+							initialStatus = AsyncLogin.this.ys.getSessionStatus();
+							publishProgress((Void)null);
+						}
+						try
+						{
+							Thread.sleep(10);
+						}
+						catch (InterruptedException e)
+						{
+						}
+						
+						if (initialStatus == SessionState.LOGGED_ON || initialStatus == SessionState.FAILED)
+							break;
+					}
+				}
+			};
+			
+			
+				try
+				{
+					if (LoginActivity.this.loginStatus != org.openymsg.network.Status.CUSTOM)
+						this.ys.setStatus(LoginActivity.this.loginStatus);
+					progressReportThread.start();
+					this.ys.login(arg0[0], arg0[1]);
+				}
+				catch(Exception e)
+				{
+					this.loginException = e;
+					return null;
+				}
+			
+			return this.ys;
 		}
 
 		@Override
 		protected void onPostExecute(final org.openymsg.network.Session result)
 		{
 			LoginActivity.this.pd.dismiss();
-			if (getEx() != null)
-			{
-				String message = "";
-				if (getEx().toString().toLowerCase().contains("host"))
-					message = "Could not connect to server, try again!";
-				Toast.makeText(LoginActivity.this, message.isEmpty() ? this.ex.toString() : message, Toast.LENGTH_LONG).show();
+			String faultMessage = "";
+			
+			if (this.loginException instanceof AccountLockedException)
+				faultMessage = "This account has been blocked!";
+			else if (this.loginException instanceof IllegalArgumentException)
+				faultMessage = "Invalid input provided";
+			else if (this.loginException instanceof IllegalStateException)
+				faultMessage = "Session should be unstarted!";
+			else if (this.loginException instanceof LoginRefusedException)
+				faultMessage = "Invalid username or password!";
+			else if (this.loginException instanceof FailedLoginException)
+				faultMessage = "Login failed: Unknow reason";
+			else if (this.loginException instanceof IOException)
+				faultMessage = "Could not connect to Yahoo!";
+			
+			if (!faultMessage.isEmpty())
+				ToastHelper.showToast(getApplicationContext(), R.drawable.ic_stat_notify_busy, faultMessage, Toast.LENGTH_LONG, -1);
+			
+			if (result == null)
 				return;
-			}
-
+			
 			try
 			{
 				if (LoginActivity.this.loginStatus != org.openymsg.network.Status.CUSTOM)
