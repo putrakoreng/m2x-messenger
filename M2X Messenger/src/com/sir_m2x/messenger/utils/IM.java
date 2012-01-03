@@ -17,16 +17,18 @@
  */
 package com.sir_m2x.messenger.utils;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import android.text.Html;
 import android.text.Spanned;
 
 /**
- * A representaion of a single instant message used throughout various places in this project.
+ * A representaion of a single instant message used throughout various places in
+ * this project.
  * 
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
- *
+ * 
  */
 public class IM
 {
@@ -64,27 +66,27 @@ public class IM
 	{
 		return this.timeStamp;
 	}
-	
+
 	public Spanned getTime()
 	{
 		Date today = new Date(System.currentTimeMillis());
-		int hours = this.timeStamp.getHours() > 12 ? this.timeStamp.getHours() - 12 : this.timeStamp.getHours();
-		if (hours == 0)
-			hours = 12;
-		String time = String.format("%02d:%02d " + (this.timeStamp.getHours() > 12 ? "PM" : "AM"), hours,this.timeStamp.getMinutes());
-		String date = String.format("%d-%d-%d", this.timeStamp.getYear() + 1900, this.timeStamp.getMonth() + 1, this.timeStamp.getDate()); 
-		if (this.timeStamp.getYear() == today.getYear() && 
-			this.timeStamp.getMonth() == today.getMonth() &&
-			this.timeStamp.getDate() == today.getDate())
-			return Html.fromHtml("<small>" + time + "</small>");
-		return Html.fromHtml("<small>" + date + "  " + time + "</small>");
+		SimpleDateFormat df;
+
+		if (this.timeStamp.getYear() == today.getYear() && this.timeStamp.getMonth() == today.getMonth() && this.timeStamp.getDate() == today.getDate())
+			df = new SimpleDateFormat("hh:mm a");
+		else
+			df = new SimpleDateFormat("yyyy-MM-dd hh:mm a");
+		
+		String date = df.format(this.timeStamp);
+
+		return Html.fromHtml("<small>" + date + "</small>");
 	}
 
 	public void setTimeStamp(final Date timeStamp)
 	{
 		this.timeStamp = timeStamp;
 	}
-	
+
 	public boolean isBuzz()
 	{
 		return this.isBuzz;
@@ -95,12 +97,12 @@ public class IM
 	private Date timeStamp = null;
 	private boolean isOfflineMessage = false;
 	private boolean isBuzz = false;
-	
+
 	public IM(final String sender, final String message, final Date timeStamp)
 	{
 		this(sender, message, timeStamp, false, false);
 	}
-	
+
 	public IM(final String sender, final String message, final Date timeStamp, final boolean isOfflineMessage, final boolean isBuzz)
 	{
 		this.timeStamp = timeStamp;
@@ -109,18 +111,17 @@ public class IM
 		this.isOfflineMessage = isOfflineMessage;
 		this.isBuzz = isBuzz;
 	}
-	
-	
+
 	@Override
 	public String toString()
 	{
 		return this.sender + ": " + this.message;
 	}
-	
+
 	public Spanned toHtml()
 	{
 		if (this.isBuzz)
-			return Html.fromHtml("<html><body><b>"+ this.sender +":<br/><font color=\"red\">BUZZ!!!</font></b></body></html>");
-		return Html.fromHtml("<html><body><b>" + this.sender +"</b>: " + this.message + "</body></html>");
+			return Html.fromHtml("<html><body><b>" + this.sender + ":<br/><font color=\"red\">BUZZ!!!</font></b></body></html>");
+		return Html.fromHtml("<html><body><b>" + this.sender + "</b>: " + this.message + "</body></html>");
 	}
 }

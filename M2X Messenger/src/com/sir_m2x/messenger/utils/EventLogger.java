@@ -17,8 +17,11 @@
  */
 package com.sir_m2x.messenger.utils;
 
+import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
+import java.util.List;
 
 import android.text.Html;
 import android.text.Spanned;
@@ -31,26 +34,26 @@ import android.text.Spanned;
  */
 public class EventLogger
 {
-	private final LinkedList<LogFormat> eventLog; 
+	private final List<LogFormat> eventLog; 
 	
-	public LinkedList<LogFormat> getEventLog()
+	public List<LogFormat> getEventLog()
 	{
-		return eventLog;
+		return this.eventLog;
 	}
 	
 	public EventLogger()
 	{
-		this.eventLog = new LinkedList<LogFormat>();		
+		this.eventLog = Collections.synchronizedList(new LinkedList<LogFormat>());		
 	}
 	
-	public void log(String who, String event, Date timeStamp)
+	public void log(final String who, final String event, final Date timeStamp)
 	{
 		this.log(new LogFormat(who, event, timeStamp));
 	}
 	
-	public void log(LogFormat logObject)
+	public synchronized void log(final LogFormat logObject)
 	{
-		eventLog.add(logObject);
+		this.eventLog.add(logObject);
 	}
 		
 	public static class LogFormat
@@ -61,70 +64,73 @@ public class EventLogger
 		
 		public String getWho()
 		{
-			return who;
+			return this.who;
 		}
 
-		public void setWho(String who)
+		public void setWho(final String who)
 		{
 			this.who = who;
 		}
 
 		public String getEvent()
 		{
-			return event;
+			return this.event;
 		}
 		
-		public void setEvent(String event)
+		public void setEvent(final String event)
 		{
 			this.event = event;
 		}
 		
 		public Date getTimeStamp()
 		{
-			return timeStamp;
+			return this.timeStamp;
 		}
 		
-		public void setTimeStamp(Date timeStamp)
+		public void setTimeStamp(final Date timeStamp)
 		{
 			this.timeStamp = timeStamp;
 		}
 		
-		public LogFormat(String who, String event, Date timeStamp)
+		public LogFormat(final String who, final String event, final Date timeStamp)
 		{
 			this.setWho(who);
 			this.event = event;
 			this.timeStamp = timeStamp;
 		}
 		
-		@Override
-		public String toString()
-		{
-			Date today = new Date(System.currentTimeMillis());
-			String time = String.format("%02d:%02d " + (timeStamp.getHours() > 12 ? "PM" : "AM"), timeStamp.getHours() > 12 ? timeStamp.getHours() - 12 : timeStamp.getHours(),timeStamp.getMinutes());
-			String date = String.format("%d-%d-%d", timeStamp.getYear() + 1900, timeStamp.getMonth() + 1, timeStamp.getDate()); 
-			if (timeStamp.getYear() == today.getYear() && 
-				timeStamp.getMonth() == today.getMonth() &&
-				timeStamp.getDate() == today.getDate())
-				return time + ": " + who + ": " + event;
-			
-			return date + "  " + time + ": " + who + ": " + event;
-		}
+//		@Override
+//		public String toString()
+//		{
+//			Date today = new Date(System.currentTimeMillis());
+//			String time = String.format("%02d:%02d " + (this.timeStamp.getHours() > 12 ? "PM" : "AM"), this.timeStamp.getHours() > 12 ? this.timeStamp.getHours() - 12 : this.timeStamp.getHours(),this.timeStamp.getMinutes());
+//			String date = String.format("%d-%d-%d", this.timeStamp.getYear() + 1900, this.timeStamp.getMonth() + 1, this.timeStamp.getDate()); 
+//			if (this.timeStamp.getYear() == today.getYear() && 
+//				this.timeStamp.getMonth() == today.getMonth() &&
+//				this.timeStamp.getDate() == today.getDate())
+//				return time + ": " + this.who + ": " + this.event;
+//			
+//			return date + "  " + time + ": " + this.who + ": " + this.event;
+//		}
 		
 		public Spanned eventToHtml()
 		{
-			return Html.fromHtml("<b>" + who +"</b>: " + event);
+			return Html.fromHtml("<b>" + this.who +"</b>: " + this.event);
 		}
 		
 		public Spanned timeToHtml()
 		{
 			Date today = new Date(System.currentTimeMillis());
-			String time = String.format("%02d:%02d " + (timeStamp.getHours() > 12 ? "PM" : "AM"), timeStamp.getHours() > 12 ? timeStamp.getHours() - 12 : timeStamp.getHours(),timeStamp.getMinutes());
-			String date = String.format("%d-%d-%d", timeStamp.getYear() + 1900, timeStamp.getMonth() + 1, timeStamp.getDate()); 
-			if (timeStamp.getYear() == today.getYear() && 
-				timeStamp.getMonth() == today.getMonth() &&
-				timeStamp.getDate() == today.getDate())
-				return Html.fromHtml("<small>" + time + "</small>");
-			return Html.fromHtml("<small>" + date + "  " + time + "</small>");
+			SimpleDateFormat df;
+
+			if (this.timeStamp.getYear() == today.getYear() && this.timeStamp.getMonth() == today.getMonth() && this.timeStamp.getDate() == today.getDate())
+				df = new SimpleDateFormat("hh:mm a");
+			else
+				df = new SimpleDateFormat("yyyy-MM-dd hh:mm a");
+			
+			String date = df.format(this.timeStamp);
+
+			return Html.fromHtml("<small>" + date + "</small>");
 		}
 		
 	}
