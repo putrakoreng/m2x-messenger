@@ -4,13 +4,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.logging.Log;
@@ -762,7 +762,7 @@ public class Roster implements Set<YahooUser>, SessionListener {
      */
     private YahooUser createMergedUser(final YahooAddressBookEntry addressBookEntry, final String userId, final YahooUser user) {
         YahooUser newUser;
-        Set<String> groupIds = new HashSet<String>(user.getGroupIds()); // returns an unmodifiable set
+        TreeSet<String> groupIds = new TreeSet<String>(user.getGroupIds()); // returns an unmodifiable set
         YahooProtocol protocol = user.getProtocol();
         newUser = new YahooUser(userId, groupIds, protocol, addressBookEntry);
         Status status = user.getStatus();

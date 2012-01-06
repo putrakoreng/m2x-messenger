@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <PreferenceCategory android:title="Contacts List" >
+        <ListPreference
+            android:defaultValue="loadNeeded"
+            android:entries="@array/avatar_list_entries"
+            android:entryValues="@array/avatar_list_entryValues"
+            android:key="loadAvatars"
+            android:summary="Controls how to load avatars"
+            android:title="Load avatars" />
+        <ListPreference
+            android:defaultValue="1"
+            android:entries="@array/avatarPolicy_list_entries"
+            android:entryValues="@array/avatarPolicy_list_entryValues"
+            android:key="avatarPolicy"
+            android:summary="Controls avatars refresh interval"
+            android:title="Avatar refresh policy" />
+
+        <Preference android:title="Refresh avatar cache" />
+
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="showOffline"
+            android:summary="Show offline contacts in friend list"
+            android:title="Show offline contacts" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Notifications" >
+        <ListPreference
+            android:defaultValue="on"
+            android:entries="@array/vibration_list_entries"
+            android:entryValues="@array/vibration_list_entryValues"
+            android:key="vibration"
+            android:summary="Vibrate when a new message arrives"
+            android:title="Vibration" />
+
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="showToasts"
+            android:summary="Display notification when a friend&apos;s status has changed"
+            android:title="Friend status notifications" />
+
+        <ListPreference
+            android:defaultValue="playAll"
+            android:entries="@array/audibles_list_entries"
+            android:entryValues="@array/audibles_list_entryValues"
+            android:key="audibles"
+            android:summary="Play sound on new notification"
+            android:title="Audible notifications" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

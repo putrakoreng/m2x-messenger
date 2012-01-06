@@ -17,12 +17,13 @@
  */
 package com.sir_m2x.messenger.activities;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.TreeMap;
 
 import org.openymsg.network.Status;
 import org.openymsg.network.StealthStatus;
+import org.openymsg.network.YahooGroup;
 import org.openymsg.network.YahooUser;
 
 import android.app.AlertDialog;
@@ -33,8 +34,11 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.text.Html;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -50,9 +54,9 @@ import android.widget.ExpandableListView.ExpandableListContextMenuInfo;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.sir_m2x.messenger.FriendsList;
 import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.services.MessengerService;
+import com.sir_m2x.messenger.utils.Preferences;
 import com.sir_m2x.messenger.utils.Utils;
 
 /**
@@ -120,7 +124,25 @@ public class ContactsListActivity extends ExpandableListActivity
 		@Override
 		public Object getChild(final int groupPosition, final int childPosition)
 		{
-			return FriendsList.getMasterList().get(FriendsList.getMasterList().keySet().toArray()[groupPosition]).get(childPosition);
+			//return FriendsList.getMasterList().get(FriendsList.getMasterList().keySet().toArray()[groupPosition]).get(childPosition);
+
+			//return ((YahooGroup)(MessengerService.getYahooList().getFriendsList().values().toArray()[groupPosition])).getUsers().toArray()[childPosition];
+			YahooGroup group = (YahooGroup) getGroup(groupPosition);
+			int i = 0;
+
+			for (YahooUser user : group.getUsers())
+			{
+				if (i == childPosition)
+					if (Preferences.showOffline)
+						return user;
+					else if (user.getStatus() != Status.OFFLINE)	// if this user is online, show it!
+							return user;
+					else
+						continue; // this user is offline and based on the preferences, we should not list him/her
+				i++;
+			}
+
+			return null;
 		}
 
 		@Override
@@ -137,18 +159,33 @@ public class ContactsListActivity extends ExpandableListActivity
 			LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 			View v = inflater.inflate(R.layout.contacts_list_child_view, parent, false);
 
+			boolean isOnline = false;
+			
+			if (user.getStatus() != Status.OFFLINE)
+				isOnline = true;
+			
 			TextView txtId = (TextView) v.findViewById(R.id.txtId);
 			TextView txtUnreadCount = (TextView) v.findViewById(R.id.txtNewImCount);
 			ImageView imgIsTyping = (ImageView) v.findViewById(R.id.imgIsTyping);
 			ImageView imgEnvelope = (ImageView) v.findViewById(R.id.imgEnvelope);
 			ImageView imgAvatar = (ImageView) v.findViewById(R.id.imgAvatar);
 			ImageView imgBulb = (ImageView) v.findViewById(R.id.imgBulb);
-			boolean isOnline = false;
-			boolean isBusy = false;
+			
 			int unread = 0;
 
 			if (MessengerService.getFriendAvatars().containsKey(friendId))
 				imgAvatar.setImageBitmap(MessengerService.getFriendAvatars().get(friendId));
+			else
+			{
+				File f = new File("/sdcard/M2X Messenger/avatar-cache", friendId + ".jpg");
+				if (f.exists())
+				{
+					Bitmap avatar = BitmapFactory.decodeFile(f.getAbsolutePath());
+					imgAvatar.setImageBitmap(avatar);
+					MessengerService.getFriendAvatars().put(friendId, avatar);	// for use in the future
+				}
+				
+			}
 
 			if (MessengerService.getUnreadIMs().containsKey(friendId))
 			{
@@ -156,21 +193,14 @@ public class ContactsListActivity extends ExpandableListActivity
 				txtUnreadCount.setText(String.valueOf(unread));
 			}
 
-			if (user.getStatus() != Status.OFFLINE)
-				isOnline = true;
 
 			String friendIdAndStatus = isOnline ? Utils.toBold(friendId) : friendId;
-			if (user.getStatus() == Status.BUSY)
-				isBusy = true;
 
 			if (user.getStealth() == StealthStatus.STEALTH_PERMENANT)
 				friendIdAndStatus = Utils.toItalic(friendIdAndStatus);
 
 			if (user.getCustomStatusMessage() != null)
-			{
 				friendIdAndStatus += " -- <small>" + user.getCustomStatusMessage() + "</small>";
-				isBusy = user.isCustomStatusBusy();
-			}
 			if (user.isPending())
 				friendIdAndStatus += "<br/><small><i>[Add request pending]</i></small>";
 
@@ -183,10 +213,29 @@ public class ContactsListActivity extends ExpandableListActivity
 				imgAvatar.setAlpha(130);
 			}
 
-			if (isBusy)
-				imgBulb.setVisibility(View.VISIBLE);
-			else
-				imgBulb.setVisibility(View.GONE);
+			switch(user.getStatus())
+			{
+				case AVAILABLE:
+					imgBulb.setImageResource(R.drawable.presence_online);
+					break;
+				case BUSY:
+					imgBulb.setImageResource(R.drawable.presence_busy);
+					break;
+				case IDLE:
+					imgBulb.setImageResource(R.drawable.presence_away);
+					break;
+				case CUSTOM:
+					if (user.isCustomStatusBusy())
+						imgBulb.setImageResource(R.drawable.presence_busy);
+					else
+						imgBulb.setImageResource(R.drawable.presence_online);
+					break;
+				case OFFLINE:
+					imgBulb.setImageResource(R.drawable.presence_offline);
+					break;
+				default:
+					imgBulb.setImageResource(R.drawable.presence_busy);
+			}
 
 			txtUnreadCount.setVisibility(unread == 0 ? View.GONE : View.VISIBLE);
 			imgEnvelope.setVisibility(unread == 0 ? View.GONE : View.VISIBLE);
@@ -199,39 +248,84 @@ public class ContactsListActivity extends ExpandableListActivity
 		@Override
 		public int getChildrenCount(final int groupPosition)
 		{
-			return FriendsList.getMasterList().get(FriendsList.getMasterList().keySet().toArray()[groupPosition]).size();
+			//return FriendsList.getMasterList().get(FriendsList.getMasterList().keySet().toArray()[groupPosition]).size();
+			if (Preferences.showOffline)
+				return ((YahooGroup) (MessengerService.getYahooList().getFriendsList().values().toArray()[groupPosition])).getUsers().size();
+			
+			int count = 0;
+			YahooGroup group = (YahooGroup)getGroup(groupPosition);
+			for (YahooUser user : group.getUsers())
+				if (user.getStatus() != Status.OFFLINE)
+					count ++;
+			
+			return count;
+		}
+		
+		/**
+		 * The count of all of the contacts in this group (regardless of their status)
+		 * @param groupPosition
+		 * 		The index of the group;
+		 * @return
+		 * 		The total count of the contacts in this group.
+		 */
+		public int getTotalChildrenCount(final int groupPosition)
+		{
+			return ((YahooGroup) (MessengerService.getYahooList().getFriendsList().values().toArray()[groupPosition])).getUsers().size();
 		}
 
 		@Override
 		public Object getGroup(final int groupPosition)
 		{
-			return FriendsList.getMasterList().keySet().toArray()[groupPosition];
+			//return FriendsList.getMasterList().keySet().toArray()[groupPosition];
+			int i = 0;
+			TreeMap<String, YahooGroup> friendsList = MessengerService.getYahooList().getFriendsList();
+
+			for (String group : friendsList.keySet())
+			{
+				if (i == groupPosition)
+					return friendsList.get(group);
+				i++;
+			}
+
+			return null;
 		}
 
 		@Override
 		public int getGroupCount()
 		{
-			// TODO What's with the random NullPoinderException??!
-			// TODO What's with the random NullPoinderException??!
-			// TODO What's with the random NullPoinderException??!
-			// TODO What's with the random NullPoinderException??!
-			while (true)
-				try
-				{
-					return FriendsList.getMasterList().keySet().size();
+			//			// TODO What's with the random NullPoinderException??!
+			//			// TODO What's with the random NullPoinderException??!
+			//			// TODO What's with the random NullPoinderException??!
+			//			// TODO What's with the random NullPoinderException??!
+			//			while (true)
+			//				try
+			//				{
+			//					return FriendsList.getMasterList().keySet().size();
+			//
+			//				}
+			//				catch (Exception ex)
+			//				{
+			//					try
+			//					{
+			//						Thread.sleep(1000);
+			//					}
+			//					catch (InterruptedException e)
+			//					{
+			//						e.printStackTrace();
+			//					}
+			//				}
 
-				}
-				catch (Exception ex)
-				{
-					try
-					{
-						Thread.sleep(1000);
-					}
-					catch (InterruptedException e)
-					{
-						e.printStackTrace();
-					}
-				}
+			if (MessengerService.getYahooList() == null)
+			{
+				Log.e("M2X", "YahooList is null");
+				return 0;
+			}
+			if (MessengerService.getYahooList().getFriendsList() == null)
+			{
+				Log.e("M2X", "Friends list is null");
+				return 0;
+			}
+			return MessengerService.getYahooList().getFriendsList().size();
 		}
 
 		@Override
@@ -253,15 +347,15 @@ public class ContactsListActivity extends ExpandableListActivity
 			ImageView imgEnvelope = (ImageView) v.findViewById(R.id.imgEnvelope);
 			int unreadCount = 0;
 
-			String groupName = getGroup(groupPosition).toString();
-			txtGroupName.setText(groupName);
+			YahooGroup group = (YahooGroup) getGroup(groupPosition);
+			txtGroupName.setText(group.getName());
 
 			// Integer totalCount =
 			// MessengerService.getSession().getFriendList().get(groupName).size();
-			Integer totalCount = FriendsList.getMasterList().get(groupName).size();
+			Integer totalCount = getTotalChildrenCount(groupPosition);
 			Integer onlineCount = 0;
 
-			for (YahooUser user : FriendsList.getMasterList().get(groupName))
+			for (YahooUser user : group.getUsers())
 			{
 				if (user.getStatus() != Status.OFFLINE)
 					onlineCount++;
@@ -351,7 +445,7 @@ public class ContactsListActivity extends ExpandableListActivity
 					public void onClick(final DialogInterface dialog, final int which)
 					{
 						String id = txtId.getText().toString();
-						if (id == null || id.isEmpty())
+						if (id == null || id.equals(""))
 							return;
 
 						Intent intent = new Intent(ContactsListActivity.this, ChatWindowTabActivity.class);
@@ -367,12 +461,15 @@ public class ContactsListActivity extends ExpandableListActivity
 					}
 				}).show();
 				break;
+			case R.id.mnuPreferences:
+				startActivityForResult(new Intent(this, PreferencesActivity.class), 0);
+				break;
 			default:
 				break;
 		}
 		return true;
 	}
-
+	
 	@Override
 	public void onCreateContextMenu(final android.view.ContextMenu menu, final View v, final android.view.ContextMenu.ContextMenuInfo menuInfo)
 	{
@@ -397,9 +494,10 @@ public class ContactsListActivity extends ExpandableListActivity
 			menu.add(2, 4, 0, "Remove from friends"); // the next choice is to remove this friend
 
 			int i = 5;
-			TreeMap<String, ArrayList<YahooUser>> groups = FriendsList.getMasterList();
+			//TreeMap<String, ArrayList<YahooUser>> groups = FriendsList.getMasterList();
+			TreeMap<String, YahooGroup> friendsList = MessengerService.getYahooList().getFriendsList();
 
-			for (String groupName : groups.keySet()) // generate the list of all groups
+			for (String groupName : friendsList.keySet()) // generate the list of all groups
 			{
 				MenuItem item = menu.add(3, i, 0, groupName);
 				for (String g : user.getGroupIds())
@@ -416,7 +514,7 @@ public class ContactsListActivity extends ExpandableListActivity
 		}
 		else if (type == ExpandableListView.PACKED_POSITION_TYPE_GROUP) // Show the pop-up menu for a group
 		{
-			String groupName = this.adapter.getGroup(group).toString();
+			String groupName = ((YahooGroup) this.adapter.getGroup(group)).getName();
 			menu.setHeaderTitle(groupName);
 			menu.add(1, 1, 0, "Add a friend");
 			menu.add(1, 2, 0, "Delete");
@@ -442,7 +540,7 @@ public class ContactsListActivity extends ExpandableListActivity
 			{
 				try
 				{
-					FriendsList.changeStealth(user.getId(), StealthStatus.NO_STEALTH);
+					MessengerService.getYahooList().changeStealth(user, StealthStatus.NO_STEALTH);
 					this.adapter.notifyDataSetChanged();
 				}
 				catch (IOException e)
@@ -468,7 +566,7 @@ public class ContactsListActivity extends ExpandableListActivity
 			{
 				try
 				{
-					FriendsList.changeStealth(user.getId(), StealthStatus.STEALTH_PERMENANT);
+					MessengerService.getYahooList().changeStealth(user, StealthStatus.STEALTH_PERMENANT);
 					this.adapter.notifyDataSetChanged();
 				}
 				catch (IOException e)
@@ -491,7 +589,7 @@ public class ContactsListActivity extends ExpandableListActivity
 					{
 						try
 						{
-							FriendsList.removeFriendFromGroup(user.getId(), sourceGroup);
+							MessengerService.getYahooList().removeFriendFromGroup(user, sourceGroup);
 							ContactsListActivity.this.adapter.notifyDataSetChanged();
 						}
 						catch (IOException e)
@@ -520,7 +618,7 @@ public class ContactsListActivity extends ExpandableListActivity
 
 			try
 			{
-				FriendsList.moveFriend(user.getId(), sourceGroup, destinationGroup);
+				MessengerService.getYahooList().moveFriend(user, sourceGroup, destinationGroup);
 			}
 			catch (IOException e)
 			{
@@ -532,7 +630,8 @@ public class ContactsListActivity extends ExpandableListActivity
 		else if (type == ExpandableListView.PACKED_POSITION_TYPE_GROUP) //a group item is selected
 		{
 
-			final String groupName = this.adapter.getGroup(group).toString();
+			final YahooGroup chosenGroup = (YahooGroup) this.adapter.getGroup(group);
+			final String groupName = chosenGroup.getName();
 			AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
 			switch (item.getItemId())
@@ -546,11 +645,11 @@ public class ContactsListActivity extends ExpandableListActivity
 						public void onClick(final DialogInterface dialog, final int which)
 						{
 							String friendId = txtId.getText().toString();
-							if (friendId == null || friendId.isEmpty())
+							if (friendId == null || friendId.equals(""))
 								return;
 							try
 							{
-								FriendsList.addFriend(friendId, groupName);
+								MessengerService.getYahooList().addFriend(friendId, groupName);
 								ContactsListActivity.this.adapter.notifyDataSetChanged();
 							}
 							catch (Exception ex)
@@ -576,7 +675,7 @@ public class ContactsListActivity extends ExpandableListActivity
 						{
 							try
 							{
-								FriendsList.deleteGroup(groupName);
+								MessengerService.getYahooList().deleteGroup(groupName);
 								ContactsListActivity.this.adapter.notifyDataSetChanged();
 							}
 							catch (Exception ex)
@@ -603,11 +702,11 @@ public class ContactsListActivity extends ExpandableListActivity
 						public void onClick(final DialogInterface dialog, final int which)
 						{
 							String groupNewName = txtGroupNewName.getText().toString();
-							if (groupName == null || groupName.isEmpty())
+							if (groupNewName == null || groupNewName.equals(""))
 								return;
 							try
 							{
-								FriendsList.renameGroup(groupName, groupNewName);
+								MessengerService.getYahooList().renameGroup(chosenGroup, groupNewName);
 								ContactsListActivity.this.adapter.notifyDataSetChanged();
 							}
 							catch (Exception e)

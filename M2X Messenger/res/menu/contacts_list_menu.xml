@@ -25,6 +25,11 @@
         android:title="Log Window">
     </item>
     <item
+        android:id="@+id/mnuPreferences"
+        android:icon="@drawable/ic_menu_preferences"
+        android:title="Preferences">
+    </item>
+    <item
         android:id="@+id/mnuSignOut"
         android:icon="@android:drawable/ic_lock_power_off"
         android:title="Sign Out">

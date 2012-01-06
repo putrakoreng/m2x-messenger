@@ -17,7 +17,9 @@
  */
 package com.sir_m2x.messenger.utils;
 
+import java.io.File;
 import java.net.URL;
+import java.util.Calendar;
 
 import org.openymsg.network.YahooUser;
 
@@ -30,24 +32,46 @@ import com.sir_m2x.messenger.services.MessengerService;
  * Several utility functions used throughout this projects.
  * 
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
- *
+ * 
  */
 public class Utils
 {
 	/**
+	 * Initialize several required stuff before starting the whole application
+	 */
+	public static void initializeEnvironment()
+	{
+		System.setProperty("http.keepAlive", "false"); // for compatibility with Android 2.1+
+		Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler("/sdcard/M2X Messenger/crash-log", "http://sirm2x.heliohost.org/m2x-messenger/upload.php"));
+		initializeFolders();
+	}
+
+	private static void initializeFolders()
+	{
+		// create folders
+		File f = new File("/sdcard/M2X Messenger");
+		if (!f.exists())
+			f.mkdir();
+		f = new File("/sdcard/M2X Messenger/avatar-cache");
+		if (!f.exists())
+			f.mkdir();
+		f = new File("/sdcard/M2X Messenger/crash-log");
+		if (!f.exists())
+			f.mkdir();
+	}
+
+	/**
 	 * Retrieves the Yahoo! avatar of the specified user.
+	 * 
 	 * @param userId
-	 * 		The ID of the user to get the avatar of.
-	 * @return
-	 * 		A bitmap containing the avatar which is received. 
+	 *            The ID of the user to get the avatar of.
+	 * @return A bitmap containing the avatar which is received.
 	 */
 	public static Bitmap getYahooAvatar(final String userId)
 	{
 		try
 		{
-			return BitmapFactory.decodeStream(new URL(
-					"http://img.msg.yahoo.com/avatar.php?yids=" + userId)
-					.openStream());
+			return BitmapFactory.decodeStream(new URL("http://img.msg.yahoo.com/avatar.php?yids=" + userId).openStream());
 		}
 		catch (Exception e)
 		{
@@ -76,7 +100,7 @@ public class Utils
 					if (avatar != null)
 						MessengerService.setMyAvatar(avatar);
 				}
-				
+
 				for (YahooUser r : MessengerService.getSession().getRoster())
 				{
 					String id = r.getId();
@@ -92,43 +116,55 @@ public class Utils
 			}
 		}).start();
 	}
-	
+
 	/**
-	 * Qualifies a string with the complete package name.
-	 * Note that this method is used primarily for sending and receiving intents and prevents 
+	 * Qualifies a string with the complete package name. Note that this method
+	 * is used primarily for sending and receiving intents and prevents
 	 * accidental naming collisions.
 	 * 
 	 * @param string
-	 * 		The string to be qualified.
-	 * @return
-	 *		The qualified string.
+	 *            The string to be qualified.
+	 * @return The qualified string.
 	 */
 	public static String qualify(final String string)
 	{
 		return "com.sir_m2x.messenger." + string;
 	}
-	
+
 	/**
 	 * A convenience method to convert a string to its italic equivalent in HTML
+	 * 
 	 * @param string
-	 * 		String to convert
-	 * @return
-	 * 		The string enclosed in proper italic HTML tags.
+	 *            String to convert
+	 * @return The string enclosed in proper italic HTML tags.
 	 */
 	public static String toItalic(final String string)
 	{
 		return "<i>" + string + "</i>";
 	}
-	
+
 	/**
 	 * A convenience method to convert a string to its bold equivalent in HTML
+	 * 
 	 * @param string
-	 * 		String to convert
-	 * @return
-	 * 		The string enclosed in proper bold HTML tags.
+	 *            String to convert
+	 * @return The string enclosed in proper bold HTML tags.
 	 */
 	public static String toBold(final String string)
 	{
 		return "<b>" + string + "</b>";
 	}
+
+	public static int daysBetween(final Calendar startDate, final Calendar endDate)
+	{
+		Calendar date = (Calendar) startDate.clone();
+		int daysBetween = 0;
+		while (date.before(endDate))
+		{
+			date.add(Calendar.DAY_OF_MONTH, 1);
+			daysBetween++;
+		}
+		return daysBetween;
+	}
+
 }

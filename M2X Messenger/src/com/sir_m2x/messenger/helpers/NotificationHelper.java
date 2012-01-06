@@ -106,12 +106,13 @@ public class NotificationHelper
 		this.notificationManager.notify(NOTIFICATION_SIGNED_IN, notify);
 	}
 
-	public void updateNotification(final String tickerText, final String title, final String message, final int notificationId, final int resId, final Intent intent)
+	public void updateNotification(final String tickerText, final String title, final String message, final int notificationId, final int resId, final Intent intent, final int notificationCount)
 	{
 		Notification notification = new Notification(resId, tickerText, System.currentTimeMillis());
-
+		notification.flags = Notification.FLAG_ONGOING_EVENT;
 		PendingIntent pending = PendingIntent.getActivity(this.context, 0, intent, 0);
 		notification.setLatestEventInfo(this.context, title, message, pending);
+		notification.number = notificationCount;
 		this.notificationManager.notify(notificationId, notification);
 	}
 }
