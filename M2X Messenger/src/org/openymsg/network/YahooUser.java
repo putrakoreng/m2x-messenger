@@ -19,8 +19,8 @@
 package org.openymsg.network;
 
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.openymsg.addressBook.YahooAddressBookEntry;
 
@@ -98,7 +98,7 @@ public class YahooUser
 	/**
 	 * A set of IDs of the groups to which this user belongs.
 	 */
-	private final Set<String> groupIds;
+	private final TreeSet<String> groupIds;
 
 	/**
 	 * The presence status of this user (away, available, etc).
@@ -169,7 +169,7 @@ public class YahooUser
 			final YahooProtocol protocol)
 	{
 		this.userId = userId.toLowerCase();
-		this.groupIds = new HashSet<String>();
+		this.groupIds = new TreeSet<String>();
 
 		if (groupId != null && groupId.length() != 0)
 			this.groupIds.add(groupId);
@@ -184,7 +184,7 @@ public class YahooUser
 		this.addressBookEntry = addressBookEntry;
 	}
 
-	public YahooUser(final String userId, final Set<String> groupIds,
+	public YahooUser(final String userId, final TreeSet<String> groupIds,
 			final YahooProtocol protocol)
 	{
 		this.userId = userId.toLowerCase();
@@ -193,7 +193,7 @@ public class YahooUser
 		this.protocol = protocol;
 	}
 
-	public YahooUser(final String userId, final Set<String> groupIds,
+	public YahooUser(final String userId, final TreeSet<String> groupIds,
 			final YahooProtocol protocol, final YahooAddressBookEntry addressBookEntry)
 	{
 		this(userId, groupIds, protocol);

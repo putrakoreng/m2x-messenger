@@ -20,6 +20,9 @@ package com.sir_m2x.messenger.activities;
 import java.util.Date;
 import java.util.LinkedList;
 
+import org.openymsg.network.YahooGroup;
+import org.openymsg.network.YahooUser;
+
 import android.app.TabActivity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -73,7 +76,7 @@ public class ChatWindowTabActivity extends TabActivity
 			MessengerService.getFriendsInChat().put(friendId, new LinkedList<IM>());
 		createTabs(friendId);
 		getTabHost().setOnTabChangedListener(this.tabChangedListener);
-		
+
 		// reshow the default notification
 		MessengerService.getNotificationHelper().showDefaultNotification(false, false);
 	}
@@ -114,6 +117,45 @@ public class ChatWindowTabActivity extends TabActivity
 		TextView tv = (TextView) v.findViewById(R.id.txtTabTitle);
 		tv.setText(title);
 		// ImageView iv = (ImageView) v.findViewById(R.id.imgIsTyping);
+		ImageView imgBulb = (ImageView) v.findViewById(R.id.imgBulb);
+		YahooUser user = null;
+
+		// search for the user! 
+		for (YahooGroup g : MessengerService.getYahooList().getFriendsList().values())
+			for (YahooUser x : g.getUsers())
+				if (x.getId().equals(title))
+				{
+					user = x;
+					break;
+				}
+
+		if (user == null)	// then it means we are having a conversation with a non-list person
+			imgBulb.setImageResource(R.drawable.presence_invisible);
+		else
+			switch (user.getStatus())
+			{
+				case AVAILABLE:
+					imgBulb.setImageResource(R.drawable.presence_online);
+					break;
+				case BUSY:
+					imgBulb.setImageResource(R.drawable.presence_busy);
+					break;
+				case IDLE:
+					imgBulb.setImageResource(R.drawable.presence_away);
+					break;
+				case CUSTOM:
+					if (user.isCustomStatusBusy())
+						imgBulb.setImageResource(R.drawable.presence_busy);
+					else
+						imgBulb.setImageResource(R.drawable.presence_online);
+					break;
+				case OFFLINE:
+					imgBulb.setImageResource(R.drawable.presence_offline);
+					break;
+				default:
+					imgBulb.setImageResource(R.drawable.presence_busy);
+			}
+		
 		v.setTag(title);
 		return v;
 	}
@@ -218,7 +260,7 @@ public class ChatWindowTabActivity extends TabActivity
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_NEW_IM))
 			{
-				
+
 				String from = intent.getExtras().getString(Utils.qualify("from"));
 				View v = getTabHost().findViewWithTag(from);
 				if (v == null)
@@ -250,7 +292,7 @@ public class ChatWindowTabActivity extends TabActivity
 			ImageView iv = (ImageView) v.findViewById(R.id.imgUnreadIm);
 			if (iv == null)
 				return;
-			
+
 			iv.setVisibility(View.GONE);
 		}
 	};

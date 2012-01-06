@@ -39,6 +39,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
@@ -51,11 +52,11 @@ import android.widget.Spinner;
 import android.widget.TableRow;
 import android.widget.Toast;
 
-import com.sir_m2x.messenger.FriendsList;
-import com.sir_m2x.messenger.MySessionAdapter;
 import com.sir_m2x.messenger.R;
+import com.sir_m2x.messenger.YahooList;
 import com.sir_m2x.messenger.helpers.ToastHelper;
 import com.sir_m2x.messenger.services.MessengerService;
+import com.sir_m2x.messenger.utils.Preferences;
 import com.sir_m2x.messenger.utils.Utils;
 
 /**
@@ -81,7 +82,7 @@ public class LoginActivity extends Activity
 	@Override
 	public void onCreate(final Bundle savedInstanceState)
 	{
-		InitializePrerequisites();
+		Utils.initializeEnvironment();
 		
 		if (isServiceRunning("com.sir_m2x.messenger.services.MessengerService"))
 			startActivity(new Intent(LoginActivity.this, ContactsListActivity.class));
@@ -113,17 +114,11 @@ public class LoginActivity extends Activity
 		readSavedPreferences();
 	}
 
-	/**
-	 * Initialize several required stuff before starting the whole application
-	 */
-	private void InitializePrerequisites()
-	{
-		System.setProperty("http.keepAlive", "false");	// for compatibility with Android 2.1+
-		//Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler("/sdcard/m2x-messenger", "http://sirm2x.heliohost.org/m2x-messenger/upload.php"));
-	}
-
+	
+	
 	private void readSavedPreferences()
 	{
+		// login screen preferences
 		SharedPreferences preferences = getSharedPreferences(Utils.qualify("LOGIN_PREFERENCES"), 0);
 
 		this.txtUsername.setText(preferences.getString("username", ""));
@@ -131,6 +126,10 @@ public class LoginActivity extends Activity
 		this.spnStatus.setSelection(preferences.getInt("status", 0));
 		this.txtCustomMessage.setText(preferences.getString("customStatus", ""));
 		this.chkBusy.setChecked(preferences.getBoolean("busy", false));
+		
+		// preferences screen
+		Preferences.loadPreferences(getApplicationContext());		
+		
 	}
 
 	private void savePreferences()
@@ -253,8 +252,10 @@ public class LoginActivity extends Activity
 		@Override
 		protected Session doInBackground(final String... arg0)
 		{
-			this.ys.addSessionListener(new MySessionAdapter(getApplicationContext()));
 			this.ys.addSessionListener(LoginActivity.this.preConnectionSessionListener);
+			
+			MessengerService.setYahooList(new YahooList(this.ys, getApplicationContext()));
+			this.ys.addSessionListener(MessengerService.getYahooList());
 			
 			/**
 			 * A thread to inform the user about the current status of the login progress
@@ -325,11 +326,33 @@ public class LoginActivity extends Activity
 			else if (this.loginException instanceof IOException)
 				faultMessage = "Could not connect to Yahoo!";
 			
-			if (!faultMessage.isEmpty())
+			if (!faultMessage.equals(""))
 				ToastHelper.showToast(getApplicationContext(), R.drawable.ic_stat_notify_busy, faultMessage, Toast.LENGTH_LONG, -1);
 			
 			if (result == null)
+			{
+				LoginActivity.this.pd.dismiss();
 				return;
+			}
+			
+			while(true)
+			{
+				synchronized(MessengerService.getYahooList().isListReady())
+				{
+					if (MessengerService.getYahooList().isListReady())
+						break;
+				}
+				
+				Log.d("M2X", "Waiting for the list to get ready!");
+				try
+				{
+					Thread.sleep(10);
+				}
+				catch (InterruptedException e)
+				{
+				}
+			}
+			
 			
 			try
 			{
@@ -347,19 +370,10 @@ public class LoginActivity extends Activity
 			{
 				MessengerService.setMyId(MessengerService.getSession().getLoginID().getId());
 				MessengerService.getEventLog().log(MessengerService.getMyId(), "logged in", new Date(System.currentTimeMillis()));
-				//Hacky! sleep for 2 seconds so that the session is fully ready
-				try
-				{
-					Thread.sleep(2000);
-				}
-				catch (InterruptedException e)
-				{
-				}
-				result.removeSessionListener(LoginActivity.this.preConnectionSessionListener);
-				while(!result.getRoster().isRosterReady());		//wait for the roster to become fully ready.
-				Utils.getAllAvatars();
-				FriendsList.fillFriends(result.getRoster().getGroups());
-				result.addSessionListener(new FriendsList());
+
+//				if (Preferences.loadAvatars)
+//					Utils.getAllAvatars();
+
 				savePreferences();
 				startService(new Intent(LoginActivity.this, com.sir_m2x.messenger.services.MessengerService.class));
 				startActivity(new Intent(LoginActivity.this, ContactsListActivity.class));
@@ -380,7 +394,7 @@ public class LoginActivity extends Activity
 	
 	SessionListener preConnectionSessionListener = new SessionListener()
 	{
-		
+
 		@Override
 		public void dispatch(final FireEvent event)
 		{

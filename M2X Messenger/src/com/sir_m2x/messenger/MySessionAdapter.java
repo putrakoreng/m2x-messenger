@@ -17,6 +17,12 @@
  */
 package com.sir_m2x.messenger;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -24,9 +30,7 @@ import java.util.LinkedList;
 import org.openymsg.network.YahooUser;
 import org.openymsg.network.event.SessionAdapter;
 import org.openymsg.network.event.SessionChatEvent;
-import org.openymsg.network.event.SessionErrorEvent;
 import org.openymsg.network.event.SessionEvent;
-import org.openymsg.network.event.SessionExceptionEvent;
 import org.openymsg.network.event.SessionFriendEvent;
 import org.openymsg.network.event.SessionNotifyEvent;
 import org.openymsg.network.event.SessionPictureEvent;
@@ -34,43 +38,32 @@ import org.openymsg.network.event.SessionPictureEvent;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
-import android.util.Log;
 
 import com.sir_m2x.messenger.services.MessengerService;
 import com.sir_m2x.messenger.utils.IM;
+import com.sir_m2x.messenger.utils.Preferences;
 import com.sir_m2x.messenger.utils.Utils;
+
 /**
- * An extension of SessionAdapter.
- * This class is primarily used to process various events that are sent to us by the Session class.
- * (ex: When a user is online, etc.)
+ * An extension of SessionAdapter. This class is primarily used to process
+ * various events that are sent to us by the Session class. (ex: When a user is
+ * online, etc.)
  * 
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
- *
+ * 
  */
 public class MySessionAdapter extends SessionAdapter
 {
 	public static Context context = null;
-	
 
-	
-	@Override
-	public void inputExceptionThrown(final SessionExceptionEvent event)
-	{
-		Log.wtf("WTF", "inputExceptionThrown");
-		event.getException().printStackTrace();
-	}
-	@Override
-	public void errorPacketReceived(final SessionErrorEvent event)
-	{
-		Log.wtf("WTF", "Error packet received");
-		super.errorPacketReceived(event);
-	}
 	public MySessionAdapter(final Context context)
 	{
 		MySessionAdapter.context = context;
 	}
-	
+
 	@Override
 	public void friendAddedReceived(final SessionFriendEvent event)
 	{
@@ -100,8 +93,7 @@ public class MySessionAdapter extends SessionAdapter
 				Intent intent = new Intent(MessengerService.INTENT_NEW_IM_ADDED);
 				intent.putExtra(Utils.qualify("from"), im.getSender());
 
-				ContextWrapper wrapper = new ContextWrapper(
-						MySessionAdapter.context);
+				ContextWrapper wrapper = new ContextWrapper(MySessionAdapter.context);
 				wrapper.sendBroadcast(intent);
 				try
 				{
@@ -122,8 +114,7 @@ public class MySessionAdapter extends SessionAdapter
 			 */
 			synchronized (MessengerService.getUnreadIMs())
 			{
-				HashMap<String, Integer> unreadIMs = MessengerService
-						.getUnreadIMs();
+				HashMap<String, Integer> unreadIMs = MessengerService.getUnreadIMs();
 				if (unreadIMs.containsKey(from))
 				{
 					int count = unreadIMs.get(from).intValue();
@@ -134,8 +125,7 @@ public class MySessionAdapter extends SessionAdapter
 					unreadIMs.put(from, new Integer(1));
 			}
 
-			ContextWrapper wrapper = new ContextWrapper(
-					MySessionAdapter.context);
+			ContextWrapper wrapper = new ContextWrapper(MySessionAdapter.context);
 			Intent intent = new Intent();
 			intent.setAction(MessengerService.INTENT_BUZZ);
 			intent.putExtra(Utils.qualify("from"), from);
@@ -143,11 +133,11 @@ public class MySessionAdapter extends SessionAdapter
 			wrapper.sendBroadcast(intent);
 		}
 	}
-	
+
 	@Override
 	public void offlineMessageReceived(final SessionEvent event)
 	{
-		
+
 		try
 		{
 			// wait for everything to load up perfectly then send the broadcast
@@ -157,7 +147,7 @@ public class MySessionAdapter extends SessionAdapter
 		{
 			e1.printStackTrace();
 		}
-		
+
 		String from = event.getFrom();
 		String message = event.getMessage();
 		if (message.contains("<ding>"))
@@ -165,7 +155,7 @@ public class MySessionAdapter extends SessionAdapter
 			buzzReceived(event);
 			return;
 		}
-		
+
 		IM im = new IM(from, message, event.getTimestamp(), true, false);
 
 		synchronized (MessengerService.getFriendsInChat())
@@ -180,8 +170,7 @@ public class MySessionAdapter extends SessionAdapter
 				intent.putExtra(Utils.qualify("message"), im.getMessage());
 				intent.putExtra(Utils.qualify("from"), im.getSender());
 
-				ContextWrapper wrapper = new ContextWrapper(
-						MySessionAdapter.context);
+				ContextWrapper wrapper = new ContextWrapper(MySessionAdapter.context);
 				wrapper.sendBroadcast(intent);
 				try
 				{
@@ -202,8 +191,7 @@ public class MySessionAdapter extends SessionAdapter
 			 */
 			synchronized (MessengerService.getUnreadIMs())
 			{
-				HashMap<String, Integer> unreadIMs = MessengerService
-						.getUnreadIMs();
+				HashMap<String, Integer> unreadIMs = MessengerService.getUnreadIMs();
 				if (unreadIMs.containsKey(from))
 				{
 					int count = unreadIMs.get(from).intValue();
@@ -214,8 +202,7 @@ public class MySessionAdapter extends SessionAdapter
 					unreadIMs.put(from, new Integer(1));
 			}
 
-			ContextWrapper wrapper = new ContextWrapper(
-					MySessionAdapter.context);
+			ContextWrapper wrapper = new ContextWrapper(MySessionAdapter.context);
 			Intent intent = new Intent();
 			intent.setAction(MessengerService.INTENT_NEW_IM);
 			intent.putExtra(Utils.qualify("from"), from);
@@ -242,8 +229,7 @@ public class MySessionAdapter extends SessionAdapter
 				intent.putExtra(Utils.qualify("message"), im.getMessage());
 				intent.putExtra(Utils.qualify("from"), im.getSender());
 
-				ContextWrapper wrapper = new ContextWrapper(
-						MySessionAdapter.context);
+				ContextWrapper wrapper = new ContextWrapper(MySessionAdapter.context);
 				wrapper.sendBroadcast(intent);
 				try
 				{
@@ -264,8 +250,7 @@ public class MySessionAdapter extends SessionAdapter
 			 */
 			synchronized (MessengerService.getUnreadIMs())
 			{
-				HashMap<String, Integer> unreadIMs = MessengerService
-						.getUnreadIMs();
+				HashMap<String, Integer> unreadIMs = MessengerService.getUnreadIMs();
 				if (unreadIMs.containsKey(from))
 				{
 					int count = unreadIMs.get(from).intValue();
@@ -276,8 +261,7 @@ public class MySessionAdapter extends SessionAdapter
 					unreadIMs.put(from, new Integer(1));
 			}
 
-			ContextWrapper wrapper = new ContextWrapper(
-					MySessionAdapter.context);
+			ContextWrapper wrapper = new ContextWrapper(MySessionAdapter.context);
 			Intent intent = new Intent();
 			intent.setAction(MessengerService.INTENT_NEW_IM);
 			intent.putExtra(Utils.qualify("from"), from);
@@ -291,24 +275,20 @@ public class MySessionAdapter extends SessionAdapter
 	{
 		if (event.isTyping())
 		{
-			MessengerService.getSession().getRoster().getUser(event.getFrom())
-					.setIsTyping(event.getMode());
+			MessengerService.getSession().getRoster().getUser(event.getFrom()).setIsTyping(event.getMode());
 
-			if (!MessengerService.getFriendsInChat().containsKey(
-					event.getFrom()))
+			if (!MessengerService.getFriendsInChat().containsKey(event.getFrom()))
 			{
 				String message = event.getFrom() + " is preparing a message...";
 
-				ContextWrapper wrapper = new ContextWrapper(
-						MySessionAdapter.context);
+				ContextWrapper wrapper = new ContextWrapper(MySessionAdapter.context);
 				Intent intent = new Intent();
 				intent.setAction(MessengerService.INTENT_FRIEND_EVENT);
 				intent.putExtra(Utils.qualify("event"), message);
 				wrapper.sendBroadcast(intent);
 			}
 
-			ContextWrapper wrapper = new ContextWrapper(
-					MySessionAdapter.context);
+			ContextWrapper wrapper = new ContextWrapper(MySessionAdapter.context);
 			Intent intent = new Intent();
 			intent.setAction(MessengerService.INTENT_IS_TYPING);
 			intent.putExtra(Utils.qualify("from"), event.getFrom());
@@ -320,75 +300,116 @@ public class MySessionAdapter extends SessionAdapter
 	}
 
 	@Override
-	public void chatExitReceived(final SessionChatEvent event)
-	{
-		Log.d("M2X", event.getChatUser().toString());
-		// TODO Auto-generated method stub
-	}
-
-	@Override
 	public void friendsUpdateReceived(final SessionFriendEvent event)
 	{
 		String id = event.getUser().getId().toString();
 		String statusMessage = event.getUser().getCustomStatusMessage();
-		
+
 		ContextWrapper wrapper = new ContextWrapper(MySessionAdapter.context);
 		Intent intent = new Intent();
 		intent.setAction(MessengerService.INTENT_FRIEND_UPDATE_RECEIVED);
 		intent.putExtra(Utils.qualify("who"), id);
 		intent.putExtra(Utils.qualify("what"), statusMessage);
-		
+
 		wrapper.sendBroadcast(intent);
-		
-		if (statusMessage != null && !statusMessage.isEmpty())
-		MessengerService.getEventLog().log(id, statusMessage, new Date(System.currentTimeMillis()));
-		Log.d("M2X", "update  received for " + id);
+
+		if (statusMessage != null && !statusMessage.equals(""))
+			MessengerService.getEventLog().log(id, statusMessage, new Date(System.currentTimeMillis()));
 	}
-	
+
 	@Override
 	public void friendSignedOn(final SessionFriendEvent event)
 	{
 		YahooUser u = event.getUser();
 		String id = u.getId().toString();
-		
+
 		ContextWrapper wrapper = new ContextWrapper(MySessionAdapter.context);
 		Intent intent = new Intent();
 		intent.setAction(MessengerService.INTENT_FRIEND_SIGNED_ON);
 		intent.putExtra(Utils.qualify("who"), id);
-		
+
 		wrapper.sendBroadcast(intent);
-		
+
+		// request this contact's picture
+		if (Preferences.loadAvatars.equals(Preferences.AVATAR_LOAD_NEEDED))
+		{
+			File f = new File("/sdcard/M2X Messenger/avatar-cache", id + ".jpg");
+			if (!f.exists())
+				try
+				{
+					MessengerService.getSession().requestPicture(id);
+				}
+				catch (IOException e)
+				{
+					e.printStackTrace();
+				}
+			else if (Preferences.avatarRefreshInterval != -1)
+			{
+				Calendar lastModified = Calendar.getInstance();
+				lastModified.setTimeInMillis(f.lastModified());
+				int days = Utils.daysBetween(lastModified, Calendar.getInstance());
+				if (days >= Preferences.avatarRefreshInterval)
+					try
+					{
+						MessengerService.getSession().requestPicture(id);
+					}
+					catch (IOException e)
+					{
+						e.printStackTrace();
+					}
+			}
+		}
+
 		MessengerService.getEventLog().log(id, "signed on", new Date(System.currentTimeMillis()));
-		Log.d("M2X", "Signed on received for " + id);
 
 	}
-	
+
 	@Override
 	public void friendSignedOff(final SessionFriendEvent event)
 	{
 		if (event == null) //when we sign out, this event is fired with event == null
 			return;
-		
+
 		String id = event.getUser().getId().toString();
-		
+
 		ContextWrapper wrapper = new ContextWrapper(MySessionAdapter.context);
 		Intent intent = new Intent();
 		intent.setAction(MessengerService.INTENT_FRIEND_SIGNED_OFF);
 		intent.putExtra(Utils.qualify("who"), id);
-		
+
 		wrapper.sendBroadcast(intent);
-		
+
 		MessengerService.getEventLog().log(id, "signed off", new Date(System.currentTimeMillis()));
-		Log.d("M2X", "Signed off received for " + id);
 	}
-	
+
 	@Override
 	public void pictureReceived(final SessionPictureEvent ev)
 	{
+		String id = ev.getFrom();
 		byte[] pictureData = ev.getPictureData();
-		
-		// TODO Auto-generated method stu
-		MessengerService.getFriendAvatars().put(ev.getFrom(), BitmapFactory.decodeByteArray(pictureData, 0,pictureData.length));
-	}
 
+		// save this picture to sdcard
+		OutputStream fOut = null;
+		File file = new File("/sdcard/M2X Messenger/avatar-cache", id + ".jpg");
+		Bitmap bitmap = BitmapFactory.decodeByteArray(pictureData, 0, pictureData.length);
+		try
+		{
+			fOut = new FileOutputStream(file);
+
+			bitmap.compress(CompressFormat.JPEG, 100, fOut);
+			fOut.flush();
+			fOut.close();
+		}
+		catch (FileNotFoundException e)
+		{
+			e.printStackTrace();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+
+		MessengerService.getFriendAvatars().put(ev.getFrom(), bitmap);
+		context.sendBroadcast(new Intent(MessengerService.INTENT_LIST_CHANGED));
+	}
 }

@@ -18,8 +18,8 @@
  */
 package org.openymsg.network;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Represents a single group of friend users in a Yahoo friends list.
@@ -35,7 +35,7 @@ public class YahooGroup {
 
     private boolean isOpen;
 
-    private Set<YahooUser> users;
+    private TreeSet<YahooUser> users;
 
     /**
      * Creates a new YahooGroup instance.
@@ -45,10 +45,10 @@ public class YahooGroup {
      * @param isOpen
      *            ''true'' the create an open group, ''false'' otherwise.
      */
-    public YahooGroup(String name, boolean isOpen) {
+    public YahooGroup(final String name, final boolean isOpen) {
         this.name = name;
         this.isOpen = isOpen;
-        users = new HashSet<YahooUser>();
+        this.users = new TreeSet<YahooUser>(YahooUser.getComparator());
     }
 
     /**
@@ -57,37 +57,37 @@ public class YahooGroup {
      * @param name
      *            Name of the group.
      */
-    public YahooGroup(String name) {
+    public YahooGroup(final String name) {
         this(name, true);
     }
 
-    public void addUser(YahooUser yu) {
-        users.add(yu);
+    public void addUser(final YahooUser yu) {
+        this.users.add(yu);
     }
 
     public String getName() {
-        return name;
+        return this.name;
     }
 
-    public void setName(String nm) {
-        name = nm;
+    public void setName(final String nm) {
+        this.name = nm;
     }
 
     public boolean isOpen() {
-        return isOpen;
+        return this.isOpen;
     }
 
-    public void setOpen(boolean isOpen) {
+    public void setOpen(final boolean isOpen) {
         this.isOpen = isOpen;
     }
 
     public Set<YahooUser> getUsers() {
-        return users;
+        return this.users;
     }
 
     @Override
     public String toString() {
-        return "YahooGroup [name=" + name + "]";
+        return "YahooGroup [name=" + this.name + "]";
     }
 
     /*
@@ -99,7 +99,7 @@ public class YahooGroup {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((name == null) ? 0 : name.hashCode());
+        result = prime * result + ((this.name == null) ? 0 : this.name.hashCode());
         return result;
     }
 
@@ -109,25 +109,20 @@ public class YahooGroup {
      * @see java.lang.Object#equals(java.lang.Object)
      */
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (!(obj instanceof YahooGroup)) {
-            return false;
-        }
+    public boolean equals(final Object obj) {
+        if (this == obj)
+			return true;
+        if (obj == null)
+			return false;
+        if (!(obj instanceof YahooGroup))
+			return false;
         final YahooGroup other = (YahooGroup) obj;
-        if (name == null) {
-            if (other.name != null) {
-                return false;
-            }
+        if (this.name == null) {
+            if (other.name != null)
+				return false;
         }
-        else if (!name.equals(other.name)) {
-            return false;
-        }
+        else if (!this.name.equals(other.name))
+			return false;
         return true;
     }
 }

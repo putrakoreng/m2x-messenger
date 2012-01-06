@@ -52,6 +52,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -459,7 +460,18 @@ public class Session implements StatusConstants, FriendManager {
 				this.pingTimestamp = now;
 				pingSent = true;
 			}
-			this.transmitKeepAlive();
+			/////////////////////////////////////////
+			URL url = new URL("http://www.yahoo.com");
+			HttpURLConnection urlc = (HttpURLConnection) url.openConnection();
+		    urlc.setRequestProperty("User-Agent", "Android Application:OpenYMSG");
+		    urlc.setRequestProperty("Connection", "close");
+		    urlc.setConnectTimeout(1000 * 30); // mTimeout is in seconds
+		    urlc.connect();
+		    if (urlc.getResponseCode() == 200)
+				this.transmitKeepAlive();
+			else
+		    	throw new SocketException();
+		    urlc.disconnect();
 		}
 		catch (IOException ex) {
 			if (ex instanceof SocketException) {
@@ -3308,7 +3320,7 @@ public class Session implements StatusConstants, FriendManager {
 							}
 							else {
 								/* This buddy is on the ignore list (and therefore in no group) */
-								yu = new YahooUser(username, new HashSet<String>(), protocol);
+								yu = new YahooUser(username, new TreeSet<String>(), protocol);
 								yu.setIgnored(true);
 								usersOnIgnoreList.add(yu);
 							}
@@ -3362,7 +3374,7 @@ public class Session implements StatusConstants, FriendManager {
 				}
 				else {
 					/* This buddy is on the ignore list (and therefore in no group) */
-					yu = new YahooUser(username, new HashSet<String>(), protocol);
+					yu = new YahooUser(username, new TreeSet<String>(), protocol);
 					yu.setIgnored(true);
 					usersOnIgnoreList.add(yu);
 				}
@@ -3910,7 +3922,7 @@ public class Session implements StatusConstants, FriendManager {
 			log.debug("Presence of a new friend seems to have arrived "
 					+ "before the details of the new friend. Adding " + "them now: " + userId + "/" + protocol);
 			// TODO: clean up the threading mess that can be caused by this.
-			this.roster.dispatch(new FireEvent(new SessionFriendEvent(this, new YahooUser(userId, new HashSet<String>(),
+			this.roster.dispatch(new FireEvent(new SessionFriendEvent(this, new YahooUser(userId, new TreeSet<String>(),
 					protocol)), ServiceType.FRIENDADD));
 			user = this.roster.getUser(userId);
 		}
@@ -4038,7 +4050,7 @@ public class Session implements StatusConstants, FriendManager {
 	 */
 	public void requestPicture(final String friend) throws IOException {
 		final PacketBodyBuffer body = new PacketBodyBuffer();
-		body.addElement("4", this.loginID.getId());
+		body.addElement("1", this.loginID.getId());
 		body.addElement("5", friend);
 		body.addElement("13", "1");
 		sendPacket(body, ServiceType.PICTURE);

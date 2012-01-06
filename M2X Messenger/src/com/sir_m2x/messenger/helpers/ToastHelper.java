@@ -25,6 +25,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.sir_m2x.messenger.R;
+import com.sir_m2x.messenger.utils.Preferences;
 
 /**
  * A helper class to facilitate working with toast notifications
@@ -36,6 +37,9 @@ public class ToastHelper
 {
 	public static void showToast(final Context context, final int resIcon, final String message, final int duration, final int gravity)
 	{
+		if (!Preferences.showToasts)
+			return;
+		
 		LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 		View view = inflater.inflate(R.layout.toast_layout, null);
 		

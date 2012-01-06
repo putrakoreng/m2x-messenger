@@ -68,7 +68,7 @@ public class CustomExceptionHandler implements UncaughtExceptionHandler
 	@Override
 	public void uncaughtException(final Thread t, final Throwable e)
 	{
-		SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHMMSS");
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd HHMM");
 		String timestamp = df.format(new Date(System.currentTimeMillis()));
 		
 		final Writer result = new StringWriter();

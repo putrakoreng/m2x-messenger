@@ -3,7 +3,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.sir_m2x.messenger"
     android:versionCode="1"
-    android:versionName="0.6 Alpha" >
+    android:versionName="0.65 Alpha" >
 
     <uses-sdk android:minSdkVersion="7" />
 
@@ -90,6 +90,8 @@
             android:name=".activities.ChangeStatusActivity"
             android:theme="@android:style/Theme.Dialog" >
         </activity>
+        
+        <activity android:name=".activities.PreferencesActivity"/>
 
         <service android:name=".services.MessengerService" >
             <intent-filter>

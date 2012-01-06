@@ -19,7 +19,6 @@
 package org.openymsg.network.event;
 
 import org.openymsg.network.FireEvent;
-import org.openymsg.network.ServiceType;
 
 /**
  * Empty-method implementation of the {@link SessionListener} interface. A typical usage of this class would be to
@@ -29,123 +28,123 @@ import org.openymsg.network.ServiceType;
  * @author S.E. Morris
  */
 public class SessionAdapter implements SessionListener {
-    public void fileTransferReceived(SessionFileTransferEvent event) {
+    public void fileTransferReceived(final SessionFileTransferEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void listReceived(SessionListEvent event) {
+    public void listReceived(final SessionListEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void messageReceived(SessionEvent event) {
+    public void messageReceived(final SessionEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void buzzReceived(SessionEvent event) {
+    public void buzzReceived(final SessionEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void offlineMessageReceived(SessionEvent event) {
+    public void offlineMessageReceived(final SessionEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void errorPacketReceived(SessionErrorEvent event) {
+    public void errorPacketReceived(final SessionErrorEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void inputExceptionThrown(SessionExceptionEvent event) {
+    public void inputExceptionThrown(final SessionExceptionEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void newMailReceived(SessionNewMailEvent event) {
+    public void newMailReceived(final SessionNewMailEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void notifyReceived(SessionNotifyEvent event) {
+    public void notifyReceived(final SessionNotifyEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void contactRequestReceived(SessionAuthorizationEvent event) {
+    public void contactRequestReceived(final SessionAuthorizationEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void contactRejectionReceived(SessionFriendRejectedEvent event) {
+    public void contactRejectionReceived(final SessionFriendRejectedEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void contactAcceptedReceived(SessionFriendAcceptedEvent event) {
+    public void contactAcceptedReceived(final SessionFriendAcceptedEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void conferenceInviteReceived(SessionConferenceInviteEvent event) {
+    public void conferenceInviteReceived(final SessionConferenceInviteEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void conferenceInviteDeclinedReceived(SessionConferenceDeclineInviteEvent event) {
+    public void conferenceInviteDeclinedReceived(final SessionConferenceDeclineInviteEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void conferenceLogonReceived(SessionConferenceLogonEvent event) {
+    public void conferenceLogonReceived(final SessionConferenceLogonEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void conferenceLogoffReceived(SessionConferenceLogoffEvent event) {
+    public void conferenceLogoffReceived(final SessionConferenceLogoffEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void conferenceMessageReceived(SessionConferenceMessageEvent event) {
+    public void conferenceMessageReceived(final SessionConferenceMessageEvent event) {
         // override this function if you want to do something with it.
     }
     
-    public void friendSignedOff(SessionFriendEvent event) {
+    public void friendSignedOff(final SessionFriendEvent event) {
         // override this function if you want to do something with it.
     }
     
-    public void friendSignedOn(SessionFriendEvent event) {
+    public void friendSignedOn(final SessionFriendEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void friendsUpdateReceived(SessionFriendEvent event) {
+    public void friendsUpdateReceived(final SessionFriendEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void friendsUpdateFailureReceived(SessionFriendFailureEvent event) {
+    public void friendsUpdateFailureReceived(final SessionFriendFailureEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void friendAddedReceived(SessionFriendEvent event) {
+    public void friendAddedReceived(final SessionFriendEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void friendRemovedReceived(SessionFriendEvent event) {
+    public void friendRemovedReceived(final SessionFriendEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void groupRenameReceived(SessionGroupEvent event) {
+    public void groupRenameReceived(final SessionGroupEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void chatJoinReceived(SessionChatEvent event) {
+    public void chatJoinReceived(final SessionChatEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void chatExitReceived(SessionChatEvent event) {
+    public void chatExitReceived(final SessionChatEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void chatMessageReceived(SessionChatEvent event) {
+    public void chatMessageReceived(final SessionChatEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void chatUserUpdateReceived(SessionChatEvent event) {
+    public void chatUserUpdateReceived(final SessionChatEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void chatConnectionClosed(SessionEvent event) {
+    public void chatConnectionClosed(final SessionEvent event) {
         // override this function if you want to do something with it.
     }
 
-    public void pictureReceived(SessionPictureEvent ev) {
+    public void pictureReceived(final SessionPictureEvent ev) {
         // override this function if you want to do something with it.
     }
 
@@ -153,7 +152,7 @@ public class SessionAdapter implements SessionListener {
     // captchMessage - full message from captcha
     // captchaURL - captcha URL
     // lobby - YahooChatLobby connecting to
-    public void chatCaptchaReceived(SessionChatEvent ev) {
+    public void chatCaptchaReceived(final SessionChatEvent ev) {
     }
 
     /**
@@ -162,7 +161,8 @@ public class SessionAdapter implements SessionListener {
      * @param event
      *            The event to be dispatched.
      */
-    public void dispatch(FireEvent event) {
+    @Override
+	public void dispatch(final FireEvent event) {
         final SessionEvent ev = event.getEvent();
 
         switch (event.getType()) {
@@ -207,24 +207,20 @@ public class SessionAdapter implements SessionListener {
             fileTransferReceived((SessionFileTransferEvent) ev);
             break;
         case NOTIFY:
-            if (ev instanceof SessionNotifyEvent) {
-                notifyReceived((SessionNotifyEvent) ev);
-            }
-            else {
-                // probably a SessionPictureEvent, not handled
-            }
+            if (ev instanceof SessionNotifyEvent)
+				notifyReceived((SessionNotifyEvent) ev);
+			else	// this is a SessionPictureEvent
+				pictureReceived((SessionPictureEvent) ev);
             break;
         case LIST:
             listReceived((SessionListEvent) ev);
             break;
         case FRIENDADD:
             SessionFriendEvent friendAddEvent = (SessionFriendEvent) ev;
-            if (friendAddEvent.isFailure()) {
-                friendsUpdateFailureReceived((SessionFriendFailureEvent) ev);
-            }
-            else {
-                friendAddedReceived((SessionFriendEvent) ev);
-            }
+            if (friendAddEvent.isFailure())
+				friendsUpdateFailureReceived((SessionFriendFailureEvent) ev);
+			else
+				friendAddedReceived((SessionFriendEvent) ev);
             break;
         case FRIENDREMOVE:
             friendRemovedReceived((SessionFriendEvent) ev);
@@ -272,18 +268,14 @@ public class SessionAdapter implements SessionListener {
             pictureReceived((SessionPictureEvent) ev);
             break;
         case Y7_AUTHORIZATION:
-            if (ev instanceof SessionAuthorizationEvent) {
-                contactRequestReceived((SessionAuthorizationEvent) ev);
-            }
-            else if (ev instanceof SessionFriendRejectedEvent) {
-                contactRejectionReceived((SessionFriendRejectedEvent) ev);
-            }
-            else if (ev instanceof SessionFriendAcceptedEvent) {
-                contactAcceptedReceived((SessionFriendAcceptedEvent) ev);
-            }
-            else {
-                throw new IllegalArgumentException("Don't know how to handle '" + event.getType() + "' event: " + event);
-            }
+            if (ev instanceof SessionAuthorizationEvent)
+				contactRequestReceived((SessionAuthorizationEvent) ev);
+			else if (ev instanceof SessionFriendRejectedEvent)
+				contactRejectionReceived((SessionFriendRejectedEvent) ev);
+			else if (ev instanceof SessionFriendAcceptedEvent)
+				contactAcceptedReceived((SessionFriendAcceptedEvent) ev);
+			else
+				throw new IllegalArgumentException("Don't know how to handle '" + event.getType() + "' event: " + event);
             break;
         default:
             throw new IllegalArgumentException("Don't know how to handle service type '" + event.getType() + "'");
@@ -293,7 +285,7 @@ public class SessionAdapter implements SessionListener {
     /**
      * @param ev
      */
-    private void logonReceived(SessionEvent ev) {
+    private void logonReceived(final SessionEvent ev) {
         // TODO Auto-generated method stub
 
     }
