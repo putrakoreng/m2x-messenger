@@ -18,6 +18,7 @@
 package com.sir_m2x.messenger.services;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -26,10 +27,12 @@ import org.openymsg.network.FireEvent;
 import org.openymsg.network.ServiceType;
 import org.openymsg.network.Session;
 import org.openymsg.network.SessionState;
+import org.openymsg.network.Status;
 import org.openymsg.network.event.SessionExceptionEvent;
 import org.openymsg.network.event.SessionListener;
 import org.openymsg.network.event.SessionLogoutEvent;
 
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -40,6 +43,8 @@ import android.graphics.Bitmap;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
+import android.net.wifi.WifiManager.WifiLock;
 import android.os.IBinder;
 import android.os.Vibrator;
 import android.text.Html;
@@ -50,7 +55,6 @@ import android.widget.Toast;
 import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.YahooList;
 import com.sir_m2x.messenger.activities.ChatWindowTabActivity;
-import com.sir_m2x.messenger.activities.LoginActivity;
 import com.sir_m2x.messenger.helpers.NotificationHelper;
 import com.sir_m2x.messenger.helpers.ToastHelper;
 import com.sir_m2x.messenger.utils.EventLogger;
@@ -71,6 +75,8 @@ public class MessengerService extends Service
 	/*
 	 * Intent constants
 	 */
+	public static final String INTENT_LOGIN = "com.sir_m2x.messenger.LOGIN";
+	public static final String INTENT_LOGIN_PROGRESS = "com.sir_m2x.messenger.LOGIN_PROGRESS";
 	public static final String INTENT_NEW_IM = "com.sir_m2x.messenger.NEW_IM";
 	public static final String INTENT_IS_TYPING = "com.sir_m2x.messenger.IS_TYPING";
 	public static final String INTENT_NEW_IM_ADDED = "com.sir_m2x.messenger.NEW_IM_ADDED";
@@ -93,10 +99,13 @@ public class MessengerService extends Service
 	private static HashMap<String, Integer> unreadIMs = new HashMap<String, Integer>();
 	private static EventLogger eventLog = new EventLogger();
 	private static NotificationHelper notificationHelper = null;
+	private static Status currentStatus = Status.AVAILABLE;
 	
+	private WifiLock lock = null;
+
 	private static YahooList yahooList = null;
 
-	public static EventLogger getEventLog()
+	public static synchronized EventLogger getEventLog()
 	{
 		return MessengerService.eventLog;
 	}
@@ -171,11 +180,48 @@ public class MessengerService extends Service
 		MessengerService.yahooList = yahooList;
 	}
 
+	public void Login(final String username, final String password, final Status status, final String customMessage, final boolean isCustomBusy)
+	{
+		yahooList = new YahooList(session, getApplicationContext());
+		session.addSessionListener(yahooList);
+
+		AsyncLogin asyncLogin = new AsyncLogin(this, session, status, customMessage, isCustomBusy, false);
+		currentStatus = status;
+		asyncLogin.execute(new String[] { username, password });
+		MessengerService.notificationHelper.showDefaultNotification(true, false);
+	}
+	
+	private void reconnect()
+	{
+		Log.d("M2X", "Reconnecting...");
+		session = new Session();
+		yahooList.refreshSession(session);
+		session.addSessionListener(yahooList);
+		session.addSessionListener(this.sessionListener);
+	
+		String username = Preferences.username;
+		String password = Preferences.password;
+		Status status = currentStatus;
+		String customMessage = Preferences.customStatus;
+		boolean isCustomBusy = Preferences.busy;
+		
+		AsyncLogin asyncLogin = new AsyncLogin(this, session, status, customMessage, isCustomBusy, true);
+		
+		asyncLogin.execute(new String[] { username, password });
+		MessengerService.notificationHelper.showDefaultNotification(true, false);
+	}
 
 	@Override
 	public int onStartCommand(final Intent intent, final int flags, final int startId)
 	{
+		Utils.initializeEnvironment();
+		WifiManager wfm = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+		this.lock = wfm.createWifiLock("M2X");
+		this.lock.acquire();
+		
+		session = new Session();
 		session.addSessionListener(this.sessionListener);
+		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_LOGIN));
 		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_NEW_IM));
 		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_BUZZ));
 		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_ON));
@@ -186,8 +232,9 @@ public class MessengerService extends Service
 		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_STATUS_CHANGED));
 
 		MessengerService.notificationHelper = new NotificationHelper(getApplicationContext(), (NotificationManager) getSystemService(NOTIFICATION_SERVICE));
-		MessengerService.notificationHelper.showDefaultNotification(true, false);
-
+		if (Preferences.saveLog)
+			Utils.loadEventLog(MessengerService.eventLog);
+				
 		return super.onStartCommand(intent, flags, startId);
 	}
 
@@ -213,14 +260,19 @@ public class MessengerService extends Service
 		setMyAvatar(null);
 		getUnreadIMs().clear();
 		setMyId("");
+		if (Preferences.saveLog)
+			Utils.saveEventLog(eventLog);
 		eventLog.getEventLog().clear();
-		yahooList.getFriendsList().clear();
+		if (yahooList != null)
+			yahooList.getFriendsList().clear();
 
 		//unregister broadcast receivers
 		unregisterReceiver(this.serviceBroadcastReceiver);
 		//Toast.makeText(getApplicationContext(), "Logged out", Toast.LENGTH_LONG).show();
 		sendBroadcast(new Intent(INTENT_DESTROY));
-		startActivity(new Intent(getApplicationContext(), LoginActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+		//TODO when should this happen?
+		//startActivity(new Intent(getApplicationContext(), LoginActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+		this.lock.release();
 		super.onDestroy();
 	}
 
@@ -230,7 +282,17 @@ public class MessengerService extends Service
 		@Override
 		public void onReceive(final Context context, final Intent intent)
 		{
-			if (intent.getAction().equals(MessengerService.INTENT_NEW_IM))
+			if (intent.getAction().equals(MessengerService.INTENT_LOGIN))
+			{
+				String username = intent.getExtras().getString(Utils.qualify("username"));
+				String password = intent.getExtras().getString(Utils.qualify("password"));
+				Status status = Status.getStatus(intent.getExtras().getLong(Utils.qualify("status"), Status.AVAILABLE.getValue()));
+				String customMessage = intent.getExtras().getString(Utils.qualify("customMessage"));
+				boolean isCustomBusy = intent.getExtras().getBoolean(Utils.qualify("isCustomBusy"));
+
+				Login(username, password, status, customMessage, isCustomBusy);
+			}
+			else if (intent.getAction().equals(MessengerService.INTENT_NEW_IM))
 			{
 				String sender = intent.getExtras().getString(Utils.qualify("from"));
 				if (intent.getExtras().getString(Utils.qualify("message")) == null)
@@ -249,11 +311,11 @@ public class MessengerService extends Service
 
 				// count the total number of unread IMs
 				int unreadCount = 0;
-				for(String key : unreadIMs.keySet())
+				for (String key : unreadIMs.keySet())
 					unreadCount += unreadIMs.get(key);
-				
-				notificationHelper.updateNotification(sender + ": " + message, "New message (" + unreadCount + ")", sender + ": " + message, NotificationHelper.NOTIFICATION_SIGNED_IN,
-						R.drawable.ic_stat_notify, intent2, unreadCount);
+
+				notificationHelper.updateNotification(sender + ": " + message, "New message (" + unreadCount + ")", sender + ": " + message,
+						NotificationHelper.NOTIFICATION_SIGNED_IN, R.drawable.ic_stat_notify, intent2, unreadCount, Notification.FLAG_ONGOING_EVENT);
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_BUZZ))
 			{
@@ -277,7 +339,7 @@ public class MessengerService extends Service
 				String friendId = intent.getExtras().getString(Utils.qualify("who"));
 				PlayAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.online), AudioManager.STREAM_NOTIFICATION, false);
 
-				ToastHelper.showToast(getApplicationContext(), R.drawable.ic_stat_notify, friendId + " has signed on", Toast.LENGTH_LONG, Gravity.TOP|Gravity.RIGHT);
+				ToastHelper.showToast(getApplicationContext(), R.drawable.ic_stat_notify, friendId + " has signed on", Toast.LENGTH_LONG, Gravity.TOP | Gravity.RIGHT);
 				//Toast.makeText(getApplicationContext(), friendId + " has signed on", Toast.LENGTH_LONG).show();
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_FRIEND_SIGNED_OFF))
@@ -285,7 +347,7 @@ public class MessengerService extends Service
 				String friendId = intent.getExtras().getString(Utils.qualify("who"));
 				PlayAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.offline), AudioManager.STREAM_NOTIFICATION, false);
 
-				ToastHelper.showToast(getApplicationContext(), R.drawable.ic_stat_notify_invisible, friendId + " has signed off", Toast.LENGTH_LONG, Gravity.TOP|Gravity.RIGHT);
+				ToastHelper.showToast(getApplicationContext(), R.drawable.ic_stat_notify_invisible, friendId + " has signed off", Toast.LENGTH_LONG, Gravity.TOP | Gravity.RIGHT);
 				//Toast.makeText(getApplicationContext(), friendId + " has signed off", Toast.LENGTH_LONG).show();
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_FRIEND_UPDATE_RECEIVED))
@@ -298,7 +360,7 @@ public class MessengerService extends Service
 			else if (intent.getAction().equals(MessengerService.INTENT_FRIEND_EVENT))
 			{
 				String message = intent.getExtras().getString(Utils.qualify("event"));
-				ToastHelper.showToast(getApplicationContext(), R.drawable.ic_stat_notify_away, message, Toast.LENGTH_LONG, Gravity.TOP|Gravity.RIGHT);
+				ToastHelper.showToast(getApplicationContext(), R.drawable.ic_stat_notify_away, message, Toast.LENGTH_LONG, Gravity.TOP | Gravity.RIGHT);
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_DESTROY))
 			{
@@ -308,7 +370,10 @@ public class MessengerService extends Service
 				stopSelf();
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_STATUS_CHANGED))
+			{
+				currentStatus = session.getStatus();						
 				notificationHelper.showDefaultNotification(false, true);
+			}
 
 		}
 	};
@@ -325,7 +390,7 @@ public class MessengerService extends Service
 		else if (Preferences.audibles.equals(Preferences.AUDIBLE_PLAY_STATUS))
 			if (isIm)
 				return;
-		
+
 		MediaPlayer mp = new MediaPlayer();
 		try
 		{
@@ -349,11 +414,36 @@ public class MessengerService extends Service
 		{
 			//TODO IMPLEMENT LISTENER TO RESPONSE TO VARIOUS SITUATIONS
 			if (event.getEvent() instanceof SessionLogoutEvent)
+			{
+				eventLog.log("M2X Messenger", "You are now logged in with this ID somewhere else!", System.currentTimeMillis());
 				sendBroadcast(new Intent(INTENT_DESTROY).putExtra(Utils.qualify("reason"), "You are now logged in with this ID somewhere else!"));
+			}
+			else if (event.getEvent() == null && event.getType() == ServiceType.LOGOFF)	// probably an unknown hose exception!
+			{
+				if (eventLog!=null)
+					eventLog.log("M2X Messenger", "Connection has encountered a problem", System.currentTimeMillis());
+			}
 			else if (event.getEvent() instanceof SessionExceptionEvent)
-				sendBroadcast(new Intent(INTENT_DESTROY).putExtra(Utils.qualify("reason"), "Oops! Crashed or lost connection..."));
-			else if (event.getEvent() == null && event.getType() == ServiceType.LOGOFF)
-				sendBroadcast(new Intent(INTENT_DESTROY).putExtra(Utils.qualify("reason"), "Disconnected from Yahoo!"));
+			{
+				Log.d("M2X", "Received a sessionexception with: " + event.getEvent().getMessage());
+				String message = event.getEvent().getMessage();
+				if (message.toLowerCase().contains("lost"))
+				{
+					eventLog.log("M2X Messenger", "Sadly we got disconnected from Yahoo! Will try to reconnect...", new Date(System.currentTimeMillis()));
+					MessengerService.this.reconnect();
+				}
+			}
+//			else if (event.getEvent() instanceof SessionExceptionEvent && session.getSessionStatus() != SessionState.UNSTARTED)
+////			 if (event.getType() == ServiceType.LOGOFF)	// if the connection is lost
+//				{
+//					eventLog.log("M2X Messenger", "Sadly we got disconnected from Yahoo!", new Date(System.currentTimeMillis()));
+//					MessengerService.this.reconnect();
+//				}
+////				else
+////					sendBroadcast(new Intent(INTENT_DESTROY).putExtra(Utils.qualify("reason"), "Oops! Crashed or lost connection..."));
+//			
+////			else if (event.getEvent() == null && event.getType() == ServiceType.LOGOFF)
+////				sendBroadcast(new Intent(INTENT_DESTROY).putExtra(Utils.qualify("reason"), "Disconnected from Yahoo!"));
 		}
 	};
 
@@ -363,16 +453,16 @@ public class MessengerService extends Service
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
-	private void vibrate (final int duration)
+
+	private void vibrate(final int duration)
 	{
 		if (Preferences.vibration.equals(Preferences.VIBRATE_OFF))
 			return;
-				
+
 		AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 		if (!am.shouldVibrate(AudioManager.VIBRATE_TYPE_NOTIFICATION))
 			return;
-		
+
 		Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 		v.vibrate(duration);
 	}

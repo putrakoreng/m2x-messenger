@@ -68,18 +68,18 @@ public class ChatWindowActivity extends Activity
 	@Override
 	protected void onResume()
 	{
-		listAdapter.notifyDataSetChanged();
-		lv.setAdapter(listAdapter);
+		this.listAdapter.notifyDataSetChanged();
+		this.lv.setAdapter(this.listAdapter);
 
-		registerReceiver(imListener, new IntentFilter(MessengerService.INTENT_NEW_IM));
-		registerReceiver(imListener, new IntentFilter(MessengerService.INTENT_BUZZ));
-		registerReceiver(imListener, new IntentFilter(MessengerService.INTENT_DESTROY));
+		registerReceiver(this.imListener, new IntentFilter(MessengerService.INTENT_NEW_IM));
+		registerReceiver(this.imListener, new IntentFilter(MessengerService.INTENT_BUZZ));
+		registerReceiver(this.imListener, new IntentFilter(MessengerService.INTENT_DESTROY));
 
 		// indicating that all the messages from this contact has been read
 		synchronized (MessengerService.getUnreadIMs())
 		{
 			HashMap<String, Integer> unreadIMs = MessengerService.getUnreadIMs();
-			unreadIMs.remove(friendId);
+			unreadIMs.remove(this.friendId);
 		}
 
 		super.onResume();
@@ -88,29 +88,29 @@ public class ChatWindowActivity extends Activity
 	@Override
 	protected void onPause()
 	{
-		unregisterReceiver(imListener);
+		unregisterReceiver(this.imListener);
 		super.onPause();
 	}
 
 	@Override
-	protected void onCreate(android.os.Bundle savedInstanceState)
+	protected void onCreate(final android.os.Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.chat_window);
-		notificationCanceler = new NotificationCanceler();
-		notificationCanceler.start();
+		this.notificationCanceler = new NotificationCanceler();
+		this.notificationCanceler.start();
 
 		Button btnSend = (Button) findViewById(R.id.btnSend);
-		btnSend.setOnClickListener(btnSend_Click);
-		imListener = new ChatWindowListener();
+		btnSend.setOnClickListener(this.btnSend_Click);
+		this.imListener = new ChatWindowListener();
 		this.friendId = getIntent().getExtras().getString(Utils.qualify("friendId"));
 
-		lv = (ListView) findViewById(R.id.listView1);
+		this.lv = (ListView) findViewById(R.id.listView1);
 
-		txtMessage = (EditText) findViewById(R.id.txtMessage);
+		this.txtMessage = (EditText) findViewById(R.id.txtMessage);
 
-		txtMessage.setOnEditorActionListener(txtMessage_EditorActionListener);
-		txtMessage.addTextChangedListener(txtMessage_TextChangedListener);
+		this.txtMessage.setOnEditorActionListener(this.txtMessage_EditorActionListener);
+		this.txtMessage.addTextChangedListener(this.txtMessage_TextChangedListener);
 	}
 
 	/*
@@ -120,7 +120,7 @@ public class ChatWindowActivity extends Activity
 	{
 
 		@Override
-		public boolean onEditorAction(TextView v, int actionId, KeyEvent event)
+		public boolean onEditorAction(final TextView v, final int actionId, final KeyEvent event)
 		{
 			sendIM();
 			return true;
@@ -133,19 +133,19 @@ public class ChatWindowActivity extends Activity
 	{
 
 		@Override
-		public void onTextChanged(CharSequence s, int start, int before, int count)
+		public void onTextChanged(final CharSequence s, final int start, final int before, final int count)
 		{
-			if (isTypingSelf || txtMessage.getText().toString().equals(""))
+			if (ChatWindowActivity.this.isTypingSelf || ChatWindowActivity.this.txtMessage.getText().toString().equals(""))
 			{
-				notificationCanceler.reschedule = true; // Reschedule
+				ChatWindowActivity.this.notificationCanceler.reschedule = true; // Reschedule
 														// canceling typing
 														// notification
 				return;
 			}
 			try
 			{
-				isTypingSelf = true;
-				MessengerService.getSession().sendTypingNotification(friendId, true);
+				ChatWindowActivity.this.isTypingSelf = true;
+				MessengerService.getSession().sendTypingNotification(ChatWindowActivity.this.friendId, true);
 			}
 			catch (Exception e)
 			{
@@ -155,12 +155,12 @@ public class ChatWindowActivity extends Activity
 		}
 
 		@Override
-		public void beforeTextChanged(CharSequence s, int start, int count, int after)
+		public void beforeTextChanged(final CharSequence s, final int start, final int count, final int after)
 		{
 		}
 
 		@Override
-		public void afterTextChanged(Editable s)
+		public void afterTextChanged(final Editable s)
 		{
 		}
 	};
@@ -169,8 +169,8 @@ public class ChatWindowActivity extends Activity
 	protected void onDestroy()
 	{
 		// unregisterReceiver(imListener);
-		listAdapter.notifyDataSetChanged();
-		notificationCanceler.shouldRun = false;
+		this.listAdapter.notifyDataSetChanged();
+		this.notificationCanceler.shouldRun = false;
 		super.onDestroy();
 	};
 
@@ -178,7 +178,7 @@ public class ChatWindowActivity extends Activity
 	{
 
 		@Override
-		public void onClick(View v)
+		public void onClick(final View v)
 		{
 			sendIM();
 		}
@@ -187,7 +187,7 @@ public class ChatWindowActivity extends Activity
 	private void sendIM()
 	{
 		String sender = MessengerService.getSession().getLoginID().getId();
-		String message = txtMessage.getText().toString();
+		String message = this.txtMessage.getText().toString();
 		Date timeStamp = Calendar.getInstance().getTime();
 		IM im = new IM(sender, message, timeStamp);
 
@@ -196,11 +196,11 @@ public class ChatWindowActivity extends Activity
 		try
 		{
 			MessengerService.getSession().sendMessage(ChatWindowActivity.this.friendId, im.getMessage());
-			MessengerService.getFriendsInChat().get(friendId).add(im);
-			listAdapter.notifyDataSetChanged();
+			MessengerService.getFriendsInChat().get(this.friendId).add(im);
+			this.listAdapter.notifyDataSetChanged();
 			// lv.smoothScrollToPosition(MessengerService.getFriendsInChat()
 			// .get(friendId).size() - 1);
-			txtMessage.setText("");
+			this.txtMessage.setText("");
 		}
 		catch (Exception e)
 		{
@@ -213,23 +213,21 @@ public class ChatWindowActivity extends Activity
 	{
 
 		@Override
-		public void onReceive(Context context, Intent intent)
+		public void onReceive(final Context context, final Intent intent)
 		{
 			if ((intent.getAction().equals(MessengerService.INTENT_NEW_IM) || intent.getAction().equals(MessengerService.INTENT_BUZZ))
-					&& intent.getExtras().getString(Utils.qualify("from")).equals(friendId))
+					&& intent.getExtras().getString(Utils.qualify("from")).equals(ChatWindowActivity.this.friendId))
 			{
-				listAdapter.notifyDataSetChanged();
+				ChatWindowActivity.this.listAdapter.notifyDataSetChanged();
 
 				synchronized (MessengerService.getUnreadIMs())
 				{
 					HashMap<String, Integer> unreadIMs = MessengerService.getUnreadIMs();
-					unreadIMs.remove(friendId);
+					unreadIMs.remove(ChatWindowActivity.this.friendId);
 				}
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_DESTROY))
-			{
 				finish();
-			}
 		}
 	}
 
@@ -242,7 +240,7 @@ public class ChatWindowActivity extends Activity
 	{
 
 		@Override
-		public View getView(int position, View convertView, ViewGroup parent)
+		public View getView(final int position, final View convertView, final ViewGroup parent)
 		{
 			synchronized (MessengerService.getFriendsInChat())
 			{
@@ -253,8 +251,8 @@ public class ChatWindowActivity extends Activity
 				try
 				//TODO fix?
 				{
-					sender = MessengerService.getFriendsInChat().get(friendId).get(position).getSender();
-					isOfflineMessage = MessengerService.getFriendsInChat().get(friendId).get(position).isOfflineMessage();
+					sender = MessengerService.getFriendsInChat().get(ChatWindowActivity.this.friendId).get(position).getSender();
+					isOfflineMessage = MessengerService.getFriendsInChat().get(ChatWindowActivity.this.friendId).get(position).isOfflineMessage();
 
 				}
 				catch (Exception e)
@@ -267,40 +265,31 @@ public class ChatWindowActivity extends Activity
 				View v;
 
 				if (isSenderSelf)
-				{
 					v = inflator.inflate(R.layout.chat_window_row_self, parent, false);
-				}
 				else
 				{
 					v = inflator.inflate(R.layout.chat_window_row_friend, parent, false);
 					LinearLayout l = (LinearLayout) v.findViewById(R.id.layoutHolder);
 					if (isOfflineMessage)
-					{
 						l.setBackgroundColor(Color.parseColor("#FFFFF0"));
-
-					}
-					else if (MessengerService.getFriendsInChat().get(friendId).get(position).isBuzz())
-					{
+					else if (MessengerService.getFriendsInChat().get(ChatWindowActivity.this.friendId).get(position).isBuzz())
 						l.setBackgroundColor(Color.parseColor("#FFF0F0"));
-					}
 
 				}
 
 				TextView tv = (TextView) v.findViewById(R.id.friendMessageTextView);
-				tv.setText(MessengerService.getFriendsInChat().get(friendId).get(position).toHtml());
+				tv.setText(MessengerService.getFriendsInChat().get(ChatWindowActivity.this.friendId).get(position).toHtml());
 				TextView timeStamp = (TextView) v.findViewById(R.id.timeStampTextView);
-				timeStamp.setText(MessengerService.getFriendsInChat().get(friendId).get(position).getTime());
+				timeStamp.setText(MessengerService.getFriendsInChat().get(ChatWindowActivity.this.friendId).get(position).getTime());
 				ImageView iv = (ImageView) v.findViewById(R.id.imgFriendAvatarChat);
 
 				// Filling the correct avatar
 
 				if (isSenderSelf && MessengerService.getMyAvatar() != null)
-				{
 					iv.setImageBitmap(MessengerService.getMyAvatar());
-				}
-				else
+				else if (!isSenderSelf)
 				{
-					Bitmap friendAvatar = MessengerService.getFriendAvatars().get(friendId);
+					Bitmap friendAvatar = MessengerService.getFriendAvatars().get(ChatWindowActivity.this.friendId);
 					if (friendAvatar != null)
 						iv.setImageBitmap(friendAvatar);
 				}
@@ -309,18 +298,18 @@ public class ChatWindowActivity extends Activity
 		}
 
 		@Override
-		public long getItemId(int position)
+		public long getItemId(final int position)
 		{
 			return position;
 		}
 
 		@Override
-		public Object getItem(int position)
+		public Object getItem(final int position)
 		{
 			synchronized (MessengerService.getFriendsInChat())
 			{
 
-				return MessengerService.getFriendsInChat().get(friendId).get(position);
+				return MessengerService.getFriendsInChat().get(ChatWindowActivity.this.friendId).get(position);
 			}
 		}
 
@@ -329,8 +318,8 @@ public class ChatWindowActivity extends Activity
 		{
 			synchronized (MessengerService.getFriendsInChat())
 			{
-				if (MessengerService.getFriendsInChat().get(friendId) != null)
-					return MessengerService.getFriendsInChat().get(friendId).size();
+				if (MessengerService.getFriendsInChat().get(ChatWindowActivity.this.friendId) != null)
+					return MessengerService.getFriendsInChat().get(ChatWindowActivity.this.friendId).size();
 				return 0;
 			}
 		}
@@ -344,15 +333,14 @@ public class ChatWindowActivity extends Activity
 		@Override
 		public void run()
 		{
-			while (shouldRun)
+			while (this.shouldRun)
 			{
-				if (isTypingSelf)
+				if (ChatWindowActivity.this.isTypingSelf)
 				{
-					while (reschedule)
-					{
+					while (this.reschedule)
 						try
 						{
-							reschedule = false;
+							this.reschedule = false;
 							Thread.sleep(1000);
 							continue;
 						}
@@ -360,7 +348,6 @@ public class ChatWindowActivity extends Activity
 						{
 							e.printStackTrace();
 						}
-					}
 
 					try
 					{
@@ -373,8 +360,8 @@ public class ChatWindowActivity extends Activity
 					}
 					try
 					{
-						isTypingSelf = false;
-						MessengerService.getSession().sendTypingNotification(friendId, false);
+						ChatWindowActivity.this.isTypingSelf = false;
+						MessengerService.getSession().sendTypingNotification(ChatWindowActivity.this.friendId, false);
 					}
 					catch (IOException e)
 					{

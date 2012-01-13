@@ -118,7 +118,7 @@ public class ChangeStatusActivity extends Activity
 					ChangeStatusActivity.this.newStatus = Status.BUSY;
 					break;
 				case 2:
-					ChangeStatusActivity.this.newStatus = Status.NOTATDESK;
+					ChangeStatusActivity.this.newStatus = Status.IDLE;
 					break;
 				case 3:
 					ChangeStatusActivity.this.newStatus = Status.INVISIBLE;

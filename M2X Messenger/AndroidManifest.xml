@@ -3,14 +3,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.sir_m2x.messenger"
     android:versionCode="1"
-    android:versionName="0.65 Alpha" >
+    android:versionName="0.7 Alpha" >
 
     <uses-sdk android:minSdkVersion="7" />
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.GET_TASKS" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:debuggable="true"
@@ -23,6 +24,7 @@
             android:noHistory="true"
             android:windowSoftInputMode="stateUnchanged" >
             <intent-filter>
+                <action android:name="com.sir_m2x.messenger.LOGIN_PROGRESS" />
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -30,6 +32,7 @@
         </activity>
         <activity
             android:name=".activities.ContactsListActivity"
+            android:configChanges="keyboardHidden|orientation"
             android:launchMode="singleInstance" >
             <intent-filter>
                 <action android:name="com.sir_m2x.messenger.NEW_IM" />
@@ -39,6 +42,7 @@
                 <action android:name="com.sir_m2x.messenger.FRIEND_UPDATE_RECEIVED" />
                 <action android:name="com.sir_m2x.messenger.LIST_CHANGED" />
                 <action android:name="com.sir_m2x.messenger.DESTROY" />
+                <action android:name="com.sir_m2x.messenger.LOGIN_PROGRESS" />
             </intent-filter>
         </activity>
         <activity
@@ -56,6 +60,7 @@
         </activity>
         <activity
             android:name=".activities.ChatWindowTabActivity"
+            android:configChanges="keyboardHidden|orientation"
             android:launchMode="singleInstance"
             android:noHistory="true"
             android:theme="@android:style/Theme.Light.NoTitleBar"
@@ -64,6 +69,7 @@
                 <action android:name="com.sir_m2x.messenger.IS_TYPING" />
                 <action android:name="com.sir_m2x.messenger.NEW_IM_ADDED" />
                 <action android:name="com.sir_m2x.messenger.DESTROY" />
+                <action android:name="com.sir_m2x.messenger.LOGIN_PROGRESS" />
             </intent-filter>
         </activity>
         <activity
@@ -79,22 +85,22 @@
         </activity>
         <activity
             android:name=".activities.LogWindowActivity"
-            android:theme="@android:style/Theme.Light">
-            <intent-filter >
+            android:theme="@android:style/Theme.Light" >
+            <intent-filter>
                 <action android:name="com.sir_m2x.messenger.FRIEND_SIGNED_ON" />
                 <action android:name="com.sir_m2x.messenger.FRIEND_SIGNED_OFF" />
                 <action android:name="com.sir_m2x.messenger.FRIEND_UPDATE_RECEIVED" />
             </intent-filter>
-            </activity>
+        </activity>
         <activity
             android:name=".activities.ChangeStatusActivity"
             android:theme="@android:style/Theme.Dialog" >
         </activity>
-        
-        <activity android:name=".activities.PreferencesActivity"/>
+        <activity android:name=".activities.PreferencesActivity" />
 
         <service android:name=".services.MessengerService" >
             <intent-filter>
+                <action android:name="com.sir_m2x.messenger.LOGIN" />
                 <action android:name="com.sir_m2x.messenger.NEW_IM" />
                 <action android:name="com.sir_m2x.messenger.BUZZ" />
                 <action android:name="com.sir_m2x.messenger.FRIEND_SIGNED_ON" />

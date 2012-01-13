@@ -22,7 +22,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -41,10 +40,11 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
+import android.util.Log;
 
+import com.sir_m2x.messenger.helpers.AvatarHelper;
 import com.sir_m2x.messenger.services.MessengerService;
 import com.sir_m2x.messenger.utils.IM;
-import com.sir_m2x.messenger.utils.Preferences;
 import com.sir_m2x.messenger.utils.Utils;
 
 /**
@@ -216,6 +216,7 @@ public class MySessionAdapter extends SessionAdapter
 	{
 		String from = event.getFrom();
 		IM im = new IM(from, event.getMessage(), event.getTimestamp());
+		Log.d("M2X", "Message from " + from);
 
 		synchronized (MessengerService.getFriendsInChat())
 		{
@@ -331,34 +332,7 @@ public class MySessionAdapter extends SessionAdapter
 		wrapper.sendBroadcast(intent);
 
 		// request this contact's picture
-		if (Preferences.loadAvatars.equals(Preferences.AVATAR_LOAD_NEEDED))
-		{
-			File f = new File("/sdcard/M2X Messenger/avatar-cache", id + ".jpg");
-			if (!f.exists())
-				try
-				{
-					MessengerService.getSession().requestPicture(id);
-				}
-				catch (IOException e)
-				{
-					e.printStackTrace();
-				}
-			else if (Preferences.avatarRefreshInterval != -1)
-			{
-				Calendar lastModified = Calendar.getInstance();
-				lastModified.setTimeInMillis(f.lastModified());
-				int days = Utils.daysBetween(lastModified, Calendar.getInstance());
-				if (days >= Preferences.avatarRefreshInterval)
-					try
-					{
-						MessengerService.getSession().requestPicture(id);
-					}
-					catch (IOException e)
-					{
-						e.printStackTrace();
-					}
-			}
-		}
+		AvatarHelper.requestAvatarIfNeeded(id);
 
 		MessengerService.getEventLog().log(id, "signed on", new Date(System.currentTimeMillis()));
 
@@ -409,7 +383,15 @@ public class MySessionAdapter extends SessionAdapter
 			e.printStackTrace();
 		}
 
-		MessengerService.getFriendAvatars().put(ev.getFrom(), bitmap);
-		context.sendBroadcast(new Intent(MessengerService.INTENT_LIST_CHANGED));
+		if (id.equals(MessengerService.getMyId()))
+			MessengerService.setMyAvatar(bitmap);
+		else
+			MessengerService.getFriendAvatars().put(id, bitmap);
+		context.sendBroadcast(new Intent(MessengerService.INTENT_LIST_CHANGED)); //TODO the conversation window must also know that a new avatar is loaded
+	}
+	
+	public void notifyListChanged()
+	{
+		context.sendBroadcast(new Intent(MessengerService.INTENT_LIST_CHANGED));		
 	}
 }

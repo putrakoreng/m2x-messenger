@@ -82,8 +82,9 @@ public abstract class NetworkConstants {
     public final static int COOKIE_C = 2;
 
     // Default timouts (seconds)
-    public final static int LOGIN_TIMEOUT = 180;
+    public final static int LOGIN_TIMEOUT = 30;
     public final static int RESEND_TIMEOUT = 7;
+    public final static int TIMEOUT_RETRY_COUNT = 5;
 
     /**
      * Amount of seconds between sending subsequent keep-alive packets.

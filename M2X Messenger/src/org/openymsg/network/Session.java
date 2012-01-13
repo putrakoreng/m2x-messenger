@@ -108,6 +108,12 @@ import org.openymsg.roster.Roster;
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
  */
 public class Session implements StatusConstants, FriendManager {
+	
+	/**
+	 * The number of time that we have faced a timeout when transmitting keep alive
+	 * Used to log out the current session
+	 */
+	private int timeoutCount = 0;
 	/**
 	 * A timer used for resending messages in case the other party
 	 * did not acknowledge the last sent message.
@@ -292,7 +298,7 @@ public class Session implements StatusConstants, FriendManager {
 	public ConnectionHandler getConnectionHandler() {
 		return this.network;
 	}
-
+	
 	/**
 	 * Call this to connect to the Yahoo server and do all the initial handshaking and accepting of data Session will do
 	 * it's own thread for pings and keepAlives
@@ -396,7 +402,7 @@ public class Session implements StatusConstants, FriendManager {
 			// threads are stopped.
 			if (this.sessionStatus != SessionState.LOGGED_ON) {
 				log.error("Never logged in, sessionStatus is: " + this.sessionStatus);
-				closeSession();
+				closeSession(false);
 			}
 		}
 	}
@@ -415,7 +421,7 @@ public class Session implements StatusConstants, FriendManager {
 			transmitLogoff();
 		}
 		finally {
-			closeSession();
+			closeSession(false);
 		}
 	}
 
@@ -429,7 +435,7 @@ public class Session implements StatusConstants, FriendManager {
 		catch (IOException e) {
 		}
 		finally {
-			closeSession();
+			closeSession(true);
 		}
 	}
 
@@ -468,10 +474,24 @@ public class Session implements StatusConstants, FriendManager {
 		    urlc.setConnectTimeout(1000 * 30); // mTimeout is in seconds
 		    urlc.connect();
 		    if (urlc.getResponseCode() == 200)
+		    {
+		    	this.timeoutCount = 0;
+		    	urlc.disconnect();
 				this.transmitKeepAlive();
+		    }
 			else
-		    	throw new SocketException();
-		    urlc.disconnect();
+			{
+				urlc.disconnect();
+				this.timeoutCount++;
+				if (this.timeoutCount <= NetworkConstants.TIMEOUT_RETRY_COUNT)
+					this.transmitKeepAlive();
+				else
+				{
+					this.timeoutCount = 0;
+					throw new SocketException();
+				}
+			}
+		    
 		}
 		catch (IOException ex) {
 			if (ex instanceof SocketException) {
@@ -3446,7 +3466,7 @@ public class Session implements StatusConstants, FriendManager {
 				if (pkt.status == -1)
 					logoutEvent = new SessionLogoutEvent(AuthenticationState.DUPLICATE_LOGIN);
 				this.eventDispatchQueue.append(logoutEvent, ServiceType.LOGOFF);
-				closeSession();
+				closeSession(false);
 			}
 			else
 				// Process optional section, friends going offline
@@ -3703,7 +3723,7 @@ public class Session implements StatusConstants, FriendManager {
 	/**
 	 * If the network isn't closed already, close it.
 	 */
-	private void closeSession() throws IOException {
+	private void closeSession(final boolean force) throws IOException {
 		log.trace("close session");
 		// Close the input thread (unless ipThread itself is calling us)
 		this.sessionStatus = SessionState.UNSTARTED;
@@ -3726,7 +3746,13 @@ public class Session implements StatusConstants, FriendManager {
 		finally {
 			if (this.eventDispatchQueue != null) {
 				this.eventDispatchQueue.kill();
-				this.eventDispatchQueue.runEventNOW(new FireEvent(null, ServiceType.LOGOFF));
+				if(force)	// To indicate that the connection has been force closed
+				{
+					SessionExceptionEvent e = new SessionExceptionEvent(this, "Connection lost", new Exception(""));
+					this.eventDispatchQueue.runEventNOW(new FireEvent(e, ServiceType.LOGOFF));
+				}
+				else
+					this.eventDispatchQueue.runEventNOW(new FireEvent(null, ServiceType.LOGOFF));
 				this.eventDispatchQueue = null;
 			}
 		}
@@ -3764,6 +3790,7 @@ public class Session implements StatusConstants, FriendManager {
 		this.roster = null;
 		this.identities.clear();
 		this.loginException = null;
+		this.timeoutCount = 0;
 	}
 
 	/**
@@ -4160,5 +4187,15 @@ public class Session implements StatusConstants, FriendManager {
 	        } catch (Exception e) { // should never happen
 	                e.printStackTrace();
 	        }
+	}
+	
+	public void setWaiting()
+	{
+		this.sessionStatus = SessionState.WAITING;
+	}
+	
+	public void cancelWaiting()
+	{
+		this.sessionStatus = SessionState.UNSTARTED;
 	}
 }

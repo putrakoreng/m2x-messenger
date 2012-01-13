@@ -17,27 +17,16 @@
  */
 package com.sir_m2x.messenger.activities;
 
-import java.io.IOException;
-import java.util.Date;
-
-import org.openymsg.network.AccountLockedException;
-import org.openymsg.network.FailedLoginException;
-import org.openymsg.network.FireEvent;
-import org.openymsg.network.LoginRefusedException;
 import org.openymsg.network.Session;
 import org.openymsg.network.SessionState;
 import org.openymsg.network.Status;
-import org.openymsg.network.event.SessionExceptionEvent;
-import org.openymsg.network.event.SessionListener;
 
 import android.app.Activity;
-import android.app.ActivityManager;
-import android.app.ActivityManager.RunningServiceInfo;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.os.AsyncTask;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -50,59 +39,57 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TableRow;
-import android.widget.Toast;
 
 import com.sir_m2x.messenger.R;
-import com.sir_m2x.messenger.YahooList;
-import com.sir_m2x.messenger.helpers.ToastHelper;
 import com.sir_m2x.messenger.services.MessengerService;
 import com.sir_m2x.messenger.utils.Preferences;
 import com.sir_m2x.messenger.utils.Utils;
 
 /**
- * This is the initial screen that the user is going to see.
- * It handles the login process and is responsible for taking the username and password of the user.
+ * This is the initial screen that the user is going to see. It handles the
+ * login process and is responsible for taking the username and password of the
+ * user.
  * 
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
- *
+ * 
  */
 public class LoginActivity extends Activity
 {
 	private ProgressDialog pd = null;
 
-	private final String[] statusArray = {"Available", "Busy", "Away", "Invisible", "Custom"};
+	private final String[] statusArray = { "Available", "Busy", "Away", "Invisible", "Custom" };
 	private Status loginStatus = Status.AVAILABLE;
+	private static String lastLoginStatus = "Initializing...";
 
 	private EditText txtUsername = null;
 	private EditText txtPassword = null;
 	private Spinner spnStatus = null;
 	private EditText txtCustomMessage = null;
-	private CheckBox chkBusy= null;
+	private CheckBox chkBusy = null;
 
 	@Override
 	public void onCreate(final Bundle savedInstanceState)
 	{
-		Utils.initializeEnvironment();
-		
-		if (isServiceRunning("com.sir_m2x.messenger.services.MessengerService"))
-			startActivity(new Intent(LoginActivity.this, ContactsListActivity.class));
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.main);
+		//TODO
+		//		if (isServiceRunning("com.sir_m2x.messenger.services.MessengerService"))
+		//			startActivity(new Intent(LoginActivity.this, ContactsListActivity.class));
 
 		this.pd = new ProgressDialog(LoginActivity.this);
 		this.pd.setIndeterminate(true);
 		this.pd.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-		this.pd.setMessage("Signing in...");
+		this.pd.setMessage(lastLoginStatus);
 		this.pd.setCancelable(false);
+
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
 
 		((Button) findViewById(R.id.btnSignIn)).setOnClickListener(this.btnSingIn_Click);
 
-		this.txtUsername = (EditText)findViewById(R.id.txtUsername);
-		this.txtPassword = (EditText)findViewById(R.id.txtPassword);
-		this.spnStatus = (Spinner)findViewById(R.id.spnStatus);
-		this.txtCustomMessage = (EditText)findViewById(R.id.txtCustomMessage);
-		this.chkBusy = (CheckBox)findViewById(R.id.chkBusy);
-
+		this.txtUsername = (EditText) findViewById(R.id.txtUsername);
+		this.txtPassword = (EditText) findViewById(R.id.txtPassword);
+		this.spnStatus = (Spinner) findViewById(R.id.spnStatus);
+		this.txtCustomMessage = (EditText) findViewById(R.id.txtCustomMessage);
+		this.chkBusy = (CheckBox) findViewById(R.id.chkBusy);
 
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		ArrayAdapter adapter = new ArrayAdapter(this, android.R.layout.simple_spinner_item, this.statusArray);
@@ -114,49 +101,65 @@ public class LoginActivity extends Activity
 		readSavedPreferences();
 	}
 
-	
-	
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see android.app.Activity#onResume()
+	 */
+	@Override
+	protected void onResume()
+	{
+		if (!Utils.isServiceRunning(getApplicationContext(), "com.sir_m2x.messenger.services.MessengerService"))
+			startService(new Intent(this, MessengerService.class));
+		else if (MessengerService.getSession() != null)
+		{
+			Session s = MessengerService.getSession();
+			if (s.getSessionStatus() == SessionState.LOGGED_ON)
+			{
+				startActivity(new Intent(getApplicationContext(), ContactsListActivity.class));
+				finish();
+			}
+			else if (s.getSessionStatus() != SessionState.UNSTARTED)
+				showProgressAndWaitLogin();
+
+		}
+		
+		registerReceiver(LoginActivity.this.progressListener, new IntentFilter(MessengerService.INTENT_LOGIN_PROGRESS));
+		super.onResume();
+	}
+
 	private void readSavedPreferences()
 	{
-		// login screen preferences
-		SharedPreferences preferences = getSharedPreferences(Utils.qualify("LOGIN_PREFERENCES"), 0);
+		Preferences.loadPreferences(getApplicationContext());
 
-		this.txtUsername.setText(preferences.getString("username", ""));
-		this.txtPassword.setText(preferences.getString("password", ""));
-		this.spnStatus.setSelection(preferences.getInt("status", 0));
-		this.txtCustomMessage.setText(preferences.getString("customStatus", ""));
-		this.chkBusy.setChecked(preferences.getBoolean("busy", false));
-		
-		// preferences screen
-		Preferences.loadPreferences(getApplicationContext());		
-		
+		this.txtUsername.setText(Preferences.username);
+		this.txtPassword.setText(Preferences.password);
+		this.spnStatus.setSelection(Preferences.status);
+		this.txtCustomMessage.setText(Preferences.customStatus);
+		this.chkBusy.setChecked(Preferences.busy);
 	}
 
 	private void savePreferences()
 	{
-		SharedPreferences preferences = getSharedPreferences(Utils.qualify("LOGIN_PREFERENCES"), 0);
-		SharedPreferences.Editor editor = preferences.edit();
+		Preferences.username = this.txtUsername.getText().toString();
 
-		editor.putString("username", this.txtUsername.getText().toString());
-		editor.putString("password", this.txtPassword.getText().toString());
-		editor.putInt("status", this.spnStatus.getSelectedItemPosition());
-		editor.putString("customStatus", this.txtCustomMessage.getText().toString());
-		editor.putBoolean("busy", this.chkBusy.isChecked());
+		Preferences.password = this.txtPassword.getText().toString();
+		Preferences.status = this.spnStatus.getSelectedItemPosition();
+		Preferences.customStatus = this.txtCustomMessage.getText().toString();
+		Preferences.busy = this.chkBusy.isChecked();
 
-		editor.commit();
-
+		Preferences.saveLoginPreferences(getApplicationContext());
 	}
 
 	OnItemSelectedListener spnItem_Selected = new OnItemSelectedListener()
 	{
 
 		@Override
-		public void onItemSelected(final AdapterView<?> arg0, final View arg1, final int arg2,
-				final long arg3)
+		public void onItemSelected(final AdapterView<?> arg0, final View arg1, final int arg2, final long arg3)
 		{
-			((TableRow)findViewById(R.id.rowCustom)).setVisibility(View.GONE);
+			((TableRow) findViewById(R.id.rowCustom)).setVisibility(View.GONE);
 
-			switch(arg2)
+			switch (arg2)
 			{
 				case 0:
 					LoginActivity.this.loginStatus = Status.AVAILABLE;
@@ -165,14 +168,14 @@ public class LoginActivity extends Activity
 					LoginActivity.this.loginStatus = Status.BUSY;
 					break;
 				case 2:
-					LoginActivity.this.loginStatus = Status.NOTATDESK;
+					LoginActivity.this.loginStatus = Status.IDLE;
 					break;
 				case 3:
 					LoginActivity.this.loginStatus = Status.INVISIBLE;
 					break;
 				case 4:
 					LoginActivity.this.loginStatus = Status.CUSTOM;
-					((TableRow)findViewById(R.id.rowCustom)).setVisibility(View.VISIBLE);
+					((TableRow) findViewById(R.id.rowCustom)).setVisibility(View.VISIBLE);
 					break;
 			}
 		}
@@ -191,215 +194,79 @@ public class LoginActivity extends Activity
 		{
 			String username = LoginActivity.this.txtUsername.getText().toString();
 			String password = LoginActivity.this.txtPassword.getText().toString();
+			String customMessage = LoginActivity.this.txtCustomMessage.getText().toString();
+			boolean isCustomBusy = LoginActivity.this.chkBusy.isChecked();
 			((Button) arg0).requestFocus();
 
-			LoginActivity.this.pd.show();
-			AsyncLogin al = new AsyncLogin();
-			al.execute(new String[] { username, password });
+			Intent intent = new Intent(MessengerService.INTENT_LOGIN);
+			intent.putExtra(Utils.qualify("username"), username);
+			intent.putExtra(Utils.qualify("password"), password);
+			intent.putExtra(Utils.qualify("status"), LoginActivity.this.loginStatus.getValue());
+			intent.putExtra(Utils.qualify("customMessage"), customMessage);
+			intent.putExtra(Utils.qualify("isCustomBusy"), isCustomBusy);
+
+			sendBroadcast(intent);
+			showProgressAndWaitLogin();
+
 		}
 	};
 
-	private class AsyncLogin extends
-	AsyncTask<String, Void, org.openymsg.network.Session>
+	private void showProgressAndWaitLogin()
 	{
-		final org.openymsg.network.Session ys = new org.openymsg.network.Session();
-//		private Exception getEx()
-//		{
-//			return this.ex;
-//		}
-//
-//		private void setEx(final Exception ex)
-//		{
-//			this.ex = ex;
-//		}
-		
-		private Exception loginException = null;
-		
-		/* (non-Javadoc)
-		 * @see android.os.AsyncTask#onProgressUpdate(Progress[])
-		 */
+		LoginActivity.this.pd.show();
+	}
+
+	
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see android.app.Activity#onStop()
+	 */
+	@Override
+	protected void onStop()
+	{
+		if (MessengerService.getSession().getSessionStatus() == SessionState.UNSTARTED || MessengerService.getSession().getSessionStatus() == SessionState.FAILED)
+			stopService(new Intent(getApplicationContext(), MessengerService.class));
+		super.onStop();
+	}
+
+	@Override
+	protected void onPause()
+	{
+		super.onPause();
+
+		this.unregisterReceiver(this.progressListener);
+		if (this.pd != null)
+			this.pd.dismiss();
+	};
+
+	BroadcastReceiver progressListener = new BroadcastReceiver()
+	{
+
 		@Override
-		protected void onProgressUpdate(final Void... values)
+		public void onReceive(final Context context, final Intent intent)
 		{
-			super.onProgressUpdate(values);
-			switch(this.ys.getSessionStatus())
-			{
-				case INITIALIZING:
-					LoginActivity.this.pd.setMessage("Initializing...");
-					break;
-				case CONNECTING:
-					LoginActivity.this.pd.setMessage("Sending credentials...");
-					break;
-				case STAGE1:
-					LoginActivity.this.pd.setMessage("Authenticating...");
-					break;
-				case STAGE2:
-					LoginActivity.this.pd.setMessage("Authenticating(2)...");
-					break;
-				case CONNECTED:
-					LoginActivity.this.pd.setMessage("Loading list...");
-					break;
-				case LOGGED_ON:
-					LoginActivity.this.pd.setMessage("Logged on!");
-					break;
-				case FAILED:
-					LoginActivity.this.pd.setMessage("Failed!");
-					break;
-			}
-			
-		}
-		
-		@Override
-		protected Session doInBackground(final String... arg0)
-		{
-			this.ys.addSessionListener(LoginActivity.this.preConnectionSessionListener);
-			
-			MessengerService.setYahooList(new YahooList(this.ys, getApplicationContext()));
-			this.ys.addSessionListener(MessengerService.getYahooList());
-			
-			/**
-			 * A thread to inform the user about the current status of the login progress
-			 */
-			Thread progressReportThread = new Thread()
-			{
-				/* (non-Javadoc)
-				 * @see java.lang.Thread#run()
-				 */
-				@Override
-				public void run()
-				{
-					SessionState initialStatus = AsyncLogin.this.ys.getSessionStatus();
-					while (true)
-					{
-						if(AsyncLogin.this.ys.getSessionStatus()!=initialStatus)
-						{
-							initialStatus = AsyncLogin.this.ys.getSessionStatus();
-							publishProgress((Void)null);
-						}
-						try
-						{
-							Thread.sleep(10);
-						}
-						catch (InterruptedException e)
-						{
-						}
-						
-						if (initialStatus == SessionState.LOGGED_ON || initialStatus == SessionState.FAILED)
-							break;
-					}
-				}
-			};
-			
-			
+			if (intent.getAction().equals(MessengerService.INTENT_LOGIN_PROGRESS))
 				try
 				{
-					if (LoginActivity.this.loginStatus != org.openymsg.network.Status.CUSTOM)
-						this.ys.setStatus(LoginActivity.this.loginStatus);
-					progressReportThread.start();
-					this.ys.login(arg0[0], arg0[1]);
+				String message = intent.getExtras().getString(Utils.qualify("message"));
+				if (message.equals("Logged on!") || message.equals("Failed!"))
+				{
+					LoginActivity.this.pd.dismiss();
+					savePreferences();
+				}
+				else
+				{
+					lastLoginStatus = message;
+					LoginActivity.this.pd.setMessage(message);
+				}
 				}
 				catch(Exception e)
 				{
-					this.loginException = e;
-					return null;
+					Log.d("M2X", "To my balls ke natoonesti...");
 				}
-			
-			return this.ys;
-		}
-
-		@Override
-		protected void onPostExecute(final org.openymsg.network.Session result)
-		{
-			LoginActivity.this.pd.dismiss();
-			String faultMessage = "";
-			
-			if (this.loginException instanceof AccountLockedException)
-				faultMessage = "This account has been blocked!";
-			else if (this.loginException instanceof IllegalArgumentException)
-				faultMessage = "Invalid input provided";
-			else if (this.loginException instanceof IllegalStateException)
-				faultMessage = "Session should be unstarted!";
-			else if (this.loginException instanceof LoginRefusedException)
-				faultMessage = "Invalid username or password!";
-			else if (this.loginException instanceof FailedLoginException)
-				faultMessage = "Login failed: Unknow reason";
-			else if (this.loginException instanceof IOException)
-				faultMessage = "Could not connect to Yahoo!";
-			
-			if (!faultMessage.equals(""))
-				ToastHelper.showToast(getApplicationContext(), R.drawable.ic_stat_notify_busy, faultMessage, Toast.LENGTH_LONG, -1);
-			
-			if (result == null)
-			{
-				LoginActivity.this.pd.dismiss();
-				return;
-			}
-			
-			while(true)
-			{
-				synchronized(MessengerService.getYahooList().isListReady())
-				{
-					if (MessengerService.getYahooList().isListReady())
-						break;
-				}
-				
-				Log.d("M2X", "Waiting for the list to get ready!");
-				try
-				{
-					Thread.sleep(10);
-				}
-				catch (InterruptedException e)
-				{
-				}
-			}
-			
-			
-			try
-			{
-				if (LoginActivity.this.loginStatus != org.openymsg.network.Status.CUSTOM)
-					result.setStatus(LoginActivity.this.loginStatus);	//in case the user has selected a status other than custom
-				else
-					result.setStatus(LoginActivity.this.txtCustomMessage.getText().toString(), LoginActivity.this.chkBusy.isChecked());
-			}
-			catch(Exception e)
-			{
-				e.printStackTrace();
-			}
-			MessengerService.setSession(result);
-			if (result != null && result.getSessionStatus() == SessionState.LOGGED_ON)
-			{
-				MessengerService.setMyId(MessengerService.getSession().getLoginID().getId());
-				MessengerService.getEventLog().log(MessengerService.getMyId(), "logged in", new Date(System.currentTimeMillis()));
-
-//				if (Preferences.loadAvatars)
-//					Utils.getAllAvatars();
-
-				savePreferences();
-				startService(new Intent(LoginActivity.this, com.sir_m2x.messenger.services.MessengerService.class));
-				startActivity(new Intent(LoginActivity.this, ContactsListActivity.class));
-			}
-		}
-
-	}
-
-	public boolean isServiceRunning(final String className)
-	{
-		ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-		for(RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE))
-			if (service.service.getClassName().equals(className))
-				return true;
-
-		return false;
-	}
-	
-	SessionListener preConnectionSessionListener = new SessionListener()
-	{
-
-		@Override
-		public void dispatch(final FireEvent event)
-		{
-			if (event.getEvent() instanceof SessionExceptionEvent)
-				Toast.makeText(getApplicationContext(), event.toString(), Toast.LENGTH_LONG).show();
 		}
 	};
+
 }

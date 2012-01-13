@@ -17,16 +17,20 @@
  */
 package com.sir_m2x.messenger.utils;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
-import java.net.URL;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.util.Calendar;
 
-import org.openymsg.network.YahooUser;
-
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-
-import com.sir_m2x.messenger.services.MessengerService;
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningServiceInfo;
+import android.content.Context;
 
 /**
  * Several utility functions used throughout this projects.
@@ -42,7 +46,7 @@ public class Utils
 	public static void initializeEnvironment()
 	{
 		System.setProperty("http.keepAlive", "false"); // for compatibility with Android 2.1+
-		Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler("/sdcard/M2X Messenger/crash-log", "http://sirm2x.heliohost.org/m2x-messenger/upload.php"));
+		//Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler("/sdcard/M2X Messenger/crash-log", "http://sirm2x.heliohost.org/m2x-messenger/upload.php"));
 		initializeFolders();
 	}
 
@@ -61,60 +65,58 @@ public class Utils
 	}
 
 	/**
-	 * Retrieves the Yahoo! avatar of the specified user.
+	 * Reads event log from SD-Card and loads it in the supplied EventLogger
+	 * object
 	 * 
-	 * @param userId
-	 *            The ID of the user to get the avatar of.
-	 * @return A bitmap containing the avatar which is received.
+	 * @param log
+	 *            The EventLogger object to load with the saved log
 	 */
-	public static Bitmap getYahooAvatar(final String userId)
+	public static void loadEventLog(final EventLogger log)
+	{
+		File f = new File("/sdcard/M2X Messenger", "event.log");
+		if (!f.exists())
+			return;
+
+		StringBuffer result = new StringBuffer();
+
+		try
+		{
+			BufferedReader bf = new BufferedReader(new InputStreamReader(new FileInputStream(f)));
+			String input;
+			while ((input = bf.readLine()) != null)
+				result.append(input);
+			bf.close();
+		}
+		catch (FileNotFoundException e)
+		{
+			e.printStackTrace();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+
+		log.deserialize(result.toString());
+	}
+
+	public static void saveEventLog(final EventLogger log)
 	{
 		try
 		{
-			return BitmapFactory.decodeStream(new URL("http://img.msg.yahoo.com/avatar.php?yids=" + userId).openStream());
+			File f = new File("/sdcard/M2X Messenger", "event.log");
+			if (!f.exists())
+				f.createNewFile();
+			String logs = log.serialize().toString();
+
+			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(f)));
+			bw.write(logs);
+			bw.flush();
+			bw.close();
 		}
-		catch (Exception e)
+		catch (IOException e)
 		{
 			e.printStackTrace();
-			return null;
 		}
-
-	}
-
-	/**
-	 * Retrieves all the avatars of the people currently on our friends list.
-	 */
-	public static void getAllAvatars()
-	{
-		new Thread(new Runnable()
-		{
-
-			@Override
-			public void run()
-			{
-				//Load my own avatar first
-				String myId = MessengerService.getSession().getLoginID().getId();
-				//synchronized (MessengerService.myAvatar)
-				{
-					Bitmap avatar = getYahooAvatar(myId);
-					if (avatar != null)
-						MessengerService.setMyAvatar(avatar);
-				}
-
-				for (YahooUser r : MessengerService.getSession().getRoster())
-				{
-					String id = r.getId();
-					if (!MessengerService.getFriendAvatars().containsKey(id))
-					//synchronized (MessengerService.friendAvatars)
-					{
-						Bitmap avatar = getYahooAvatar(r.getId());
-						if (avatar != null)
-							MessengerService.getFriendAvatars().put(id, avatar);
-					}
-				}
-
-			}
-		}).start();
 	}
 
 	/**
@@ -165,6 +167,25 @@ public class Utils
 			daysBetween++;
 		}
 		return daysBetween;
+	}
+	
+	/**
+	 * Determines if a particular service is running
+	 * @param context
+	 * 		Android's context
+	 * @param className
+	 * 		The class name of the service
+	 * @return
+	 * 		True if the service is running
+	 */
+	public static boolean isServiceRunning(final Context context, final String className)
+	{
+		ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+		for (RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE))
+			if (service.service.getClassName().equals(className))
+				return true;
+
+		return false;
 	}
 
 }

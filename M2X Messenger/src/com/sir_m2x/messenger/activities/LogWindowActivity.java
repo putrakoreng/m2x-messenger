@@ -24,6 +24,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -33,6 +35,7 @@ import android.widget.TextView;
 import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.services.MessengerService;
 import com.sir_m2x.messenger.utils.EventLogger;
+import com.sir_m2x.messenger.utils.Utils;
 
 /**
  * A simple log window to show various events during the execution of the
@@ -64,6 +67,8 @@ public class LogWindowActivity extends ListActivity
 				img.setImageBitmap(MessengerService.getMyAvatar());
 			else if (MessengerService.getFriendAvatars().containsKey(id))
 				img.setImageBitmap(MessengerService.getFriendAvatars().get(id));
+			else if (id.contains("M2X Messenger"))
+				img.setImageResource(R.drawable.ic_launcher_noborder);
 			else
 				img.setImageResource(R.drawable.yahoo_no_avatar);
 
@@ -88,7 +93,7 @@ public class LogWindowActivity extends ListActivity
 			return MessengerService.getEventLog().getEventLog().size();
 		}
 	};
-	
+
 	BroadcastReceiver updateReceiver = new BroadcastReceiver()
 	{
 
@@ -108,8 +113,10 @@ public class LogWindowActivity extends ListActivity
 		setContentView(R.layout.log_window);
 		setListAdapter(this.adapter);
 	}
-	
-	/* (non-Javadoc)
+
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see android.app.Activity#onResume()
 	 */
 	@Override
@@ -120,8 +127,10 @@ public class LogWindowActivity extends ListActivity
 		registerReceiver(this.updateReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_OFF));
 		super.onResume();
 	}
-	
-	/* (non-Javadoc)
+
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see android.app.Activity#onPause()
 	 */
 	@Override
@@ -129,6 +138,39 @@ public class LogWindowActivity extends ListActivity
 	{
 		unregisterReceiver(this.updateReceiver);
 		super.onPause();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see android.app.Activity#onCreateOptionsMenu(android.view.Menu)
+	 */
+	@Override
+	public boolean onCreateOptionsMenu(final Menu menu)
+	{
+		getMenuInflater().inflate(R.menu.log_window_menu, menu);
+		return true;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see android.app.Activity#onOptionsItemSelected(android.view.MenuItem)
+	 */
+	@Override
+	public boolean onOptionsItemSelected(final MenuItem item)
+	{
+		switch (item.getItemId())
+		{
+			case R.id.mnuClearLog:
+				MessengerService.getEventLog().getEventLog().clear();
+				this.adapter.notifyDataSetChanged();
+				break;
+			case R.id.mnuSaveLog:
+				Utils.saveEventLog(MessengerService.getEventLog());
+				break;
+		}
+		return true;
 	}
 
 }
