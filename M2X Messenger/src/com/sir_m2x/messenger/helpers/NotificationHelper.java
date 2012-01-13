@@ -17,6 +17,8 @@
  */
 package com.sir_m2x.messenger.helpers;
 
+import org.openymsg.network.SessionState;
+
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -64,6 +66,9 @@ public class NotificationHelper
 
 	public void showDefaultNotification(final boolean firstTime, final boolean statusChanged)
 	{
+		if (MessengerService.getSession().getSessionStatus() == SessionState.UNSTARTED)
+			return;
+		
 		Notification notify = null;
 		String currentStatus;
 		int notificationIcon = R.drawable.ic_stat_notify;
@@ -77,11 +82,11 @@ public class NotificationHelper
 				currentStatus = "Invisible";
 				notificationIcon = R.drawable.ic_stat_notify_invisible;
 				break;
-			case NOTATDESK:
+			case IDLE:
 				currentStatus = "Away";
 				notificationIcon = R.drawable.ic_stat_notify_away;
 				break;
-			case CUSTOM:
+			case CUSTOM: 
 				currentStatus = MessengerService.getSession().getCustomStatusMessage();
 				if (MessengerService.getSession().isCustomBusy())
 					notificationIcon = R.drawable.ic_stat_notify_busy;
@@ -106,13 +111,13 @@ public class NotificationHelper
 		this.notificationManager.notify(NOTIFICATION_SIGNED_IN, notify);
 	}
 
-	public void updateNotification(final String tickerText, final String title, final String message, final int notificationId, final int resId, final Intent intent, final int notificationCount)
+	public void updateNotification(final String tickerText, final String title, final String message, final int notificationId, final int icon, final Intent intent, final int notificationCount, final int flags)
 	{
-		Notification notification = new Notification(resId, tickerText, System.currentTimeMillis());
-		notification.flags = Notification.FLAG_ONGOING_EVENT;
+		Notification notification = new Notification(icon, tickerText, System.currentTimeMillis());
+		notification.flags = flags;
 		PendingIntent pending = PendingIntent.getActivity(this.context, 0, intent, 0);
 		notification.setLatestEventInfo(this.context, title, message, pending);
-		notification.number = notificationCount;
+		notification.number = notificationCount > 1 ? notificationCount : 0;
 		this.notificationManager.notify(notificationId, notification);
 	}
 }

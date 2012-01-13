@@ -35,5 +35,6 @@ public enum SessionState {
     // further states to detail the login process more clearly
     INITIALIZING,  //when the pinger threads are starting
     STAGE1,	//Stage 1 is about to be completed
-    STAGE2;	//State 2 is about to be completed
+    STAGE2,	//State 2 is about to be completed
+    WAITING;
 }

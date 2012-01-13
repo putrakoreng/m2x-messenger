@@ -19,6 +19,8 @@ package com.sir_m2x.messenger;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.TreeMap;
 
 import org.openymsg.network.ContactListType;
@@ -29,21 +31,30 @@ import org.openymsg.network.StealthStatus;
 import org.openymsg.network.YahooGroup;
 import org.openymsg.network.YahooProtocol;
 import org.openymsg.network.YahooUser;
+import org.openymsg.network.event.SessionAuthorizationEvent;
 import org.openymsg.network.event.SessionEvent;
+import org.openymsg.network.event.SessionFriendAcceptedEvent;
 import org.openymsg.network.event.SessionFriendEvent;
+import org.openymsg.network.event.SessionFriendRejectedEvent;
 import org.openymsg.network.event.SessionListEvent;
 import org.openymsg.network.event.SessionListener;
 import org.openymsg.network.event.SessionNotifyEvent;
 
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 
+import com.sir_m2x.messenger.activities.ContactsListActivity;
+import com.sir_m2x.messenger.helpers.AvatarHelper;
+import com.sir_m2x.messenger.helpers.NotificationHelper;
 import com.sir_m2x.messenger.services.MessengerService;
 
 /**
  * This class hold the Yahoo! list and is an alternative to OpenYMSG's Roster
  * class. Roster is cumbersome to use and still lacks some important features
- * like storing pendings list. So it makes sense to implement another class
+ * like storing and pendings list. So it makes sense to implement another class
  * which is manageable and seamless.
  * 
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
@@ -57,6 +68,8 @@ public class YahooList implements SessionListener
 	private Session parentSession = null;
 	// Android's context
 	private Context context = null;
+
+	private MySessionAdapter mySessionAdapter = null;
 	/**
 	 * A flag for the users of this class. If this flag is false, then it means
 	 * that the list is not ready yet and accessing it may result in unknown
@@ -69,6 +82,13 @@ public class YahooList implements SessionListener
 		this.parentSession = parentSession;
 		this.context = context;
 		Log.d("M2X", "List not ready!");
+		this.mySessionAdapter = new MySessionAdapter(this.context);
+	}
+
+	// for when we want to reconnect
+	public void refreshSession(final Session session)
+	{
+		this.parentSession = session;
 	}
 
 	/**
@@ -127,6 +147,8 @@ public class YahooList implements SessionListener
 					contact.setPending(true);
 					updateUser(contact);
 				}
+
+				return;
 			}
 			else if (lEvent.getType() == ContactListType.StealthBlocked)
 			{
@@ -136,6 +158,8 @@ public class YahooList implements SessionListener
 					contact.setStealth(StealthStatus.STEALTH_PERMENANT);
 					updateUser(contact);
 				}
+
+				return;
 			}
 			else if (lEvent.getType() != ContactListType.Friends)
 				// Ignoring non-Friends list
@@ -152,7 +176,18 @@ public class YahooList implements SessionListener
 				this.listReady = true;
 			}
 
-			this.parentSession.addSessionListener(new MySessionAdapter(this.context));
+			// TODO: hacky! prevent initial 10000 notifications when we have just logged on!
+			// make me better!
+			new Timer().schedule(new TimerTask()
+			{
+				@Override
+				public void run()
+				{
+					YahooList.this.parentSession.addSessionListener(YahooList.this.mySessionAdapter);
+				}
+			}, 3000);
+
+			AvatarHelper.requestAvatarIfNeeded(MessengerService.getMyId());
 
 			return;
 		}
@@ -161,7 +196,7 @@ public class YahooList implements SessionListener
 		if (sEvent instanceof SessionNotifyEvent)
 		{
 			if (event.getType() == ServiceType.NOTIFY)
-					notifyReceived((SessionNotifyEvent) event.getEvent());				
+				notifyReceived((SessionNotifyEvent) event.getEvent());
 		}
 		else
 		{
@@ -177,7 +212,7 @@ public class YahooList implements SessionListener
 					addUser(user);
 					break;
 
-				case CONTACTREJECT:
+				//case CONTACTREJECT:
 				case FRIENDREMOVE:
 					// Removing user from list
 					removeUser(user);
@@ -199,6 +234,12 @@ public class YahooList implements SessionListener
 					break;
 
 				case Y7_AUTHORIZATION:
+					if (event.getEvent() instanceof SessionAuthorizationEvent)
+						contactRequestReceived((SessionAuthorizationEvent) event.getEvent());
+					else if (event.getEvent() instanceof SessionFriendRejectedEvent)
+						contactRejectionReceived((SessionFriendRejectedEvent) event.getEvent());
+					else if (event.getEvent() instanceof SessionFriendAcceptedEvent)
+						contactAcceptedReceived((SessionFriendAcceptedEvent) event.getEvent());
 					// TODO Figure what what needs to be done here!
 					//				if (fEvent instanceof SessionFriendAcceptedEvent)
 					//				{
@@ -217,6 +258,67 @@ public class YahooList implements SessionListener
 					break;
 			}
 		}
+	}
+
+	/**
+	 * Fired when a person has sent us a new friend request.
+	 * @param event
+	 * 		The event which is dispatched to us by Session
+	 */
+	private void contactRequestReceived(final SessionAuthorizationEvent event)
+	{
+		//event.get
+	}
+
+	/**
+	 * Fired when a friend has rejected our add request.
+	 * 
+	 * @param event
+	 *            The event which is dispatched to us by Session
+	 */
+	private void contactRejectionReceived(final SessionFriendRejectedEvent event)
+	{
+		YahooUser user = event.getUser();
+		for (String groupName : user.getGroupIds())
+			if (this.friendsList.containsKey(groupName))
+				this.friendsList.get(groupName).getUsers().remove(user);
+
+		this.mySessionAdapter.notifyListChanged();
+
+		// fire a notification and alert the user
+		NotificationHelper nHelper = new NotificationHelper(this.context, (NotificationManager) this.context.getSystemService(Context.NOTIFICATION_SERVICE));
+		nHelper.updateNotification(user.getId() + " has rejected your request!", "M2X Messenger", user.getId() + " has rejected your friend request",
+				NotificationHelper.NOTIFICATION_CONTACT_REJECTED, R.drawable.ic_stat_notify_busy, new Intent(this.context, ContactsListActivity.class), 0, Notification.FLAG_AUTO_CANCEL);
+	}
+
+	/**
+	 * Fired when a friend has accepted our add request.
+	 * 
+	 * @param event
+	 *            The event which is dispatched to us by Session
+	 */
+	private void contactAcceptedReceived(final SessionFriendAcceptedEvent event)
+	{
+		YahooUser user = event.getUser();
+		for (String groupName : user.getGroupIds())
+			if (this.friendsList.containsKey(groupName))
+			{
+				this.friendsList.get(groupName).getUsers().remove(user);
+				this.friendsList.get(groupName).getUsers().add(user);
+			}
+			else
+			{
+				YahooGroup group = new YahooGroup(groupName);
+				group.addUser(user);
+				this.friendsList.put(groupName, group);
+			}
+
+		this.mySessionAdapter.notifyListChanged();
+
+		// fire a notification and alert the user
+		NotificationHelper nHelper = new NotificationHelper(this.context, (NotificationManager) this.context.getSystemService(Context.NOTIFICATION_SERVICE));
+		nHelper.updateNotification(user.getId() + " has accepted your request!", "M2X Messenger", user.getId() + " has accepted your friend request",
+				NotificationHelper.NOTIFICATION_CONTACT_ACCEPTED, R.drawable.ic_stat_notify, new Intent(this.context, ContactsListActivity.class), 0, Notification.FLAG_AUTO_CANCEL);
 	}
 
 	/**
@@ -270,7 +372,7 @@ public class YahooList implements SessionListener
 
 	private void removeUser(final YahooUser user)
 	{
-
+		//TODO ???!
 	}
 
 	public void notifyReceived(final SessionNotifyEvent event)
@@ -318,8 +420,7 @@ public class YahooList implements SessionListener
 	{
 		synchronized (this.friendsList)
 		{
-			//TODO! TEMP FOR TEST ONLY
-			//MessengerService.getSession().removeFriendFromGroup(user.getId(), groupId);
+			this.parentSession.removeFriendFromGroup(user.getId(), groupId);
 			user.removeGroupId(groupId);
 			if (user.getGroupIds().size() == 0) // effectively remove this friend from our friends list
 				this.friendsList.get(groupId).getUsers().remove(user);
@@ -342,12 +443,18 @@ public class YahooList implements SessionListener
 	{
 		synchronized (this.friendsList)
 		{
-			//TODO! TEMP FOR TEST ONLY
-			//MessengerService.getSession().moveFriend(user.getId(), fromGroup, toGroup);
+			this.parentSession.moveFriend(user.getId(), fromGroup, toGroup);
 
 			this.friendsList.get(fromGroup).getUsers().remove(user);// The user must now be indexed under a different group
 			user.changeGroup(fromGroup, toGroup);
-			this.friendsList.get(toGroup).getUsers().add(user);
+			if (this.friendsList.containsKey(toGroup))
+				this.friendsList.get(toGroup).getUsers().add(user);
+			else
+			{
+				YahooGroup group = new YahooGroup(toGroup);
+				group.addUser(user);
+				this.friendsList.put(toGroup, group);
+			}
 		}
 	}
 
@@ -368,7 +475,7 @@ public class YahooList implements SessionListener
 			if (group.getName().equals(newName))
 				return;
 
-			MessengerService.getSession().renameGroup(group.getName(), newName);
+			this.parentSession.renameGroup(group.getName(), newName);
 
 			for (YahooUser user : group.getUsers())
 			{
@@ -403,7 +510,7 @@ public class YahooList implements SessionListener
 		{
 			newUser = new YahooUser(userId, groupId, YahooProtocol.YAHOO);
 			newUser.setPending(true);
-			this.friendsList.get("groupId").addUser(newUser);
+			this.friendsList.get(groupId).addUser(newUser);
 		}
 	}
 
@@ -415,7 +522,6 @@ public class YahooList implements SessionListener
 
 		YahooGroup group = this.friendsList.get(groupId);
 		for (YahooUser user : group.getUsers())
-			//removeFriendFromGroup(user, groupId);
 			user.removeGroupId(groupId);
 
 		this.friendsList.remove(groupId);

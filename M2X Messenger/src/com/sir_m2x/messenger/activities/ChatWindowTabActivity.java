@@ -20,15 +20,18 @@ package com.sir_m2x.messenger.activities;
 import java.util.Date;
 import java.util.LinkedList;
 
+import org.openymsg.network.SessionState;
 import org.openymsg.network.YahooGroup;
 import org.openymsg.network.YahooUser;
 
+import android.app.ProgressDialog;
 import android.app.TabActivity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -56,12 +59,21 @@ public class ChatWindowTabActivity extends TabActivity
 	ChatWindowListener listener;
 	static String lastOpen = null;
 	public static boolean isActive = false;
+	private String lastLoginStatus = "Connection lost! Retrying...";
+	private ProgressDialog pd = null;
 
 	@Override
 	public void onCreate(final Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.chat_window_tabhost);
+		
+		this.pd = new ProgressDialog(this);
+		this.pd.setIndeterminate(true);
+		this.pd.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+		this.pd.setMessage(this.lastLoginStatus);
+		this.pd.setCancelable(false);
+		
 		this.listener = new ChatWindowListener();
 		String friendId;
 		if (getIntent().hasExtra(Utils.qualify("friendId")))
@@ -163,17 +175,24 @@ public class ChatWindowTabActivity extends TabActivity
 	@Override
 	protected void onResume()
 	{
+		if (MessengerService.getSession().getSessionStatus() != SessionState.LOGGED_ON)
+			this.pd.show();
+		
 		isActive = true;
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_IS_TYPING));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_NEW_IM_ADDED));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_NEW_IM));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_DESTROY));
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_LOGIN_PROGRESS));
 		super.onResume();
 	}
 
 	@Override
 	protected void onPause()
 	{
+		if (this.pd != null)
+			this.pd.dismiss();
+		
 		isActive = false;
 		unregisterReceiver(this.listener);
 		super.onPause();
@@ -279,6 +298,24 @@ public class ChatWindowTabActivity extends TabActivity
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_DESTROY))
 				finish();
+			else if (intent.getAction().equals(MessengerService.INTENT_LOGIN_PROGRESS))
+				try
+				{
+					//if (!ContactsListActivity.this.pd.isShowing())
+						ChatWindowTabActivity.this.pd.show();
+					String message = intent.getExtras().getString(Utils.qualify("message"));
+					if (message.equals("Logged on!") || message.equals("Failed!"))
+						ChatWindowTabActivity.this.pd.dismiss();
+					else
+					{
+						ChatWindowTabActivity.this.lastLoginStatus = message;
+						ChatWindowTabActivity.this.pd.setMessage(message);
+					}
+				}
+				catch (Exception e)
+				{
+					Log.d("M2X", "To my balls ke natoonesti...");
+				}
 		}
 	}
 

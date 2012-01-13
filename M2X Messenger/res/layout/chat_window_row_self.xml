@@ -27,7 +27,7 @@
         android:layout_weight="1"
         android:gravity="right"
         android:text="TextView"
-        android:textSize="18sp" />
+        android:textSize="18sp" android:autoLink="web|email|map"/>
 
     <ImageView
         android:id="@+id/imgFriendAvatarChat"

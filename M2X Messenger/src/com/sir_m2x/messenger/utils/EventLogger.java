@@ -25,43 +25,84 @@ import java.util.List;
 
 import android.text.Html;
 import android.text.Spanned;
+
 /**
- * A simple event logger that logs various events in the system.
- * Currently it only logs status changes of the people on our friends list.
+ * A simple event logger that logs various events in the system. Currently it
+ * only logs status changes of the people on our friends list.
  * 
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
- *
+ * 
  */
 public class EventLogger
 {
-	private final List<LogFormat> eventLog; 
-	
+	private final List<LogFormat> eventLog;
+
 	public List<LogFormat> getEventLog()
 	{
 		return this.eventLog;
 	}
-	
+
 	public EventLogger()
 	{
-		this.eventLog = Collections.synchronizedList(new LinkedList<LogFormat>());		
+		this.eventLog = Collections.synchronizedList(new LinkedList<LogFormat>());
 	}
-	
-	public void log(final String who, final String event, final Date timeStamp)
+
+	public synchronized void log(final String who, final String event, final Date timeStamp)
 	{
 		this.log(new LogFormat(who, event, timeStamp));
 	}
 	
+	public synchronized void log(final String who, final String event, final long timeStamp)
+	{
+		this.log(new LogFormat(who, event, timeStamp));
+	}
+
 	public synchronized void log(final LogFormat logObject)
 	{
 		this.eventLog.add(logObject);
 	}
+
+	/**
+	 * Serializes the information in the current log.
+	 * Suitable for when we want to save to log as a file
+	 * @return
+	 * 		The serialized logs
+	 */
+	public StringBuffer serialize()
+	{
+		StringBuffer out = new StringBuffer();
 		
+		synchronized (this.eventLog)
+		{
+			for (LogFormat log : this.eventLog)
+				out.append(log.who + " " + log.event + " " + log.timeStamp + "  ");
+		}
+		
+		return out;
+	}
+	
+	public void deserialize(final String input)
+	{
+		String[] logs = input.split("  ");
+		if (logs.length == 0)
+			return;
+		
+		for (String log : logs)
+		{
+			String[] split = log.split(" ");
+			if (split.length < 3)	// The log is empty!
+				return;
+			LogFormat lf = new LogFormat(split[0], split[1], Long.parseLong(split[2]));
+			this.eventLog.add(lf);
+		}
+	}
+
 	public static class LogFormat
 	{
 		private String who;
 		private String event;
-		private Date timeStamp;
-		
+		private long timeStamp;
+
 		public String getWho()
 		{
 			return this.who;
@@ -76,62 +117,56 @@ public class EventLogger
 		{
 			return this.event;
 		}
-		
+
 		public void setEvent(final String event)
 		{
 			this.event = event;
 		}
-		
+
 		public Date getTimeStamp()
 		{
-			return this.timeStamp;
+			return new Date(this.timeStamp);
 		}
-		
+
 		public void setTimeStamp(final Date timeStamp)
 		{
-			this.timeStamp = timeStamp;
+			this.timeStamp = timeStamp.getTime();
+		}
+
+		public LogFormat(final String who, final String event, final Date timeStamp)
+		{
+			this.setWho(who);
+			this.event = event;
+			this.timeStamp = timeStamp.getTime();
 		}
 		
-		public LogFormat(final String who, final String event, final Date timeStamp)
+		public LogFormat(final String who, final String event, final long timeStamp)
 		{
 			this.setWho(who);
 			this.event = event;
 			this.timeStamp = timeStamp;
 		}
-		
-//		@Override
-//		public String toString()
-//		{
-//			Date today = new Date(System.currentTimeMillis());
-//			String time = String.format("%02d:%02d " + (this.timeStamp.getHours() > 12 ? "PM" : "AM"), this.timeStamp.getHours() > 12 ? this.timeStamp.getHours() - 12 : this.timeStamp.getHours(),this.timeStamp.getMinutes());
-//			String date = String.format("%d-%d-%d", this.timeStamp.getYear() + 1900, this.timeStamp.getMonth() + 1, this.timeStamp.getDate()); 
-//			if (this.timeStamp.getYear() == today.getYear() && 
-//				this.timeStamp.getMonth() == today.getMonth() &&
-//				this.timeStamp.getDate() == today.getDate())
-//				return time + ": " + this.who + ": " + this.event;
-//			
-//			return date + "  " + time + ": " + this.who + ": " + this.event;
-//		}
-		
+
 		public Spanned eventToHtml()
 		{
-			return Html.fromHtml("<b>" + this.who +"</b>: " + this.event);
+			return Html.fromHtml("<b>" + this.who + "</b>: " + this.event);
 		}
-		
+
 		public Spanned timeToHtml()
 		{
 			Date today = new Date(System.currentTimeMillis());
+			Date timeStamp = this.getTimeStamp();
 			SimpleDateFormat df;
 
-			if (this.timeStamp.getYear() == today.getYear() && this.timeStamp.getMonth() == today.getMonth() && this.timeStamp.getDate() == today.getDate())
+			if (timeStamp.getYear() == today.getYear() && timeStamp.getMonth() == today.getMonth() && timeStamp.getDate() == today.getDate())
 				df = new SimpleDateFormat("hh:mm a");
 			else
 				df = new SimpleDateFormat("yyyy-MM-dd hh:mm a");
-			
+
 			String date = df.format(this.timeStamp);
 
 			return Html.fromHtml("<small>" + date + "</small>");
 		}
-		
+
 	}
 }

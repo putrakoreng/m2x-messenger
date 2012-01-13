@@ -48,7 +48,7 @@ public class InputThread extends Thread {
      * @param parentSession
      *            the parent session of this thread.
      */
-    public InputThread(Session parentSession) {
+    public InputThread(final Session parentSession) {
         super("jYMSG Input " + parentSession.getLoginID().getId());
         this.parentSession = parentSession;
     }
@@ -57,7 +57,7 @@ public class InputThread extends Thread {
      * Stops the thread from running.
      */
     public void stopMe() {
-        quit = true;
+        this.quit = true;
     }
 
     /**
@@ -66,34 +66,32 @@ public class InputThread extends Thread {
      */
     @Override
     public void run() {
-        while (!quit) {
-            try {
-                process(parentSession.network.receivePacket());
+        while (!this.quit)
+			try {
+                process(this.parentSession.network.receivePacket());
             }
             catch (UnknowServiceException e) {
                 log.warn("unknow packet: " + e.getPacket().toString());
             }
             catch (Exception e) {
                 // ignore SocketExceptions if we're closing the thread.
-                if (quit && e instanceof SocketException) {
+                if (this.quit && e instanceof SocketException) {
                     log.debug("logging out so don't handle exception", e);
                     return;
                 }
 
                 log.error("error on process packet", e);
                 try {
-                    parentSession.sendExceptionEvent(e, "Source: InputThread");
+                    this.parentSession.sendExceptionEvent(e, "Source: InputThread");
                 }
                 catch (Exception e2) {
                     log.error("error on sendException to the session", e2);
                 }
 
                 // IO exceptions? Close the connection!
-                if (e instanceof IOException) {
-                    quit = true;
-                }
+                if (e instanceof IOException)
+					this.quit = true;
             }
-        }
     }
 
     /**
@@ -102,26 +100,24 @@ public class InputThread extends Thread {
      * @param pkt
      * @throws Exception
      */
-    private void process(YMSG9Packet pkt) throws Exception {
+    private void process(final YMSG9Packet pkt) throws Exception {
         // A null packet is sent when the input stream closes
         if (pkt == null) {
-            quit = true;
+            this.quit = true;
             return;
         }
 
         // Process header
-        if (pkt.sessionId != 0) {
-            // Some chat packets send zero
+        if (pkt.sessionId != 0)
+			// Some chat packets send zero
             // log.trace("Received a packet - status: " + pkt.status + " service: " + pkt.service.getValue() +
             // " packet:" + pkt);
             // Update session id in outer class
-            parentSession.sessionId = pkt.sessionId;
-        }
+            this.parentSession.sessionId = pkt.sessionId;
 
         // Error header?
-        if (pkt.status == -1 && processError(pkt) == true) {
-            return;
-        }
+        if (pkt.status == -1 && processError(pkt) == true)
+			return;
 
         log.trace("Incoming packet: " + pkt);
 
@@ -129,77 +125,77 @@ public class InputThread extends Thread {
         processPayload(pkt);
     }
 
-    protected void processPayload(YMSG9Packet pkt) throws IOException, YahooException {
+    protected void processPayload(final YMSG9Packet pkt) throws IOException, YahooException {
         log.trace("processPayload " + pkt.service + "/" + pkt.status);
         switch (pkt.service) {
         case ADDIGNORE:
-            parentSession.receiveAddIgnore(pkt);
+            this.parentSession.receiveAddIgnore(pkt);
             break;
         case AUTH:
-            parentSession.receiveAuth(pkt);
+            this.parentSession.receiveAuth(pkt);
             break;
         case AUTHRESP:
-            parentSession.receiveAuthResp(pkt);
+            this.parentSession.receiveAuthResp(pkt);
             break;
         case CHATCONNECT:
-            parentSession.receiveChatConnect(pkt);
+            this.parentSession.receiveChatConnect(pkt);
             break;
         case CHATDISCONNECT:
-            parentSession.receiveChatDisconnect(pkt);
+            this.parentSession.receiveChatDisconnect(pkt);
             break;
         case CHATEXIT:
-            parentSession.receiveChatExit(pkt);
+            this.parentSession.receiveChatExit(pkt);
             break;
         case CHATJOIN:
-            parentSession.receiveChatJoin(pkt);
+            this.parentSession.receiveChatJoin(pkt);
             break;
         case CHATMSG:
-            parentSession.receiveChatMsg(pkt);
+            this.parentSession.receiveChatMsg(pkt);
             break;
         case CHATPM:
-            parentSession.receiveChatPM(pkt);
+            this.parentSession.receiveChatPM(pkt);
             break;
         case CONFADDINVITE:
             receiveConfAddInvite(pkt);
             break;
         case CONFDECLINE:
-            parentSession.receiveConfDecline(pkt);
+            this.parentSession.receiveConfDecline(pkt);
             break;
         case CONFINVITE:
             receiveConfInvite(pkt);
             break;
         case CONFLOGOFF:
-            parentSession.receiveConfLogoff(pkt);
+            this.parentSession.receiveConfLogoff(pkt);
             break;
         case CONFLOGON:
-            parentSession.receiveConfLogon(pkt);
+            this.parentSession.receiveConfLogon(pkt);
             break;
         case CONFMSG:
-            parentSession.receiveConfMsg(pkt);
+            this.parentSession.receiveConfMsg(pkt);
             break;
         case CONTACTIGNORE:
-            parentSession.receiveContactIgnore(pkt);
+            this.parentSession.receiveContactIgnore(pkt);
             break;
         case CONTACTNEW:
-            parentSession.receiveContactNew(pkt);
+            this.parentSession.receiveContactNew(pkt);
             break;
         case FILETRANSFER:
-            parentSession.receiveFileTransfer(pkt);
+            this.parentSession.receiveFileTransfer(pkt);
             break;
         case FRIENDADD:
-            parentSession.receiveFriendAdd(pkt);
+            this.parentSession.receiveFriendAdd(pkt);
             break;
         case FRIENDREMOVE:
-            parentSession.receiveFriendRemove(pkt);
+            this.parentSession.receiveFriendRemove(pkt);
             break;
         case GOTGROUPRENAME:
-            parentSession.receiveGroupRename(pkt);
+            this.parentSession.receiveGroupRename(pkt);
             break;
         case IDACT:
-            parentSession.receiveIdAct(pkt);
+            this.parentSession.receiveIdAct(pkt);
             break;
         case IDDEACT:
-            parentSession.receiveIdDeact(pkt);
+            this.parentSession.receiveIdDeact(pkt);
             break;
 //        case ISAWAY:
 //            parentSession.receiveIsAway(pkt);
@@ -208,49 +204,49 @@ public class InputThread extends Thread {
 //            parentSession.receiveIsBack(pkt);
 //            break;
         case LIST:
-            parentSession.receiveList(pkt);
+            this.parentSession.receiveList(pkt);
             break;
         case LIST_15:
-            parentSession.receiveList15(pkt);
+            this.parentSession.receiveList15(pkt);
             break;
         case LOGOFF:
-            parentSession.receiveLogoff(pkt);
+            this.parentSession.receiveLogoff(pkt);
             break;
         case LOGON:
-            parentSession.receiveLogon(pkt);
+            this.parentSession.receiveLogon(pkt);
             break;
         case MESSAGE:
-            parentSession.receiveMessage(pkt);
+            this.parentSession.receiveMessage(pkt);
             break;
         case MESSAGE_ACK:
-        	parentSession.receiveMessageAck(pkt);
+        	this.parentSession.receiveMessageAck(pkt);
         	break;
         case NEWMAIL:
-            parentSession.receiveNewMail(pkt);
+            this.parentSession.receiveNewMail(pkt);
             break;
         case NOTIFY:
-            parentSession.receiveNotify(pkt);
+            this.parentSession.receiveNotify(pkt);
             break;
         case USERSTAT:
-            parentSession.receiveUserStat(pkt);
+            this.parentSession.receiveUserStat(pkt);
             break;
         case Y6_STATUS_UPDATE:
-        	parentSession.receiveStatusUpdate(pkt);
+        	this.parentSession.receiveStatusUpdate(pkt);
             break;
         case STATUS_15:
-            parentSession.receiveStatus15(pkt);
+            this.parentSession.receiveStatus15(pkt);
             break;
         case GROUPRENAME:
-            parentSession.receiveGroupRename(pkt);
+            this.parentSession.receiveGroupRename(pkt);
             break;
         case CONTACTREJECT:
-            parentSession.receiveContactRejected(pkt);
+            this.parentSession.receiveContactRejected(pkt);
             break;
         case PICTURE:
-            parentSession.receivePicture(pkt);
+            this.parentSession.receivePicture(pkt);
             break;
         case Y7_AUTHORIZATION:
-            parentSession.receiveAuthorization(pkt);
+            this.parentSession.receiveAuthorization(pkt);
             break;
         case PING:
             // As we're sending pings back, it's probably safe to ignore the
@@ -276,20 +272,20 @@ public class InputThread extends Thread {
      * @return
      * @throws Exception
      */
-    private boolean processError(YMSG9Packet pkt) throws Exception {
+    private boolean processError(final YMSG9Packet pkt) throws Exception {
         // Jump to service-specific code
         switch (pkt.service) {
         case AUTHRESP:
-            parentSession.receiveAuthResp(pkt);
+            this.parentSession.receiveAuthResp(pkt);
             return true;
         case CHATJOIN:
-            parentSession.receiveChatJoin(pkt);
+            this.parentSession.receiveChatJoin(pkt);
             return true;
         case LOGOFF:
-            parentSession.receiveLogoff(pkt);
+            this.parentSession.receiveLogoff(pkt);
             return true;
         default:
-            parentSession.errorMessage(pkt, null);
+            this.parentSession.errorMessage(pkt, null);
             return (pkt.body.length <= 2);
         }
     }
@@ -301,12 +297,11 @@ public class InputThread extends Thread {
      * 
      * @param pkt
      */
-    private void receiveConfAddInvite(YMSG9Packet pkt) // 0x01c
+    private void receiveConfAddInvite(final YMSG9Packet pkt) // 0x01c
     {
-        final YahooConference yc = parentSession.getOrCreateConference(pkt);
-        if (yc.isClosed()) {
-            yc.reopenConference();
-        }
+        final YahooConference yc = this.parentSession.getOrCreateConference(pkt);
+        if (yc.isClosed())
+			yc.reopenConference();
         receiveConfInvite(pkt);
     }
 
@@ -317,7 +312,7 @@ public class InputThread extends Thread {
      * 
      * @param pkt
      */
-    private void receiveConfInvite(YMSG9Packet pkt) // 0x18
+    private void receiveConfInvite(final YMSG9Packet pkt) // 0x18
     {
         try {
             final String[] invitedUserIds = pkt.getValues("52");
@@ -327,7 +322,7 @@ public class InputThread extends Thread {
                 log.debug("Correctly not handling empty invite: " + pkt);
                 return;
             }
-            final YahooConference yc = parentSession.getOrCreateConference(pkt);
+            final YahooConference yc = this.parentSession.getOrCreateConference(pkt);
             String otherInvitedUserIdsCommaSeparated = pkt.getValue("51");
             String to = pkt.getValue("1");
             String from = pkt.getValue("50");
@@ -345,13 +340,12 @@ public class InputThread extends Thread {
             yc.addUser(from);
             // Fire invite event
             if (!yc.isClosed()) // Should never be closed for invite!
-                parentSession.fire(se, ServiceType.CONFINVITE);
+                this.parentSession.fire(se, ServiceType.CONFINVITE);
             // Set invited status and work through buffered conference
             synchronized (yc) {
                 Queue<YMSG9Packet> buffer = yc.inviteReceived();
-                for (YMSG9Packet packet : buffer) {
-                    process(packet);
-                }
+                for (YMSG9Packet packet : buffer)
+					process(packet);
             }
         }
         catch (Exception e) {
@@ -359,11 +353,10 @@ public class InputThread extends Thread {
         }
     }
 
-    private Set<YahooUser> getUsers(String otherInvitedUserIdsCommaSeparated) {
+    private Set<YahooUser> getUsers(final String otherInvitedUserIdsCommaSeparated) {
         if (otherInvitedUserIdsCommaSeparated == null 
-                || otherInvitedUserIdsCommaSeparated.length() == 0) {
-            return Collections.emptySet();
-        }
+                || otherInvitedUserIdsCommaSeparated.length() == 0)
+			return Collections.emptySet();
         String[] ids = otherInvitedUserIdsCommaSeparated.split(",");
         return getUsers(ids);
     }
@@ -371,10 +364,9 @@ public class InputThread extends Thread {
     private Set<YahooUser> getUsers(final String[] users) {
         final Set<YahooUser> conferenceUsers = new HashSet<YahooUser>();
         for (final String userId : users) {
-            YahooUser user = parentSession.getRoster().getUser(userId);
-            if (user == null) {
-                user = new YahooUser(userId);
-            }
+            YahooUser user = this.parentSession.getRoster().getUser(userId);
+            if (user == null)
+				user = new YahooUser(userId);
             conferenceUsers.add(user);
         }
         return conferenceUsers;
