@@ -24,10 +24,16 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.net.Uri;
+import android.os.Vibrator;
+import android.util.Log;
 
 import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.activities.ContactsListActivity;
 import com.sir_m2x.messenger.services.MessengerService;
+import com.sir_m2x.messenger.utils.Preferences;
 
 /**
  * This is a helper class to show and manage various notifications.
@@ -48,11 +54,17 @@ public class NotificationHelper
 	private Context context = null;
 	private NotificationManager notificationManager = null;
 
+	/**
+	 * Public accessor 
+	 */
 	public Context getContext()
 	{
 		return this.context;
 	}
 
+	/**
+	 * Public accessor 
+	 */
 	public void setContext(final Context context)
 	{
 		this.context = context;
@@ -64,11 +76,18 @@ public class NotificationHelper
 		this.notificationManager = notificationManager;
 	}
 
+	/**
+	 * Shows the default notification in the status bar.
+	 * @param firstTime
+	 * 		Indicated weather it is the first time the notification is being shown
+	 * @param statusChanged
+	 * 		Indicated weather this notification has been shown to indicate that user's status has changed
+	 */
 	public void showDefaultNotification(final boolean firstTime, final boolean statusChanged)
 	{
 		if (MessengerService.getSession().getSessionStatus() == SessionState.UNSTARTED)
 			return;
-		
+
 		Notification notify = null;
 		String currentStatus;
 		int notificationIcon = R.drawable.ic_stat_notify;
@@ -86,7 +105,7 @@ public class NotificationHelper
 				currentStatus = "Away";
 				notificationIcon = R.drawable.ic_stat_notify_away;
 				break;
-			case CUSTOM: 
+			case CUSTOM:
 				currentStatus = MessengerService.getSession().getCustomStatusMessage();
 				if (MessengerService.getSession().isCustomBusy())
 					notificationIcon = R.drawable.ic_stat_notify_busy;
@@ -111,13 +130,61 @@ public class NotificationHelper
 		this.notificationManager.notify(NOTIFICATION_SIGNED_IN, notify);
 	}
 
-	public void updateNotification(final String tickerText, final String title, final String message, final int notificationId, final int icon, final Intent intent, final int notificationCount, final int flags)
+	public void updateNotification(final String tickerText, final String title, final String message, final int notificationId, final int icon, final Intent intent,
+			final int notificationCount, final int flags, final boolean defaults)
 	{
 		Notification notification = new Notification(icon, tickerText, System.currentTimeMillis());
-		notification.flags = flags;
+		if (defaults)
+			notification.defaults = Notification.DEFAULT_VIBRATE | Notification.DEFAULT_SOUND;
+		notification.audioStreamType = Preferences.audibleStream;
+		notification.flags = flags | Notification.FLAG_SHOW_LIGHTS;
+		notification.ledARGB = 0xFFFFFFFF;
+		notification.ledOnMS = 1;
+		notification.ledOffMS = 0;
 		PendingIntent pending = PendingIntent.getActivity(this.context, 0, intent, 0);
 		notification.setLatestEventInfo(this.context, title, message, pending);
 		notification.number = notificationCount > 1 ? notificationCount : 0;
 		this.notificationManager.notify(notificationId, notification);
+	}
+	
+	public void playAudio(final Uri uri, final int streamType, final boolean isIm)
+	{
+		if (Preferences.audibles.equals(Preferences.AUDIBLE_DONT_PLAY))
+			return;
+		else if (Preferences.audibles.equals(Preferences.AUDIBLE_PLAY_IM))
+		{
+			if (!isIm)
+				return;
+		}
+		else if (Preferences.audibles.equals(Preferences.AUDIBLE_PLAY_STATUS))
+			if (isIm)
+				return;
+
+		MediaPlayer mp = new MediaPlayer();
+		try
+		{
+			mp.setDataSource(this.context, uri);
+			mp.setAudioStreamType(streamType);
+			mp.prepare();
+			mp.start();
+		}
+		catch (Exception e)
+		{
+			Log.w("M2X-Messenger", "Unable to play " + uri);
+		}
+
+	}
+	
+	public void vibrate(final int duration)
+	{
+		if (Preferences.vibration.equals(Preferences.VIBRATE_OFF))
+			return;
+
+		AudioManager am = (AudioManager) this.context.getSystemService(Context.AUDIO_SERVICE);
+		if (!am.shouldVibrate(AudioManager.VIBRATE_TYPE_NOTIFICATION))
+			return;
+
+		Vibrator v = (Vibrator) this.context.getSystemService(Context.VIBRATOR_SERVICE);
+		v.vibrate(duration);
 	}
 }

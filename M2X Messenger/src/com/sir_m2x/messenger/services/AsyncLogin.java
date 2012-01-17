@@ -142,15 +142,38 @@ public class AsyncLogin extends AsyncTask<String, Void, Session>
 		progressReportThread.start();
 
 		while (++this.retryCount <= MAX_RETRIES)
-			try
+		 try
 			{
 				doLogin(this.username, this.password);
 				break;
 			}
-			catch (Exception e)
+			catch (AccountLockedException e)
 			{
 				this.loginException = e;
-				Log.d("M2X", "Trying to reconect..." + this.retryCount);
+				e.printStackTrace();
+				break;
+			}
+			catch (IllegalStateException e)
+			{
+				this.loginException = e;
+				e.printStackTrace();
+				break;
+			}
+			catch (LoginRefusedException e)
+			{
+				this.loginException = e;
+				e.printStackTrace();
+				break;
+			}
+			catch (FailedLoginException e)
+			{
+				this.loginException = e;
+				e.printStackTrace();
+				break;
+			}
+			catch (IOException e)
+			{
+				this.loginException = e;
 				e.printStackTrace();
 				try
 				{
@@ -164,6 +187,24 @@ public class AsyncLogin extends AsyncTask<String, Void, Session>
 					e1.printStackTrace();
 				}
 			}
+		
+//			catch (Exception e)
+//			{
+//				this.loginException = e;
+//				Log.d("M2X", "Trying to reconect..." + this.retryCount);
+//				e.printStackTrace();
+//				try
+//				{
+//					this.session.setWaiting();
+//					publishProgress((Void) null);
+//					Thread.sleep(10000);
+//					this.session.cancelWaiting();
+//				}
+//				catch (InterruptedException e1)
+//				{
+//					e1.printStackTrace();
+//				}
+//			}
 		
 		if(this.session.getSessionStatus() != SessionState.LOGGED_ON)
 			return null;

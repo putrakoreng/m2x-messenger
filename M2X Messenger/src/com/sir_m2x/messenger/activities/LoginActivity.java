@@ -264,7 +264,7 @@ public class LoginActivity extends Activity
 				}
 				catch(Exception e)
 				{
-					Log.d("M2X", "To my balls ke natoonesti...");
+					Log.d("M2X", "I'm getting fraustrated by this...");
 				}
 		}
 	};

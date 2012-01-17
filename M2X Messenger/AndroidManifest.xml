@@ -97,6 +97,7 @@
             android:theme="@android:style/Theme.Dialog" >
         </activity>
         <activity android:name=".activities.PreferencesActivity" />
+        <activity android:name=".activities.FriendRequestsActivity" android:theme="@android:style/Theme.Light" />
 
         <service android:name=".services.MessengerService" >
             <intent-filter>

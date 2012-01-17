@@ -47,6 +47,14 @@
             android:key="audibles"
             android:summary="Play sound on new notification"
             android:title="Audible notifications" />
+        
+        <ListPreference
+            android:defaultValue="5"
+            android:entries="@array/stream_list_entries"
+            android:entryValues="@array/stream_list_entryValues"
+            android:key="stream"
+            android:summary="Changes the stream used to play audibles"
+            android:title="Audibles stream" />
 
         <CheckBoxPreference
             android:defaultValue="true"

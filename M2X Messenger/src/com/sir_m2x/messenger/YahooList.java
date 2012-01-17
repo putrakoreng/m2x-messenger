@@ -47,6 +47,8 @@ import android.content.Intent;
 import android.util.Log;
 
 import com.sir_m2x.messenger.activities.ContactsListActivity;
+import com.sir_m2x.messenger.activities.FriendRequestsActivity;
+import com.sir_m2x.messenger.datastructures.FriendRequest;
 import com.sir_m2x.messenger.helpers.AvatarHelper;
 import com.sir_m2x.messenger.helpers.NotificationHelper;
 import com.sir_m2x.messenger.services.MessengerService;
@@ -64,6 +66,8 @@ public class YahooList implements SessionListener
 {
 	// The infamous friends list
 	private TreeMap<String, YahooGroup> friendsList;
+	// A list to manage arrived friend requests
+	private TreeMap<String, FriendRequest> friendRequests = new TreeMap<String, FriendRequest>();
 	// The session which is the owner of this instance
 	private Session parentSession = null;
 	// Android's context
@@ -106,6 +110,11 @@ public class YahooList implements SessionListener
 		this.friendsList = friendsList;
 	}
 
+	public TreeMap<String, FriendRequest> getFriendRequests()
+	{
+		return this.friendRequests;
+	}
+
 	/**
 	 * Check the "listReady" flag.
 	 * 
@@ -132,7 +141,7 @@ public class YahooList implements SessionListener
 	{
 		final SessionEvent sEvent = event.getEvent();
 		final ServiceType sType = event.getType();
-		if (!(sEvent instanceof SessionFriendEvent) && sType != ServiceType.LIST && !(sEvent instanceof SessionNotifyEvent))
+		if (!(sEvent instanceof SessionFriendEvent) && sType != ServiceType.LIST && sType != ServiceType.Y7_AUTHORIZATION && !(sEvent instanceof SessionNotifyEvent))
 			// Ignoring non-list
 			return;
 
@@ -200,11 +209,15 @@ public class YahooList implements SessionListener
 		}
 		else
 		{
-			final SessionFriendEvent fEvent = (SessionFriendEvent) sEvent;
-			final YahooUser user = fEvent.getUser();
+			YahooUser user = null;
+			if (sEvent instanceof SessionFriendEvent)
+			{
+				final SessionFriendEvent fEvent = (SessionFriendEvent) sEvent;
+				user = fEvent.getUser();
 
-			if (fEvent.isFailure())
-				return;
+				if (fEvent.isFailure())
+					return;
+			}
 			switch (event.getType())
 			{
 				case FRIENDADD:
@@ -262,12 +275,22 @@ public class YahooList implements SessionListener
 
 	/**
 	 * Fired when a person has sent us a new friend request.
+	 * 
 	 * @param event
-	 * 		The event which is dispatched to us by Session
+	 *            The event which is dispatched to us by Session
 	 */
 	private void contactRequestReceived(final SessionAuthorizationEvent event)
 	{
-		//event.get
+		String from = event.getFrom();
+		FriendRequest fr = new FriendRequest(from, event.getMessage(), event.getTimestamp());
+
+		this.friendRequests.put(from, fr);
+		Log.d("M2X", "Request received!");
+		NotificationHelper nHelper = new NotificationHelper(this.context, (NotificationManager) this.context.getSystemService(Context.NOTIFICATION_SERVICE));
+		nHelper.updateNotification("You have new requests!", "M2X Messenger", from + " has sent you a friend request. Click to see more!",
+				NotificationHelper.NOTIFICATION_CONTACT_REQUEST, R.drawable.ic_stat_notify_away, new Intent(this.context, FriendRequestsActivity.class), 0,
+				Notification.FLAG_AUTO_CANCEL,true);
+		MessengerService.getEventLog().log("M2X Messenger", "New Request from " + from, System.currentTimeMillis());
 	}
 
 	/**
@@ -288,7 +311,9 @@ public class YahooList implements SessionListener
 		// fire a notification and alert the user
 		NotificationHelper nHelper = new NotificationHelper(this.context, (NotificationManager) this.context.getSystemService(Context.NOTIFICATION_SERVICE));
 		nHelper.updateNotification(user.getId() + " has rejected your request!", "M2X Messenger", user.getId() + " has rejected your friend request",
-				NotificationHelper.NOTIFICATION_CONTACT_REJECTED, R.drawable.ic_stat_notify_busy, new Intent(this.context, ContactsListActivity.class), 0, Notification.FLAG_AUTO_CANCEL);
+				NotificationHelper.NOTIFICATION_CONTACT_REJECTED, R.drawable.ic_stat_notify_busy, new Intent(this.context, ContactsListActivity.class), 0,
+				Notification.FLAG_AUTO_CANCEL, true);
+		MessengerService.getEventLog().log("M2X Messenger", "Request rejected by " + user.getId(), System.currentTimeMillis());
 	}
 
 	/**
@@ -318,7 +343,8 @@ public class YahooList implements SessionListener
 		// fire a notification and alert the user
 		NotificationHelper nHelper = new NotificationHelper(this.context, (NotificationManager) this.context.getSystemService(Context.NOTIFICATION_SERVICE));
 		nHelper.updateNotification(user.getId() + " has accepted your request!", "M2X Messenger", user.getId() + " has accepted your friend request",
-				NotificationHelper.NOTIFICATION_CONTACT_ACCEPTED, R.drawable.ic_stat_notify, new Intent(this.context, ContactsListActivity.class), 0, Notification.FLAG_AUTO_CANCEL);
+				NotificationHelper.NOTIFICATION_CONTACT_ACCEPTED, R.drawable.ic_stat_notify, new Intent(this.context, ContactsListActivity.class), 0, Notification.FLAG_AUTO_CANCEL, true);
+		MessengerService.getEventLog().log("M2X Messenger", "Request accepted by " + user.getId(), System.currentTimeMillis());
 	}
 
 	/**

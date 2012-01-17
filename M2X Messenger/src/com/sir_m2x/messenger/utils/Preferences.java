@@ -51,6 +51,8 @@ public class Preferences
 	public static boolean showOffline = true;
 	public static int avatarRefreshInterval = 1;
 	public static boolean saveLog = true;
+	public static int audibleStream = 5;
+	
 	
 	/**
 	 * Reads the Shared Preferences for this application and loads them into their
@@ -71,7 +73,8 @@ public class Preferences
 		Preferences.loadAvatars = preferences.getString("loadAvatars", "loadNeeded");
 		Preferences.vibration = preferences.getString("vibration", "on");
 		Preferences.showToasts = preferences.getBoolean("showToasts", true);
-		Preferences.audibles = preferences.getString("audibles", "playAll");		
+		Preferences.audibles = preferences.getString("audibles", "playAll");
+		Preferences.audibleStream = Integer.parseInt(preferences.getString("stream", "1"));
 		Preferences.showOffline = preferences.getBoolean("showOffline", true);
 		Preferences.vibration = preferences.getString("vibration", "on");
 		Preferences.avatarRefreshInterval = Integer.parseInt(preferences.getString("avatarPolicy", "1"));

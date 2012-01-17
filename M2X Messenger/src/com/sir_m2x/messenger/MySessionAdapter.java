@@ -42,9 +42,9 @@ import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
 import android.util.Log;
 
+import com.sir_m2x.messenger.datastructures.IM;
 import com.sir_m2x.messenger.helpers.AvatarHelper;
 import com.sir_m2x.messenger.services.MessengerService;
-import com.sir_m2x.messenger.utils.IM;
 import com.sir_m2x.messenger.utils.Utils;
 
 /**

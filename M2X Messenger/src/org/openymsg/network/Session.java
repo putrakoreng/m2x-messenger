@@ -907,10 +907,10 @@ public class Session implements StatusConstants, FriendManager {
 		transmitChangeGroup(friendId, this.loginID, fromGroup, toGroup);
 	}
 
-	public void rejectFriendAuthorization(final SessionAuthorizationEvent ev, final String friend, final String msg)
+	public void rejectFriendAuthorization(final String friend, final String msg)
 			throws IllegalStateException, IOException {
 		checkStatus();
-		transmitRejectBuddy(friend, ev.getTo(), msg);
+		transmitRejectBuddy(friend, msg);
 	}
 
 	public void acceptFriendAuthorization(final String friend, final YahooProtocol procotol) throws IllegalStateException,
@@ -1443,10 +1443,10 @@ public class Session implements StatusConstants, FriendManager {
 		sendPacket(body, ServiceType.CONTACTREJECT); // 0x86
 	}
 
-	protected void transmitRejectBuddy(final String friend, final String yid, final String msg) throws IOException {
+	protected void transmitRejectBuddy(final String friend, final String msg) throws IOException {
 		PacketBodyBuffer body = new PacketBodyBuffer();
-		body.addElement("1", yid);
-		body.addElement("7", friend);
+		body.addElement("1", this.loginID.getId());	// My ID
+		body.addElement("5", friend);	//Friend's ID
 		body.addElement("13", "2");// Reject Authorization
 
 		if (msg != null) body.addElement("14", msg);

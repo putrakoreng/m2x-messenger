@@ -40,13 +40,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
-import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.WifiLock;
 import android.os.IBinder;
-import android.os.Vibrator;
 import android.text.Html;
 import android.util.Log;
 import android.view.Gravity;
@@ -55,10 +52,10 @@ import android.widget.Toast;
 import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.YahooList;
 import com.sir_m2x.messenger.activities.ChatWindowTabActivity;
+import com.sir_m2x.messenger.datastructures.IM;
 import com.sir_m2x.messenger.helpers.NotificationHelper;
 import com.sir_m2x.messenger.helpers.ToastHelper;
 import com.sir_m2x.messenger.utils.EventLogger;
-import com.sir_m2x.messenger.utils.IM;
 import com.sir_m2x.messenger.utils.Preferences;
 import com.sir_m2x.messenger.utils.Utils;
 
@@ -299,9 +296,9 @@ public class MessengerService extends Service
 					return;
 
 				String message = Html.fromHtml(intent.getExtras().getString(Utils.qualify("message"))).toString(); //in order to strip the HTML tags! 
-				vibrate(250);
+				notificationHelper.vibrate(250);
 
-				PlayAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.message), AudioManager.STREAM_NOTIFICATION, true);
+				notificationHelper.playAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.message), Preferences.audibleStream, true);
 				if (ChatWindowTabActivity.isActive)
 					return;
 
@@ -315,15 +312,15 @@ public class MessengerService extends Service
 					unreadCount += unreadIMs.get(key);
 
 				notificationHelper.updateNotification(sender + ": " + message, "New message (" + unreadCount + ")", sender + ": " + message,
-						NotificationHelper.NOTIFICATION_SIGNED_IN, R.drawable.ic_stat_notify, intent2, unreadCount, Notification.FLAG_ONGOING_EVENT);
+						NotificationHelper.NOTIFICATION_SIGNED_IN, R.drawable.ic_stat_notify, intent2, unreadCount, Notification.FLAG_ONGOING_EVENT, false);
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_BUZZ))
 			{
 				// TODO don't fire notification if the ChatWindowTabActivity is open
 				//String sender = intent.getExtras().getString(Utils.qualify("from"));
-				vibrate(500);
+				notificationHelper.vibrate(500);
 
-				PlayAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.buzz), AudioManager.STREAM_NOTIFICATION, true);
+				notificationHelper.playAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.buzz), Preferences.audibleStream, true);
 
 				//TODO fix notification
 				//				NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -337,7 +334,7 @@ public class MessengerService extends Service
 			else if (intent.getAction().equals(MessengerService.INTENT_FRIEND_SIGNED_ON))
 			{
 				String friendId = intent.getExtras().getString(Utils.qualify("who"));
-				PlayAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.online), AudioManager.STREAM_NOTIFICATION, false);
+				notificationHelper.playAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.online), Preferences.audibleStream, false);
 
 				ToastHelper.showToast(getApplicationContext(), R.drawable.ic_stat_notify, friendId + " has signed on", Toast.LENGTH_LONG, Gravity.TOP | Gravity.RIGHT);
 				//Toast.makeText(getApplicationContext(), friendId + " has signed on", Toast.LENGTH_LONG).show();
@@ -345,7 +342,7 @@ public class MessengerService extends Service
 			else if (intent.getAction().equals(MessengerService.INTENT_FRIEND_SIGNED_OFF))
 			{
 				String friendId = intent.getExtras().getString(Utils.qualify("who"));
-				PlayAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.offline), AudioManager.STREAM_NOTIFICATION, false);
+				notificationHelper.playAudio(Uri.parse("android.resource://com.sir_m2x.messenger/" + R.raw.offline), Preferences.audibleStream, false);
 
 				ToastHelper.showToast(getApplicationContext(), R.drawable.ic_stat_notify_invisible, friendId + " has signed off", Toast.LENGTH_LONG, Gravity.TOP | Gravity.RIGHT);
 				//Toast.makeText(getApplicationContext(), friendId + " has signed off", Toast.LENGTH_LONG).show();
@@ -378,33 +375,7 @@ public class MessengerService extends Service
 		}
 	};
 
-	private void PlayAudio(final Uri uri, final int streamType, final boolean isIm)
-	{
-		if (Preferences.audibles.equals(Preferences.AUDIBLE_DONT_PLAY))
-			return;
-		else if (Preferences.audibles.equals(Preferences.AUDIBLE_PLAY_IM))
-		{
-			if (!isIm)
-				return;
-		}
-		else if (Preferences.audibles.equals(Preferences.AUDIBLE_PLAY_STATUS))
-			if (isIm)
-				return;
-
-		MediaPlayer mp = new MediaPlayer();
-		try
-		{
-			mp.setDataSource(getApplicationContext(), uri);
-			mp.setAudioStreamType(streamType);
-			mp.prepare();
-			mp.start();
-		}
-		catch (Exception e)
-		{
-			Log.w("M2X-Messenger", "Unable to play " + uri);
-		}
-
-	}
+	
 
 	private final SessionListener sessionListener = new SessionListener()
 	{
@@ -420,8 +391,8 @@ public class MessengerService extends Service
 			}
 			else if (event.getEvent() == null && event.getType() == ServiceType.LOGOFF)	// probably an unknown hose exception!
 			{
-				if (eventLog!=null)
-					eventLog.log("M2X Messenger", "Connection has encountered a problem", System.currentTimeMillis());
+//				if (eventLog!=null)
+//					eventLog.log("M2X Messenger", "Connection has encountered a problem", System.currentTimeMillis());
 			}
 			else if (event.getEvent() instanceof SessionExceptionEvent)
 			{
@@ -454,16 +425,5 @@ public class MessengerService extends Service
 		return null;
 	}
 
-	private void vibrate(final int duration)
-	{
-		if (Preferences.vibration.equals(Preferences.VIBRATE_OFF))
-			return;
-
-		AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-		if (!am.shouldVibrate(AudioManager.VIBRATE_TYPE_NOTIFICATION))
-			return;
-
-		Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-		v.vibrate(duration);
-	}
+	
 }
