@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item android:id="@+id/mnuAccept" android:title="Accept request"/>
+    <item android:id="@+id/mnuReject" android:title="Reject request"/>
+
+</menu>

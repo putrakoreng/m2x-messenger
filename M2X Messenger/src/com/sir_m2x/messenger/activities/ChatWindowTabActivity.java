@@ -43,8 +43,8 @@ import android.widget.TabHost.OnTabChangeListener;
 import android.widget.TextView;
 
 import com.sir_m2x.messenger.R;
+import com.sir_m2x.messenger.datastructures.IM;
 import com.sir_m2x.messenger.services.MessengerService;
-import com.sir_m2x.messenger.utils.IM;
 import com.sir_m2x.messenger.utils.Utils;
 
 /**

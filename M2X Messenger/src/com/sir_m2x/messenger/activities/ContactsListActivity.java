@@ -457,6 +457,9 @@ public class ContactsListActivity extends ExpandableListActivity
 			case R.id.mnuPreferences:
 				startActivityForResult(new Intent(this, PreferencesActivity.class), 0);
 				break;
+			case R.id.mnuRequests:
+				startActivity(new Intent(this, FriendRequestsActivity.class));
+				break;
 			default:
 				break;
 		}
@@ -778,7 +781,7 @@ public class ContactsListActivity extends ExpandableListActivity
 				}
 				catch (Exception e)
 				{
-					Log.d("M2X", "To my balls ke natoonesti...");
+					Log.d("M2X", "I'm getting fraustrated by this...");
 				}
 		}
 	};
