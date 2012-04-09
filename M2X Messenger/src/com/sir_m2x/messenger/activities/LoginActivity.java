@@ -23,12 +23,12 @@ import org.openymsg.network.Status;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
-import android.content.BroadcastReceiver;
-import android.content.Context;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
-import android.util.Log;
+import android.os.Handler;
+import android.os.Message;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
@@ -43,6 +43,7 @@ import android.widget.TableRow;
 import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.services.MessengerService;
 import com.sir_m2x.messenger.utils.Preferences;
+import com.sir_m2x.messenger.utils.ProgressCheckThread;
 import com.sir_m2x.messenger.utils.Utils;
 
 /**
@@ -55,17 +56,18 @@ import com.sir_m2x.messenger.utils.Utils;
  */
 public class LoginActivity extends Activity
 {
-	private ProgressDialog pd = null;
-
 	private final String[] statusArray = { "Available", "Busy", "Away", "Invisible", "Custom" };
-	private Status loginStatus = Status.AVAILABLE;
+
 	private static String lastLoginStatus = "Initializing...";
 
+	private ProgressDialog pd = null;
+	private Status loginStatus = Status.AVAILABLE;
 	private EditText txtUsername = null;
 	private EditText txtPassword = null;
 	private Spinner spnStatus = null;
 	private EditText txtCustomMessage = null;
 	private CheckBox chkBusy = null;
+	private ProgressCheckThread progressCheck = null;
 
 	@Override
 	public void onCreate(final Bundle savedInstanceState)
@@ -78,7 +80,8 @@ public class LoginActivity extends Activity
 		this.pd.setIndeterminate(true);
 		this.pd.setProgressStyle(ProgressDialog.STYLE_SPINNER);
 		this.pd.setMessage(lastLoginStatus);
-		this.pd.setCancelable(false);
+		this.pd.setCancelable(true);
+		this.pd.setOnCancelListener(this.pdCancelListener);
 
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
@@ -100,6 +103,16 @@ public class LoginActivity extends Activity
 
 		readSavedPreferences();
 	}
+
+	OnCancelListener pdCancelListener = new OnCancelListener()
+	{
+
+		@Override
+		public void onCancel(final DialogInterface dialog)
+		{
+			sendBroadcast(new Intent(MessengerService.INTENT_CANCEL_LOGIN));
+		}
+	};
 
 	/*
 	 * (non-Javadoc)
@@ -123,8 +136,7 @@ public class LoginActivity extends Activity
 				showProgressAndWaitLogin();
 
 		}
-		
-		registerReceiver(LoginActivity.this.progressListener, new IntentFilter(MessengerService.INTENT_LOGIN_PROGRESS));
+
 		super.onResume();
 	}
 
@@ -213,10 +225,14 @@ public class LoginActivity extends Activity
 
 	private void showProgressAndWaitLogin()
 	{
+		if (this.progressCheck == null || !this.progressCheck.isAlive())
+		{
+			this.progressCheck = new ProgressCheckThread(this.progressHandler);
+			this.progressCheck.start();
+		}
+
 		LoginActivity.this.pd.show();
 	}
-
-	
 
 	/*
 	 * (non-Javadoc)
@@ -226,7 +242,7 @@ public class LoginActivity extends Activity
 	@Override
 	protected void onStop()
 	{
-		if (MessengerService.getSession().getSessionStatus() == SessionState.UNSTARTED || MessengerService.getSession().getSessionStatus() == SessionState.FAILED)
+		if (MessengerService.getSession() != null && (MessengerService.getSession().getSessionStatus() == SessionState.UNSTARTED || MessengerService.getSession().getSessionStatus() == SessionState.FAILED))
 			stopService(new Intent(getApplicationContext(), MessengerService.class));
 		super.onStop();
 	}
@@ -236,36 +252,55 @@ public class LoginActivity extends Activity
 	{
 		super.onPause();
 
-		this.unregisterReceiver(this.progressListener);
 		if (this.pd != null)
 			this.pd.dismiss();
 	};
 
-	BroadcastReceiver progressListener = new BroadcastReceiver()
+	Handler progressHandler = new Handler()
 	{
-
 		@Override
-		public void onReceive(final Context context, final Intent intent)
+		public void handleMessage(final Message msg)
 		{
-			if (intent.getAction().equals(MessengerService.INTENT_LOGIN_PROGRESS))
-				try
-				{
-				String message = intent.getExtras().getString(Utils.qualify("message"));
-				if (message.equals("Logged on!") || message.equals("Failed!"))
-				{
+			switch (msg.what)
+			{
+				case ProgressCheckThread.PROGRESS_UPDATE:
+					switch (MessengerService.getSession().getSessionStatus())
+					{
+						case INITIALIZING:
+							LoginActivity.this.pd.setMessage("Initializing...");
+							break;
+						case CONNECTING:
+							LoginActivity.this.pd.setMessage("Sending credentials...");
+							break;
+						case STAGE1:
+							LoginActivity.this.pd.setMessage("Authenticating...");
+							break;
+						case STAGE2:
+							LoginActivity.this.pd.setMessage("Authenticating(2)...");
+							break;
+						case WAITING:
+							LoginActivity.this.pd.setMessage("Waiting to reconnect...");
+							break;
+						case CONNECTED:
+							LoginActivity.this.pd.setMessage("Loading list...");
+							break;
+						case LOGGED_ON:
+							LoginActivity.this.pd.setMessage("Logged on!");
+							break;
+						case FAILED:
+							LoginActivity.this.pd.setMessage("Failed!");
+							break;
+					}
+					break;
+				case ProgressCheckThread.PROGRESS_FAILED:
 					LoginActivity.this.pd.dismiss();
+					break;
+				case ProgressCheckThread.PROGRESS_LOGGED_ON:
+					LoginActivity.this.pd.dismiss();
+					startActivity(new Intent(getApplicationContext(), ContactsListActivity.class));
 					savePreferences();
-				}
-				else
-				{
-					lastLoginStatus = message;
-					LoginActivity.this.pd.setMessage(message);
-				}
-				}
-				catch(Exception e)
-				{
-					Log.d("M2X", "I'm getting fraustrated by this...");
-				}
+					break;
+			}
 		}
 	};
 

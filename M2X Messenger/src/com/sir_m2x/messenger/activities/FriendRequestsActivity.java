@@ -116,7 +116,7 @@ public class FriendRequestsActivity extends ListActivity
 	@Override
 	protected void onListItemClick(final ListView l, final View v, final int position, final long id)
 	{
-		Intent intent = new Intent(this, ChatWindowTabActivity.class);
+		Intent intent = new Intent(this, ChatWindowPager.class);
 		intent.putExtra(Utils.qualify("friendId"), ((FriendRequest)this.adapter.getItem(position)).getFrom());
 		startActivity(intent);
 	}

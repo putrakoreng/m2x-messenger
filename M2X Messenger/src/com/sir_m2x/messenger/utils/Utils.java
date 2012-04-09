@@ -43,10 +43,10 @@ public class Utils
 	/**
 	 * Initialize several required stuff before starting the whole application
 	 */
-	public static void initializeEnvironment()
+	public static void initializeEnvironment(final Context context)
 	{
 		System.setProperty("http.keepAlive", "false"); // for compatibility with Android 2.1+
-		//Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler("/sdcard/M2X Messenger/crash-log", "http://sirm2x.heliohost.org/m2x-messenger/upload.php"));
+		Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler(context, "/sdcard/M2X Messenger/crash-log", "http://sirm2x.heliohost.org/m2x-messenger/upload.php"));
 		initializeFolders();
 	}
 

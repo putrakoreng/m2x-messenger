@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+<!-- 	Copyright (c) Mehran Maghoumi 2011-2012 -->
+
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/toast_layout_root"
     android:layout_width="fill_parent"
@@ -10,7 +13,7 @@
         android:id="@+id/imgIcon"
         android:layout_width="wrap_content"
         android:layout_height="22dp"
-        android:src="@drawable/ic_stat_notify" android:layout_marginLeft="1dp" android:layout_marginTop="1dp"/>
+        android:src="@drawable/ic_stat_notify" android:layout_marginLeft="1dp"/>
 
     <TextView
         android:id="@+id/txtMessage"

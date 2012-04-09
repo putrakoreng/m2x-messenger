@@ -141,7 +141,7 @@ public class NotificationHelper
 		notification.ledARGB = 0xFFFFFFFF;
 		notification.ledOnMS = 1;
 		notification.ledOffMS = 0;
-		PendingIntent pending = PendingIntent.getActivity(this.context, 0, intent, 0);
+		PendingIntent pending = PendingIntent.getActivity(this.context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 		notification.setLatestEventInfo(this.context, title, message, pending);
 		notification.number = notificationCount > 1 ? notificationCount : 0;
 		this.notificationManager.notify(notificationId, notification);

@@ -288,7 +288,7 @@ public class YahooList implements SessionListener
 		Log.d("M2X", "Request received!");
 		NotificationHelper nHelper = new NotificationHelper(this.context, (NotificationManager) this.context.getSystemService(Context.NOTIFICATION_SERVICE));
 		nHelper.updateNotification("You have new requests!", "M2X Messenger", from + " has sent you a friend request. Click to see more!",
-				NotificationHelper.NOTIFICATION_CONTACT_REQUEST, R.drawable.ic_stat_notify_away, new Intent(this.context, FriendRequestsActivity.class), 0,
+				NotificationHelper.NOTIFICATION_CONTACT_REQUEST, R.drawable.ic_stat_notify_event, new Intent(this.context, FriendRequestsActivity.class), 0,
 				Notification.FLAG_AUTO_CANCEL,true);
 		MessengerService.getEventLog().log("M2X Messenger", "New Request from " + from, System.currentTimeMillis());
 	}
@@ -311,7 +311,7 @@ public class YahooList implements SessionListener
 		// fire a notification and alert the user
 		NotificationHelper nHelper = new NotificationHelper(this.context, (NotificationManager) this.context.getSystemService(Context.NOTIFICATION_SERVICE));
 		nHelper.updateNotification(user.getId() + " has rejected your request!", "M2X Messenger", user.getId() + " has rejected your friend request",
-				NotificationHelper.NOTIFICATION_CONTACT_REJECTED, R.drawable.ic_stat_notify_busy, new Intent(this.context, ContactsListActivity.class), 0,
+				NotificationHelper.NOTIFICATION_CONTACT_REJECTED, R.drawable.ic_stat_notify_event, new Intent(this.context, ContactsListActivity.class), 0,
 				Notification.FLAG_AUTO_CANCEL, true);
 		MessengerService.getEventLog().log("M2X Messenger", "Request rejected by " + user.getId(), System.currentTimeMillis());
 	}
@@ -343,7 +343,7 @@ public class YahooList implements SessionListener
 		// fire a notification and alert the user
 		NotificationHelper nHelper = new NotificationHelper(this.context, (NotificationManager) this.context.getSystemService(Context.NOTIFICATION_SERVICE));
 		nHelper.updateNotification(user.getId() + " has accepted your request!", "M2X Messenger", user.getId() + " has accepted your friend request",
-				NotificationHelper.NOTIFICATION_CONTACT_ACCEPTED, R.drawable.ic_stat_notify, new Intent(this.context, ContactsListActivity.class), 0, Notification.FLAG_AUTO_CANCEL, true);
+				NotificationHelper.NOTIFICATION_CONTACT_ACCEPTED, R.drawable.ic_stat_notify_event, new Intent(this.context, ContactsListActivity.class), 0, Notification.FLAG_AUTO_CANCEL, true);
 		MessengerService.getEventLog().log("M2X Messenger", "Request accepted by " + user.getId(), System.currentTimeMillis());
 	}
 

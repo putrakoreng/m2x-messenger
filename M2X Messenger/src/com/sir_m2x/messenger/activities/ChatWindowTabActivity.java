@@ -20,7 +20,6 @@ package com.sir_m2x.messenger.activities;
 import java.util.Date;
 import java.util.LinkedList;
 
-import org.openymsg.network.SessionState;
 import org.openymsg.network.YahooGroup;
 import org.openymsg.network.YahooUser;
 
@@ -28,6 +27,8 @@ import android.app.ProgressDialog;
 import android.app.TabActivity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
@@ -72,7 +73,7 @@ public class ChatWindowTabActivity extends TabActivity
 		this.pd.setIndeterminate(true);
 		this.pd.setProgressStyle(ProgressDialog.STYLE_SPINNER);
 		this.pd.setMessage(this.lastLoginStatus);
-		this.pd.setCancelable(false);
+		this.pd.setOnCancelListener(this.pdCancelListener);
 		
 		this.listener = new ChatWindowListener();
 		String friendId;
@@ -175,16 +176,18 @@ public class ChatWindowTabActivity extends TabActivity
 	@Override
 	protected void onResume()
 	{
-		if (MessengerService.getSession().getSessionStatus() != SessionState.LOGGED_ON)
-			this.pd.show();
-		
+
 		isActive = true;
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_IS_TYPING));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_NEW_IM_ADDED));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_NEW_IM));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_DESTROY));
-		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_LOGIN_PROGRESS));
 		super.onResume();
+		
+		//TODO
+		//Will close the service?!?? What the heck??!
+//		if (MessengerService.getSession().getSessionStatus() != SessionState.LOGGED_ON)
+//			this.pd.show();
 	}
 
 	@Override
@@ -298,24 +301,6 @@ public class ChatWindowTabActivity extends TabActivity
 			}
 			else if (intent.getAction().equals(MessengerService.INTENT_DESTROY))
 				finish();
-			else if (intent.getAction().equals(MessengerService.INTENT_LOGIN_PROGRESS))
-				try
-				{
-					//if (!ContactsListActivity.this.pd.isShowing())
-						ChatWindowTabActivity.this.pd.show();
-					String message = intent.getExtras().getString(Utils.qualify("message"));
-					if (message.equals("Logged on!") || message.equals("Failed!"))
-						ChatWindowTabActivity.this.pd.dismiss();
-					else
-					{
-						ChatWindowTabActivity.this.lastLoginStatus = message;
-						ChatWindowTabActivity.this.pd.setMessage(message);
-					}
-				}
-				catch (Exception e)
-				{
-					Log.d("M2X", "To my balls ke natoonesti...");
-				}
 		}
 	}
 
@@ -331,6 +316,17 @@ public class ChatWindowTabActivity extends TabActivity
 				return;
 
 			iv.setVisibility(View.GONE);
+		}
+	};
+	
+	OnCancelListener pdCancelListener = new OnCancelListener()
+	{
+		
+		@Override
+		public void onCancel(final DialogInterface dialog)
+		{
+			Log.w("M2X", "Sent a DESTROY intent from ChatWindowTabActivity--pdCancelListener");
+			sendBroadcast(new Intent(MessengerService.INTENT_DESTROY).putExtra(Utils.qualify("reason"), "Login canceled"));
 		}
 	};
 }

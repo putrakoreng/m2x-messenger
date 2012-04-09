@@ -291,6 +291,14 @@ public class Session implements StatusConstants, FriendManager {
 		if (!this.sessionListeners.remove(sessionListener))
 			log.warn("SessionListener not found to be removed");
 	}
+	
+	/**
+	 * Removes all listeners from the collection of listeners to which events are dispatched.
+	 */
+	public void removeAllSessionListeners()
+	{
+		this.sessionListeners.clear();
+	}
 
 	/**
 	 * Returns the handler used to send/receive messages from the network
@@ -425,7 +433,7 @@ public class Session implements StatusConstants, FriendManager {
 		}
 	}
 
-	void forceCloseSession() throws IOException {
+	public void forceCloseSession() throws IOException {
 		log.trace("force close session");
 		this.sessionStatus = SessionState.UNSTARTED;
 		this.cachePacket = null;
