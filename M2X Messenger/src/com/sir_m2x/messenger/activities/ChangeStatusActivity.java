@@ -81,7 +81,7 @@ public class ChangeStatusActivity extends Activity
 			case BUSY:
 				currentSelection = 1;
 				break;
-			case NOTATDESK:
+			case IDLE:
 				currentSelection = 2;
 				break;
 			case INVISIBLE:

@@ -47,7 +47,6 @@
             android:key="audibles"
             android:summary="Play sound on new notification"
             android:title="Audible notifications" />
-        
         <ListPreference
             android:defaultValue="5"
             android:entries="@array/stream_list_entries"
@@ -55,12 +54,18 @@
             android:key="stream"
             android:summary="Changes the stream used to play audibles"
             android:title="Audibles stream" />
-
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Miscellaneous" >
         <CheckBoxPreference
             android:defaultValue="true"
             android:key="saveLog"
             android:summary="Saves logs to SD-Card and loads them back on next launch"
             android:title="Save logs to SD-Card" />
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="logCrash"
+            android:summary="Saves crash logs to SD-Card"
+            android:title="Save crash logs" />
     </PreferenceCategory>
 
 </PreferenceScreen>

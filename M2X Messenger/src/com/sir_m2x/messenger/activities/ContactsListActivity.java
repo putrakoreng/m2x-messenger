@@ -32,11 +32,14 @@ import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.text.Html;
 import android.util.Log;
 import android.util.TypedValue;
@@ -58,6 +61,7 @@ import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.helpers.AvatarHelper;
 import com.sir_m2x.messenger.services.MessengerService;
 import com.sir_m2x.messenger.utils.Preferences;
+import com.sir_m2x.messenger.utils.ProgressCheckThread;
 import com.sir_m2x.messenger.utils.Utils;
 
 /**
@@ -67,7 +71,7 @@ import com.sir_m2x.messenger.utils.Utils;
  * 
  */
 public class ContactsListActivity extends ExpandableListActivity
-{
+{	
 	private final int STEALTH_SETTINGS = 0;
 	private final int STEALTH_ONLINE = 1;
 	private final int STEALTH_OFFLINE = 2;
@@ -78,12 +82,10 @@ public class ContactsListActivity extends ExpandableListActivity
 	private final int DELETE_GROUP = 1;
 	private final int RENAME_GROUP = 2;
 	
-	
-	
-	
 	private ContactsListAdapter adapter;
 	private ProgressDialog pd = null;
 	private String lastLoginStatus = "Connection lost! Retrying...";
+	private ProgressCheckThread progressCheck = null;
 
 	// ContextMenuInfo for keeping track of the selected item between submenus. Apparently Android has a bug...
 	ExpandableListContextMenuInfo cmInfo = null;
@@ -102,14 +104,14 @@ public class ContactsListActivity extends ExpandableListActivity
 		this.pd.setIndeterminate(true);
 		this.pd.setProgressStyle(ProgressDialog.STYLE_SPINNER);
 		this.pd.setMessage(this.lastLoginStatus);
-		this.pd.setCancelable(false);
+		this.pd.setOnCancelListener(this.pdCancelListener);
 	}
 
 	@Override
 	protected void onResume()
 	{
 		if (MessengerService.getSession().getSessionStatus() != SessionState.LOGGED_ON)
-			this.pd.show();
+			showProgressAndWaitLogin();
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_IS_TYPING));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_NEW_IM));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_BUZZ));
@@ -118,7 +120,6 @@ public class ContactsListActivity extends ExpandableListActivity
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_OFF));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_LIST_CHANGED));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_DESTROY));
-		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_LOGIN_PROGRESS));
 		this.adapter.notifyDataSetChanged();
 		super.onResume();
 	}
@@ -142,7 +143,11 @@ public class ContactsListActivity extends ExpandableListActivity
 	@Override
 	public boolean onChildClick(final ExpandableListView parent, final View v, final int groupPosition, final int childPosition, final long id)
 	{
-		Intent intent = new Intent(ContactsListActivity.this, ChatWindowTabActivity.class);
+//		Intent intent = new Intent(ContactsListActivity.this, ChatWindowTabActivity.class);
+//		intent.putExtra(Utils.qualify("friendId"), this.adapter.getChild(groupPosition, childPosition).toString());
+//		startActivity(intent);
+		
+		Intent intent = new Intent(ContactsListActivity.this, ChatWindowPager.class);
 		intent.putExtra(Utils.qualify("friendId"), this.adapter.getChild(groupPosition, childPosition).toString());
 		startActivity(intent);
 
@@ -419,7 +424,7 @@ public class ContactsListActivity extends ExpandableListActivity
 			case R.id.mnuShowConversations:
 				if (MessengerService.getFriendsInChat().isEmpty())
 					break;
-				startActivity(new Intent(this, ChatWindowTabActivity.class));
+				startActivity(new Intent(this, ChatWindowPager.class));
 				break;
 
 			case R.id.mnuLog:
@@ -441,7 +446,7 @@ public class ContactsListActivity extends ExpandableListActivity
 						if (id == null || id.equals(""))
 							return;
 
-						Intent intent = new Intent(ContactsListActivity.this, ChatWindowTabActivity.class);
+						Intent intent = new Intent(ContactsListActivity.this, ChatWindowPager.class);
 						intent.putExtra(Utils.qualify("friendId"), id);
 						startActivity(intent);
 					}
@@ -747,11 +752,18 @@ public class ContactsListActivity extends ExpandableListActivity
 		return true;
 	}
 
-	@Override
-	public void onContextMenuClosed(final Menu menu)
+	
+	
+	private void showProgressAndWaitLogin()
 	{
-		this.cmInfo = null;
-	};
+		if (this.progressCheck == null || !this.progressCheck.isAlive())
+		{
+			this.progressCheck = new ProgressCheckThread(this.progressHandler);
+			this.progressCheck.start();
+		}
+
+		this.pd.show();
+	}
 
 	BroadcastReceiver listener = new BroadcastReceiver()
 	{
@@ -766,24 +778,67 @@ public class ContactsListActivity extends ExpandableListActivity
 				ContactsListActivity.this.adapter.notifyDataSetChanged();
 			else if (intent.getAction().equals(MessengerService.INTENT_DESTROY))
 				finish();
-			else if (intent.getAction().equals(MessengerService.INTENT_LOGIN_PROGRESS))
-				try
-				{
-					ContactsListActivity.this.pd.show();
-					String message = intent.getExtras().getString(Utils.qualify("message"));
-					if (message.equals("Logged on!") || message.equals("Failed!"))
-						ContactsListActivity.this.pd.dismiss();
-					else
-					{
-						ContactsListActivity.this.lastLoginStatus = message;
-						ContactsListActivity.this.pd.setMessage(message);
-					}
-				}
-				catch (Exception e)
-				{
-					Log.d("M2X", "I'm getting fraustrated by this...");
-				}
 		}
 	};
+	
+	OnCancelListener pdCancelListener = new OnCancelListener()
+	{
+		
+		@Override
+		public void onCancel(final DialogInterface dialog)
+		{
+			Log.w("M2X", "Sent a DESTROY intent from ContactsListActivity--pdCancelListener");
+			sendBroadcast(new Intent(MessengerService.INTENT_DESTROY));
+		}
+	};
+	
+	Handler progressHandler = new Handler()
+	{
+		@Override
+		public void handleMessage(final Message msg)
+		{
+			switch (msg.what)
+			{
+				case ProgressCheckThread.PROGRESS_UPDATE:
+					switch (MessengerService.getSession().getSessionStatus())
+					{
+						case INITIALIZING:
+							ContactsListActivity.this.pd.setMessage("Initializing...");
+							break;
+						case CONNECTING:
+							ContactsListActivity.this.pd.setMessage("Sending credentials...");
+							break;
+						case STAGE1:
+							ContactsListActivity.this.pd.setMessage("Authenticating...");
+							break;
+						case STAGE2:
+							ContactsListActivity.this.pd.setMessage("Authenticating(2)...");
+							break;
+						case WAITING:
+							ContactsListActivity.this.pd.setMessage("Waiting to reconnect...");
+							break;
+						case CONNECTED:
+							ContactsListActivity.this.pd.setMessage("Loading list...");
+							break;
+						case LOGGED_ON:
+							ContactsListActivity.this.pd.setMessage("Logged on!");
+							break;
+						case FAILED:
+							ContactsListActivity.this.pd.setMessage("Failed!");
+							break;
+					}
+					break;
+				case ProgressCheckThread.PROGRESS_FAILED:
+					ContactsListActivity.this.pd.dismiss();
+					break;
+				case ProgressCheckThread.PROGRESS_LOGGED_ON:
+					ContactsListActivity.this.pd.dismiss();
+					//TODO do something else in here...
+					break;
+			}
+		}
+	};
+	
+	
 
 }

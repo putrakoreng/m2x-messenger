@@ -3,7 +3,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.sir_m2x.messenger"
     android:versionCode="1"
-    android:versionName="0.7 Alpha" >
+    android:versionName="0.8 Alpha" >
 
     <uses-sdk android:minSdkVersion="7" />
 
@@ -24,7 +24,6 @@
             android:noHistory="true"
             android:windowSoftInputMode="stateUnchanged" >
             <intent-filter>
-                <action android:name="com.sir_m2x.messenger.LOGIN_PROGRESS" />
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -42,7 +41,6 @@
                 <action android:name="com.sir_m2x.messenger.FRIEND_UPDATE_RECEIVED" />
                 <action android:name="com.sir_m2x.messenger.LIST_CHANGED" />
                 <action android:name="com.sir_m2x.messenger.DESTROY" />
-                <action android:name="com.sir_m2x.messenger.LOGIN_PROGRESS" />
             </intent-filter>
         </activity>
         <activity
@@ -69,14 +67,14 @@
                 <action android:name="com.sir_m2x.messenger.IS_TYPING" />
                 <action android:name="com.sir_m2x.messenger.NEW_IM_ADDED" />
                 <action android:name="com.sir_m2x.messenger.DESTROY" />
-                <action android:name="com.sir_m2x.messenger.LOGIN_PROGRESS" />
             </intent-filter>
         </activity>
         <activity
             android:name=".activities.ChatWindowPager"
             android:noHistory="true"
-            android:theme="@android:style/Theme.Light.NoTitleBar"
-            android:windowSoftInputMode="stateHidden" >
+            android:launchMode="singleInstance"
+            android:theme="@style/StyledIndicators"
+            android:windowSoftInputMode="stateUnchanged" >
             <intent-filter>
                 <action android:name="com.sir_m2x.messenger.IS_TYPING" />
                 <action android:name="com.sir_m2x.messenger.NEW_IM_ADDED" />
@@ -102,6 +100,7 @@
         <service android:name=".services.MessengerService" >
             <intent-filter>
                 <action android:name="com.sir_m2x.messenger.LOGIN" />
+                <action android:name="com.sir_m2x.messenger.CANCEL_LOGIN" />
                 <action android:name="com.sir_m2x.messenger.NEW_IM" />
                 <action android:name="com.sir_m2x.messenger.BUZZ" />
                 <action android:name="com.sir_m2x.messenger.FRIEND_SIGNED_ON" />

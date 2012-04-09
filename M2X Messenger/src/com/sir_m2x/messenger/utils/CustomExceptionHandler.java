@@ -36,12 +36,16 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
 
+import android.app.NotificationManager;
+import android.content.Context;
+import android.os.Build;
+
 /**
- * A class to log any uncaught exception.
- * The class's code is derived from:
- * 	<a href="http://stackoverflow.com/questions/601503/how-do-i-obtain-crash-data-from-my-android-application"/>
- * So the thanks goes to the original author.
- *  
+ * A class to log any uncaught exception. The class's code is derived from: <a
+ * href=
+ * "http://stackoverflow.com/questions/601503/how-do-i-obtain-crash-data-from-my-android-application"
+ * /> So the thanks goes to the original author.
+ * 
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
  * 
  */
@@ -53,13 +57,16 @@ public class CustomExceptionHandler implements UncaughtExceptionHandler
 	private String localPath;
 
 	private String url;
+	
+	private Context context;
 
 	/*
 	 * if any of the parameters is null, the respective functionality will not
 	 * be used
 	 */
-	public CustomExceptionHandler(final String localPath, final String url)
+	public CustomExceptionHandler(final Context context, final String localPath, final String url)
 	{
+		this.context = context;
 		this.localPath = localPath;
 		this.url = url;
 		this.defaultUEH = Thread.getDefaultUncaughtExceptionHandler();
@@ -68,20 +75,22 @@ public class CustomExceptionHandler implements UncaughtExceptionHandler
 	@Override
 	public void uncaughtException(final Thread t, final Throwable e)
 	{
+		((NotificationManager)this.context.getSystemService(Context.NOTIFICATION_SERVICE)).cancelAll();
+		
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd HHMM");
 		String timestamp = df.format(new Date(System.currentTimeMillis()));
-		
+
 		final Writer result = new StringWriter();
 		final PrintWriter printWriter = new PrintWriter(result);
 		e.printStackTrace(printWriter);
 		String stacktrace = result.toString();
 		printWriter.close();
-		String filename = timestamp + ".stacktrace";
-
-		if (this.url != null)
-			sendToServer(stacktrace, filename);
-		if (this.localPath != null)
-			writeToFile(stacktrace, filename);
+		String filename = timestamp + " " + Build.VERSION.SDK_INT + ".stacktrace";
+		if (Preferences.logCrash)
+			//		if (this.url != null)
+			//			sendToServer(stacktrace, filename);
+			if (this.localPath != null)
+				writeToFile(stacktrace, filename);
 
 		this.defaultUEH.uncaughtException(t, e);
 	}

@@ -52,6 +52,7 @@ public class Preferences
 	public static int avatarRefreshInterval = 1;
 	public static boolean saveLog = true;
 	public static int audibleStream = 5;
+	public static boolean logCrash = true;
 	
 	
 	/**
@@ -79,6 +80,7 @@ public class Preferences
 		Preferences.vibration = preferences.getString("vibration", "on");
 		Preferences.avatarRefreshInterval = Integer.parseInt(preferences.getString("avatarPolicy", "1"));
 		Preferences.saveLog = preferences.getBoolean("saveLog", true);
+		Preferences.logCrash = preferences.getBoolean("logCrash", true);
 	}
 	
 	
