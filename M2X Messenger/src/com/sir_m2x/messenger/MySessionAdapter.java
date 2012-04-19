@@ -28,7 +28,6 @@ import java.util.LinkedList;
 
 import org.openymsg.network.YahooUser;
 import org.openymsg.network.event.SessionAdapter;
-import org.openymsg.network.event.SessionChatEvent;
 import org.openymsg.network.event.SessionEvent;
 import org.openymsg.network.event.SessionFriendEvent;
 import org.openymsg.network.event.SessionNotifyEvent;
@@ -64,17 +63,11 @@ public class MySessionAdapter extends SessionAdapter
 		MySessionAdapter.context = context;
 	}
 
-	@Override
-	public void friendAddedReceived(final SessionFriendEvent event)
-	{
-		super.friendAddedReceived(event);
-	}
-
-	@Override
-	public void chatMessageReceived(final SessionChatEvent event)
-	{
-
-	}
+//	@Override
+//	public void friendAddedReceived(final SessionFriendEvent event)
+//	{
+//		super.friendAddedReceived(event);
+//	}
 
 	@Override
 	public void buzzReceived(final SessionEvent event)
@@ -208,6 +201,7 @@ public class MySessionAdapter extends SessionAdapter
 			intent.putExtra(Utils.qualify("from"), from);
 			intent.putExtra(Utils.qualify("message"), im.getMessage());
 			wrapper.sendBroadcast(intent);
+			
 		}
 	}
 
@@ -276,7 +270,11 @@ public class MySessionAdapter extends SessionAdapter
 	{
 		if (event.isTyping())
 		{
-			MessengerService.getSession().getRoster().getUser(event.getFrom()).setIsTyping(event.getMode());
+			YahooUser user = MessengerService.getSession().getRoster().getUser(event.getFrom());
+			if (user == null)
+				return;
+			
+			user.setIsTyping(event.getMode());
 
 			if (!MessengerService.getFriendsInChat().containsKey(event.getFrom()))
 			{

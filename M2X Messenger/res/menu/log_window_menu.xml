@@ -3,11 +3,11 @@
 
     <item
         android:id="@+id/mnuClearLog"
-        android:icon="@drawable/ic_menu_clear_log"
+        android:icon="@drawable/clear"
         android:title="Clear log"/>
     <item
         android:id="@+id/mnuSaveLog"
-        android:icon="@drawable/ic_menu_save"
+        android:icon="@drawable/save"
         android:title="Save log"/>
 
 </menu>

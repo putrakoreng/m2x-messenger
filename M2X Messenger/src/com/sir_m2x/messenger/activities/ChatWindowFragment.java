@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.Date;
 
+import org.openymsg.network.SessionState;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -26,8 +28,8 @@ import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
 
@@ -48,21 +50,16 @@ public class ChatWindowFragment extends Fragment
 	private boolean isTypingSelf = false;
 	private NotificationCanceler notificationCanceler = null;
 	public ChatFragmentListener imListener = new ChatFragmentListener();
-	
+
 	public static ChatWindowFragment newInstance(final String friendId)
 	{
 		ChatWindowFragment chatWindowFragment = new ChatWindowFragment();
 		Bundle bundle = new Bundle();
 		bundle.putString("friendId", friendId);
-		chatWindowFragment.setArguments(bundle); 
-		return chatWindowFragment; 
+		chatWindowFragment.setArguments(bundle);
+		return chatWindowFragment;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see android.support.v4.app.Fragment#onCreate(android.os.Bundle)
-	 */
 	@Override
 	public void onCreate(final Bundle savedInstanceState)
 	{
@@ -91,18 +88,19 @@ public class ChatWindowFragment extends Fragment
 		this.listAdapter.notifyDataSetChanged();
 		return v;
 	}
-	
+
 	@Override
 	public void onResume()
 	{
 		this.listAdapter.notifyDataSetChanged();
 		this.lv.setAdapter(this.listAdapter);
-		
+
 		getActivity().registerReceiver(this.imListener, new IntentFilter(MessengerService.INTENT_NEW_IM));
+		getActivity().registerReceiver(this.imListener, new IntentFilter(MessengerService.INTENT_INSERT_SMILEY));
 		getActivity().registerReceiver(this.imListener, new IntentFilter(MessengerService.INTENT_BUZZ));
 		super.onResume();
 	};
-	
+
 	@Override
 	public void onPause()
 	{
@@ -178,7 +176,7 @@ public class ChatWindowFragment extends Fragment
 		Date timeStamp = Calendar.getInstance().getTime();
 		IM im = new IM(sender, message, timeStamp);
 
-		if (im.getMessage().equals(""))
+		if (im.getMessage().equals("") || MessengerService.getSession().getSessionStatus() != SessionState.LOGGED_ON)
 			return;
 		try
 		{
@@ -227,7 +225,7 @@ public class ChatWindowFragment extends Fragment
 				else
 				{
 					v = inflator.inflate(R.layout.chat_window_row_friend, parent, false);
-					LinearLayout l = (LinearLayout) v.findViewById(R.id.layoutHolder);
+					RelativeLayout l = (RelativeLayout) v.findViewById(R.id.layoutHolder);
 					if (isOfflineMessage)
 						l.setBackgroundColor(Color.parseColor("#FFFFF0"));
 					else if (MessengerService.getFriendsInChat().get(ChatWindowFragment.this.friendId).get(position).isBuzz())
@@ -236,7 +234,7 @@ public class ChatWindowFragment extends Fragment
 				}
 
 				TextView tv = (TextView) v.findViewById(R.id.friendMessageTextView);
-				tv.setText(MessengerService.getFriendsInChat().get(ChatWindowFragment.this.friendId).get(position).toHtml());
+				tv.setText(MessengerService.getFriendsInChat().get(ChatWindowFragment.this.friendId).get(position).toHtml(getActivity()));
 				TextView timeStamp = (TextView) v.findViewById(R.id.timeStampTextView);
 				timeStamp.setText(MessengerService.getFriendsInChat().get(ChatWindowFragment.this.friendId).get(position).getTime());
 				ImageView iv = (ImageView) v.findViewById(R.id.imgFriendAvatarChat);
@@ -337,7 +335,7 @@ public class ChatWindowFragment extends Fragment
 			}
 		}
 	}
-	
+
 	protected class ChatFragmentListener extends BroadcastReceiver
 	{
 
@@ -347,6 +345,15 @@ public class ChatWindowFragment extends Fragment
 			if ((intent.getAction().equals(MessengerService.INTENT_NEW_IM) || intent.getAction().equals(MessengerService.INTENT_BUZZ))
 					&& intent.getExtras().getString(Utils.qualify("from")).equals(ChatWindowFragment.this.friendId))
 				ChatWindowFragment.this.listAdapter.notifyDataSetChanged();
+			else if (intent.getAction().equals(MessengerService.INTENT_INSERT_SMILEY) && intent.getExtras().getString(Utils.qualify("from")).equals(ChatWindowFragment.this.friendId))
+			{
+				String smiley = intent.getExtras().getString(Utils.qualify("symbol"));
+				// insert the smiley symbol at the current cursor location
+				int start = ChatWindowFragment.this.txtMessage.getSelectionStart();
+				int end = ChatWindowFragment.this.txtMessage.getSelectionEnd();
+				
+				ChatWindowFragment.this.txtMessage.getText().replace(Math.min(start, end), Math.max(start, end), smiley, 0, smiley.length());
+			}
 		}
 	}
 }

@@ -19,6 +19,6 @@
         android:id="@+id/txtMessage"
         android:layout_width="wrap_content"
         android:layout_height="fill_parent"
-        android:textColor="#FFF" android:text="sir_m2x has signed on" android:gravity="top|center" android:layout_marginLeft="1dp" android:paddingRight="2dp"/>
+        android:textColor="#000000" android:text="sir_m2x has signed on" android:gravity="top|center" android:layout_marginLeft="1dp" android:paddingRight="2dp"/>
 
 </LinearLayout>

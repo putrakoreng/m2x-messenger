@@ -49,6 +49,7 @@ import android.util.Log;
 import android.view.Gravity;
 import android.widget.Toast;
 
+import com.longevitysoft.android.xml.plist.domain.Dict;
 import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.YahooList;
 import com.sir_m2x.messenger.activities.ChatWindowPager;
@@ -88,6 +89,7 @@ public class MessengerService extends Service
 	public static final String INTENT_FRIEND_EVENT = "com.sir_m2x.messenger.FRIEND_EVENT";
 	public static final String INTENT_LIST_CHANGED = "com.sir_m2x.messenger.LIST_CHANGED";
 	public static final String INTENT_STATUS_CHANGED = "com.sir_m2x.messenger.STATUS_CHANGED";
+	public static final String INTENT_INSERT_SMILEY = "com.sir_m2x.messenger.INSERT_SMILEY";
 
 	private static Session session;
 	private static java.util.LinkedHashMap<String, LinkedList<IM>> friendsInChat = new LinkedHashMap<String, LinkedList<IM>>();
@@ -99,6 +101,7 @@ public class MessengerService extends Service
 	private static NotificationHelper notificationHelper = null;
 	private static Status currentStatus = Status.AVAILABLE;
 	private static YahooList yahooList = null;
+	public static Dict emoticonsMap = null;
 	
 	
 	private AsyncLogin asyncLogin = null;
@@ -217,6 +220,7 @@ public class MessengerService extends Service
 	public int onStartCommand(final Intent intent, final int flags, final int startId)
 	{
 		Utils.initializeEnvironment(getApplicationContext());
+		emoticonsMap = Utils.parseSmileys(this);
 		WifiManager wfm = (WifiManager) getSystemService(Context.WIFI_SERVICE);
 		this.lock = wfm.createWifiLock("M2X");
 		this.lock.acquire();
@@ -231,7 +235,7 @@ public class MessengerService extends Service
 		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_FRIEND_EVENT));
 		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_DESTROY));
 		registerReceiver(this.serviceBroadcastReceiver, new IntentFilter(MessengerService.INTENT_STATUS_CHANGED));
-
+		
 		MessengerService.notificationHelper = new NotificationHelper(getApplicationContext(), (NotificationManager) getSystemService(NOTIFICATION_SERVICE));
 		if (Preferences.saveLog)
 			Utils.loadEventLog(MessengerService.eventLog);

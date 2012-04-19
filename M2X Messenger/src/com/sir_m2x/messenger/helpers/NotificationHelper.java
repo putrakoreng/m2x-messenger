@@ -147,6 +147,11 @@ public class NotificationHelper
 		this.notificationManager.notify(notificationId, notification);
 	}
 	
+	public void cancelNotification(final int notificationId)
+	{
+		this.notificationManager.cancel(notificationId);
+	}
+	
 	public void playAudio(final Uri uri, final int streamType, final boolean isIm)
 	{
 		if (Preferences.audibles.equals(Preferences.AUDIBLE_DONT_PLAY))

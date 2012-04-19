@@ -28,6 +28,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -36,11 +37,13 @@ import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.datastructures.FriendRequest;
+import com.sir_m2x.messenger.helpers.NotificationHelper;
 import com.sir_m2x.messenger.services.MessengerService;
 import com.sir_m2x.messenger.utils.Utils;
 
@@ -57,17 +60,23 @@ public class FriendRequestsActivity extends ListActivity
 		@Override
 		public View getView(final int position, final View convertView, final ViewGroup parent)
 		{
-			View v = ((LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE)).inflate(R.layout.chat_window_row_friend, parent, false);
-			TextView txtMessage = (TextView) v.findViewById(R.id.friendMessageTextView);
-			TextView txtTimeStamp = (TextView) v.findViewById(R.id.timeStampTextView);
-			ImageView img = (ImageView) v.findViewById(R.id.imgFriendAvatarChat);
+			View v = ((LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE)).inflate(R.layout.request_row, parent, false);
+			TextView txtId = (TextView) v.findViewById(R.id.txtId);
+			TextView txtTimestamp = (TextView) v.findViewById(R.id.txtTimestamp);
+			TextView txtMessage = (TextView) v.findViewById(R.id.txtMessage);
+			ImageView img = (ImageView) v.findViewById(R.id.imgAvatar);
 			
 			FriendRequest request = (FriendRequest) getItem(position);
 			String id = request.getFrom();
 			
 			v.setTag(id);
-			txtMessage.setText(request.requestToHtml());
-			txtTimeStamp.setText(request.timeToHtml());
+			txtId.setText(request.idToHtml());
+			if (request.getMessage() == null || request.getMessage().equals(""))
+				txtMessage.setVisibility(View.GONE);
+			else
+				txtMessage.setText(request.getMessage());
+			
+			txtTimestamp.setText(request.timeToHtml());
 
 			//TODO load the requester avatar
 			//			if (id.equals(MessengerService.getMyId()) && MessengerService.getMyAvatar() != null)
@@ -108,22 +117,26 @@ public class FriendRequestsActivity extends ListActivity
 		setContentView(R.layout.friend_requests);
 		setListAdapter(this.adapter);
 		registerForContextMenu(getListView());
+		
+		if (this.adapter.getCount() == 0)
+		{
+			TextView txtPrompt = (TextView) findViewById(R.id.txtPrompt);
+			txtPrompt.setText("There are no requests to show");
+			((LinearLayout.LayoutParams)txtPrompt.getLayoutParams()).gravity = Gravity.CENTER;
+			getListView().setVisibility(View.GONE);
+		}
+		
+		// cancel status bar notification if there are no more requests
+		if (MessengerService.getYahooList().getFriendRequests().size() == 0)
+			MessengerService.getNotificationHelper().cancelNotification(NotificationHelper.NOTIFICATION_CONTACT_REQUEST);
 	}
 	
-	/* (non-Javadoc)
-	 * @see android.app.ListActivity#onListItemClick(android.widget.ListView, android.view.View, int, long)
-	 */
 	@Override
 	protected void onListItemClick(final ListView l, final View v, final int position, final long id)
 	{
-		Intent intent = new Intent(this, ChatWindowPager.class);
-		intent.putExtra(Utils.qualify("friendId"), ((FriendRequest)this.adapter.getItem(position)).getFrom());
-		startActivity(intent);
+		openContextMenu(v);
 	}
 	
-	/* (non-Javadoc)
-	 * @see android.app.Activity#onCreateContextMenu(android.view.ContextMenu, android.view.View, android.view.ContextMenu.ContextMenuInfo)
-	 */
 	@Override
 	public void onCreateContextMenu(final ContextMenu menu, final View v, final ContextMenuInfo menuInfo)
 	{
@@ -131,12 +144,10 @@ public class FriendRequestsActivity extends ListActivity
 		getMenuInflater().inflate(R.menu.friend_requests_context, menu);
 	}
 	
-	/* (non-Javadoc)
-	 * @see android.app.Activity#onContextItemSelected(android.view.MenuItem)
-	 */
+	
 	@Override
 	public boolean onContextItemSelected(final MenuItem item)
-	{//TODO accept and add!
+	{
 		AdapterContextMenuInfo menuInfo = (AdapterContextMenuInfo) item.getMenuInfo();
 		int position = menuInfo.position;
 		FriendRequest request = (FriendRequest) this.adapter.getItem(position);
@@ -144,12 +155,62 @@ public class FriendRequestsActivity extends ListActivity
 		
 		switch (item.getItemId())
 		{
+			case R.id.mnuPm:
+				Intent intent = new Intent(this, ChatWindowPager.class);
+				intent.putExtra(Utils.qualify("friendId"), id);
+				startActivity(intent);
+				break;
 			case R.id.mnuAccept:
 				try
 				{
 					MessengerService.getSession().acceptFriendAuthorization(id, YahooProtocol.YAHOO);
 					MessengerService.getYahooList().getFriendRequests().remove(id);
 					this.adapter.notifyDataSetChanged();
+				}
+				catch (Exception e)
+				{
+					e.printStackTrace();
+				}
+				break;
+				
+			case R.id.mnuAcceptAndAdd:
+				
+				try
+				{
+					final EditText txtGroup = new EditText(this);
+					AlertDialog.Builder dlgGetGroupName = new AlertDialog.Builder(this);
+					// get the group name for this new contact 
+					dlgGetGroupName.setTitle("New contact").setMessage("Enter a group name for this contact:").setView(txtGroup).setPositiveButton("Add", new OnClickListener()
+					{
+						@Override
+						public void onClick(final DialogInterface dialog, final int which)
+						{
+							String group = txtGroup.getText().toString();
+							if (group == null || group.equals(""))
+								return;
+							
+							try
+							{
+								MessengerService.getSession().acceptFriendAuthorization(id, YahooProtocol.YAHOO);
+								MessengerService.getYahooList().getFriendRequests().remove(id);
+								FriendRequestsActivity.this.adapter.notifyDataSetChanged();
+								
+								MessengerService.getSession().sendNewFriendRequest(id, group, YahooProtocol.YAHOO);
+							}
+							catch (Exception e)
+							{
+								e.printStackTrace();
+							}
+							
+						}
+					}).setNegativeButton("Cancel", new OnClickListener()
+					{
+						@Override
+						public void onClick(final DialogInterface dialog, final int which)
+						{
+							dialog.cancel();
+						}
+					}).show();
 				}
 				catch (Exception e)
 				{
@@ -189,6 +250,19 @@ public class FriendRequestsActivity extends ListActivity
 				
 				break;
 		}
+		
+		// cancel status bar notification if there are no more requests
+		if (MessengerService.getYahooList().getFriendRequests().size() == 0)
+			MessengerService.getNotificationHelper().cancelNotification(NotificationHelper.NOTIFICATION_CONTACT_REQUEST);
+		
+		if (this.adapter.getCount() == 0)
+		{
+			TextView txtPrompt = (TextView) findViewById(R.id.txtPrompt);
+			txtPrompt.setText("There are no requests to show");
+			((LinearLayout.LayoutParams)txtPrompt.getLayoutParams()).gravity = Gravity.CENTER;
+			getListView().setVisibility(View.GONE);
+		}
+		
 		return true;
 	}
 }

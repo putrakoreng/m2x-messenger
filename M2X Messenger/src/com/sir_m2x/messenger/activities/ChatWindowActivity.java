@@ -278,7 +278,7 @@ public class ChatWindowActivity extends Activity
 				}
 
 				TextView tv = (TextView) v.findViewById(R.id.friendMessageTextView);
-				tv.setText(MessengerService.getFriendsInChat().get(ChatWindowActivity.this.friendId).get(position).toHtml());
+				tv.setText(MessengerService.getFriendsInChat().get(ChatWindowActivity.this.friendId).get(position).toHtml(ChatWindowActivity.this));
 				TextView timeStamp = (TextView) v.findViewById(R.id.timeStampTextView);
 				timeStamp.setText(MessengerService.getFriendsInChat().get(ChatWindowActivity.this.friendId).get(position).getTime());
 				ImageView iv = (ImageView) v.findViewById(R.id.imgFriendAvatarChat);

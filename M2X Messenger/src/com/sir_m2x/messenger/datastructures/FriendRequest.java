@@ -73,7 +73,12 @@ public class FriendRequest
 
 	public Spanned requestToHtml()
 	{
-		return Html.fromHtml("<b>" + this.from + "</b>" + (this.message != null ? ": " + this.message : ""));
+		return Html.fromHtml("<b>" + this.from + "</b>" + (this.message != null ? ": " + this.message : " would like to add you to his/her messenger list. Long press for more options"));
+	}
+	
+	public Spanned idToHtml()
+	{
+		return Html.fromHtml("<b>" + this.from + "</b>");
 	}
 
 	public Spanned timeToHtml()
