@@ -1678,6 +1678,8 @@ public class Session implements StatusConstants, FriendManager {
 		final PacketBodyBuffer body = new PacketBodyBuffer();
         body.addElement("10", String.valueOf(this.status.getValue()));
         body.addElement("19", "");
+        body.addElement("97", "1"); // required in the new version of Yahoo!
+        							// no status will be changed otherwise
         sendPacket(body, ServiceType.Y6_STATUS_UPDATE);
 	}
 	

@@ -26,9 +26,12 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
@@ -37,8 +40,9 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
-import android.widget.TableRow;
+import android.widget.TextView;
 
 import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.services.MessengerService;
@@ -68,14 +72,11 @@ public class LoginActivity extends Activity
 	private EditText txtCustomMessage = null;
 	private CheckBox chkBusy = null;
 	private ProgressCheckThread progressCheck = null;
+	
 
 	@Override
 	public void onCreate(final Bundle savedInstanceState)
 	{
-		//TODO
-		//		if (isServiceRunning("com.sir_m2x.messenger.services.MessengerService"))
-		//			startActivity(new Intent(LoginActivity.this, ContactsListActivity.class));
-
 		this.pd = new ProgressDialog(LoginActivity.this);
 		this.pd.setIndeterminate(true);
 		this.pd.setProgressStyle(ProgressDialog.STYLE_SPINNER);
@@ -85,10 +86,33 @@ public class LoginActivity extends Activity
 
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
-
+		
+		TextView txtM2X = (TextView) findViewById(R.id.txtM2X);
+		Typeface lucida = Typeface.createFromAsset(getAssets(), "fonts/lucida.ttf");
+		txtM2X.setTypeface(lucida,Typeface.BOLD);
+		
 		((Button) findViewById(R.id.btnSignIn)).setOnClickListener(this.btnSingIn_Click);
 
 		this.txtUsername = (EditText) findViewById(R.id.txtUsername);
+		this.txtUsername.addTextChangedListener(new TextWatcher()
+		{
+			
+			@Override
+			public void onTextChanged(final CharSequence s, final int start, final int before, final int count)
+			{
+				LoginActivity.this.txtPassword.setText("");
+			}
+			
+			@Override
+			public void beforeTextChanged(final CharSequence s, final int start, final int count, final int after)
+			{				
+			}
+			
+			@Override
+			public void afterTextChanged(final Editable s)
+			{
+			}
+		});
 		this.txtPassword = (EditText) findViewById(R.id.txtPassword);
 		this.spnStatus = (Spinner) findViewById(R.id.spnStatus);
 		this.txtCustomMessage = (EditText) findViewById(R.id.txtCustomMessage);
@@ -169,7 +193,7 @@ public class LoginActivity extends Activity
 		@Override
 		public void onItemSelected(final AdapterView<?> arg0, final View arg1, final int arg2, final long arg3)
 		{
-			((TableRow) findViewById(R.id.rowCustom)).setVisibility(View.GONE);
+			((LinearLayout) findViewById(R.id.rowCustom)).setVisibility(View.GONE);
 
 			switch (arg2)
 			{
@@ -187,7 +211,7 @@ public class LoginActivity extends Activity
 					break;
 				case 4:
 					LoginActivity.this.loginStatus = Status.CUSTOM;
-					((TableRow) findViewById(R.id.rowCustom)).setVisibility(View.VISIBLE);
+					((LinearLayout) findViewById(R.id.rowCustom)).setVisibility(View.VISIBLE);
 					break;
 			}
 		}
@@ -303,5 +327,6 @@ public class LoginActivity extends Activity
 			}
 		}
 	};
-
+	
+	
 }

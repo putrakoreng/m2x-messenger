@@ -1,16 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<!-- 	Copyright (c) Mehran Maghoumi 2011-2012 -->
+<!-- Copyright (c) Mehran Maghoumi 2011-2012 -->
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
+    android:background="@drawable/global_background"
     android:orientation="vertical" >
+
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/shape_top"
+        android:gravity="center" >
+
+        <ImageView
+            android:id="@+id/imgTopLogo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="5dp" android:src="@drawable/top_logo_away"/>
+
+        <Spinner
+            android:id="@+id/spnStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="35dp"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:layout_gravity="right"
+            android:layout_marginRight="7dp"
+            android:layout_marginTop="5dp"
+            android:background="@drawable/background_spinner"
+            android:minWidth="115dp" />
+
+        <HorizontalScrollView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="5dp"
+            android:layout_toRightOf="@+id/imgTopLogo" android:layout_toLeftOf="@+id/spnStatus" android:layout_marginRight="5dp" android:scrollbars="none">
+
+            <TextView
+                android:id="@+id/txtLoginId"
+                android:layout_width="wrap_content"
+                android:layout_height="fill_parent"
+                android:textAppearance="?android:attr/textAppearanceMedium" android:text="Login ID" android:textColor="#000000" android:textStyle="bold"/>
+        </HorizontalScrollView>
+    </RelativeLayout>
+
+    <View
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        android:background="#c2c4c6" />
+
+    <View
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        android:background="#ffffff" />
 
     <ExpandableListView
         android:id="@+id/android:list"
         android:layout_width="fill_parent"
-        android:layout_height="fill_parent" android:longClickable="true">
+        android:layout_height="fill_parent"
+        android:cacheColorHint="#eeeeee"
+        android:childDivider="#00eeeeee"
+        android:divider="#00eeeeee"
+        android:groupIndicator="@null"
+        android:longClickable="true" >
     </ExpandableListView>
 
 </LinearLayout>

@@ -24,13 +24,23 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Set;
+import java.util.TreeMap;
 
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.content.Context;
+
+import com.longevitysoft.android.xml.plist.PListXMLHandler;
+import com.longevitysoft.android.xml.plist.PListXMLParser;
+import com.longevitysoft.android.xml.plist.domain.Array;
+import com.longevitysoft.android.xml.plist.domain.Dict;
+import com.longevitysoft.android.xml.plist.domain.PList;
 
 /**
  * Several utility functions used throughout this projects.
@@ -40,6 +50,8 @@ import android.content.Context;
  */
 public class Utils
 {
+	public static TreeMap<String, String> smileySymbolTable = null;
+	
 	/**
 	 * Initialize several required stuff before starting the whole application
 	 */
@@ -186,6 +198,76 @@ public class Utils
 				return true;
 
 		return false;
+	}
+	
+	public static Dict parseSmileys(final Context context)
+	{
+		Dict result = null;
+		PListXMLParser parser = new PListXMLParser();
+		parser.setHandler(new PListXMLHandler());
+		
+		InputStream is = null;
+		try
+		{
+			is = context.getResources().getAssets().open("smiley/Emoticons.plist");	
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+		try
+		{
+			parser.parse(is);
+			PList actualPList = ((PListXMLHandler) parser.getHandler()).getPlist();
+			result = (Dict)((Dict)actualPList.getRootElement()).getConfigMap().get("Emoticons");
+		}
+		catch (IllegalStateException e)
+		{
+			e.printStackTrace();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+		
+		TreeMap<String, String> symbolTable = new TreeMap<String, String>();
+		Set<String> allSmileyNames = result.getConfigMap().keySet();
+		
+		for(String smileyName : allSmileyNames)
+		{
+			Array configurationArray = ((Dict)result.getConfigMap().get(smileyName)).getConfigurationArray("Equivalents");
+			
+			for (int i = 0; i < configurationArray.size() ; i++)
+				symbolTable.put(((com.longevitysoft.android.xml.plist.domain.String)configurationArray.get(i)).getValue(), smileyName);
+		}
+		
+		Utils.smileySymbolTable = symbolTable;
+		return result;
+	}
+	
+	public static String parseTextForSmileys(String input)
+	{
+		String result = "";
+		ArrayList<String> matches = new ArrayList<String>();
+		ArrayList<String> toBeRemoved = new ArrayList<String>();
+		
+		for(String smiley : smileySymbolTable.keySet())
+			if (input.contains(smiley))
+				matches.add(smiley);
+		
+		for(int i = 0; i < matches.size(); i++)
+			for(int j = 0; j < matches.size(); j++)
+				if (matches.get(i).contains(matches.get(j)) && !matches.get(i).equals(matches.get(j)))
+					toBeRemoved.add(matches.get(j));
+		
+		matches.removeAll(toBeRemoved);
+		
+		for(String item : matches)
+			input = input.replace(item, "<img src=\"" + smileySymbolTable.get(item)) + "\"/>";
+		
+		result = input;
+		
+		return result;
 	}
 
 }

@@ -4,39 +4,35 @@
     <group>
         <item
             android:id="@+id/mnuNewIm"
-            android:icon="@drawable/ic_menu_compose"
+            android:icon="@drawable/new_im"
             android:title="New IM">
         </item>
         <item
             android:id="@+id/mnuShowConversations"
-            android:icon="@drawable/ic_menu_start_conversation"
+            android:icon="@drawable/conversations"
             android:title="Show Conversations">
-        </item>
-        <item
-            android:id="@+id/mnuStatus"
-            android:icon="@drawable/ic_menu_myplaces"
-            android:title="Change Status">
         </item>
     </group>
 
     <item
-        android:id="@+id/mnuLog"
-        android:icon="@android:drawable/ic_menu_agenda"
-        android:title="Log Window">
-    </item>
-    <item
-        android:id="@+id/mnuSignOut"
-        android:icon="@android:drawable/ic_lock_power_off"
-        android:title="Sign Out">
-    </item>
-    <item
         android:id="@+id/mnuPreferences"
-        android:icon="@drawable/ic_menu_preferences"
+        android:icon="@drawable/preferences"
         android:title="Preferences">
     </item>
     <item
         android:id="@+id/mnuRequests"
+        android:icon="@drawable/manage_requests"
         android:title="Manage Requests">
+    </item>
+    <item
+        android:id="@+id/mnuLog"
+        android:icon="@drawable/log"
+        android:title="Log Window">
+    </item>
+    <item
+        android:id="@+id/mnuSignOut"
+        android:icon="@drawable/signout"
+        android:title="Sign Out">
     </item>
 
 </menu>

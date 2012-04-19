@@ -1,21 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright (c) Mehran Maghoumi 2011-2012 -->
 
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/chatPagerParent"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
+    android:background="@drawable/global_background"
     android:orientation="vertical" >
 
     <com.viewpagerindicator.TabPageIndicator
         android:id="@+id/chatIndicator"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true" />
 
     <android.support.v4.view.ViewPager
         android:id="@+id/chatPager"
         android:layout_width="fill_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_height="fill_parent"
+        android:layout_below="@+id/chatIndicator" />
 
-</LinearLayout>
+    <SlidingDrawer
+        android:id="@+id/drawer"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:content="@+id/content"
+        android:handle="@+id/handle" >
+
+        <LinearLayout
+            android:id="@+id/handle"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content" >
+
+            <!-- <RelativeLayout -->
+            <!-- android:layout_alignParentRight="true" -->
+            <!-- android:layout_width="wrap_content" -->
+            <!-- android:layout_height="wrap_content" -->
+            <!-- android:background="@drawable/drawer_handle" -->
+            <!-- android:paddingLeft="5dp" -->
+            <!-- android:paddingRight="5dp" > -->
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <ImageView
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:background="@drawable/drawer_handle"
+                android:src="@drawable/smiley1" />
+
+            <!-- <TextView -->
+            <!-- android:layout_width="wrap_content" -->
+            <!-- android:layout_height="wrap_content" -->
+            <!-- android:layout_alignParentRight="true" -->
+            <!-- android:text="Smiley" -->
+            <!-- android:textColor="#000000" /> -->
+            <!-- </RelativeLayout> -->
+        </LinearLayout>
+
+        <GridView
+            android:id="@+id/content"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:background="@drawable/background_drawer"
+            android:gravity="center"
+            android:horizontalSpacing="15dp"
+            android:numColumns="4"
+            android:verticalSpacing="15dp" />
+    </SlidingDrawer>
+
+</RelativeLayout>

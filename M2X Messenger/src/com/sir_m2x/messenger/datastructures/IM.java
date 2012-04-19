@@ -17,11 +17,17 @@
  */
 package com.sir_m2x.messenger.datastructures;
 
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import android.content.Context;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.text.Html;
 import android.text.Spanned;
+
+import com.sir_m2x.messenger.utils.Utils;
 
 /**
  * A representaion of a single instant message used throughout various places in
@@ -118,10 +124,40 @@ public class IM
 		return this.sender + ": " + this.message;
 	}
 
-	public Spanned toHtml()
+	public Spanned toHtml(final Context context)
 	{
 		if (this.isBuzz)
-			return Html.fromHtml("<html><body><b>" + this.sender + ":<br/><font color=\"red\">BUZZ!!!</font></b></body></html>");
-		return Html.fromHtml("<html><body><b>" + this.sender + "</b>: " + this.message + "</body></html>");
+			return Html.fromHtml("<html><body><b><font color=\"red\">BUZZ!!!</font></b></body></html>");
+		
+		return Html.fromHtml("<html><body>" + Utils.parseTextForSmileys(this.message) + "</body></html>", new ImageGetter(context), null);
+	}
+	
+	class ImageGetter implements Html.ImageGetter
+	{
+		Context context;
+
+		public ImageGetter(final Context context)
+		{
+			this.context = context;
+		}
+		
+		@Override
+		public Drawable getDrawable(final String source)
+		{
+			InputStream is;
+			Drawable d = null;
+			try
+			{
+				is = this.context.getResources().getAssets().open("smiley/" + source); 
+				d = BitmapDrawable.createFromStream(is, source);
+				d.setBounds(0,0,51,38);
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+			}
+			
+			return d;
+		}
 	}
 }

@@ -3,10 +3,10 @@
 
     <item
         android:id="@+id/mnuBuzz"
-        android:icon="@android:drawable/ic_menu_report_image"
+        android:icon="@drawable/buzz"
         android:title="Buzz!"/>
     <item
         android:id="@+id/mnuClose"
-        android:icon="@android:drawable/ic_menu_close_clear_cancel"
+        android:icon="@drawable/close"
         android:title="Close Conversation"/>
 </menu>

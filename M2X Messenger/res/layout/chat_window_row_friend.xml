@@ -1,44 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<!-- 	Copyright (c) Mehran Maghoumi 2011-2012 -->
-
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Copyright (c) Mehran Maghoumi 2011-2012 -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/layoutHolder"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
-    android:background="#f7f7f7"
-    android:orientation="horizontal" >
+    android:paddingBottom="5dp"
+    android:paddingTop="5dp" >
+
+    <TextView
+        android:id="@+id/timeStampTextView"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="5:10"
+        android:textColor="#888888"
+        android:textSize="13sp" android:layout_marginBottom="-3dp"/>
 
     <ImageView
         android:id="@+id/imgFriendAvatarChat"
         android:layout_width="48dp"
         android:layout_height="48dp"
+        android:layout_alignBottom="@+id/friendMessageTextView"
+        android:layout_alignParentLeft="true"
         android:layout_marginBottom="5dp"
         android:layout_marginLeft="5dp"
-        android:layout_marginRight="5dp"
-        android:layout_marginTop="5dp"
+        android:background="@drawable/background_imageview"
         android:src="@drawable/yahoo_no_avatar" />
 
     <TextView
         android:id="@+id/friendMessageTextView"
-        android:layout_width="0dp"
-        android:layout_weight="1"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="5dp"
-        android:layout_marginRight="5dp"
-        android:layout_marginTop="5dp"
-        android:text="TextView"
-        android:textSize="18sp" android:autoLink="web|email|map"/>
-    
-    <TextView
-        android:id="@+id/timeStampTextView"
+        android:layout_below="@+id/timeStampTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="5dp"
-        android:layout_marginRight="5dp"
-        android:layout_marginTop="5dp"
-        android:textColor="#888888"
-        android:text="5:10"
-        android:textSize="13sp"/>
+        android:layout_toRightOf="@+id/imgFriendAvatarChat"
+        android:autoLink="web|email|map"
+        android:background="@drawable/bubble_friend"
+        android:text="TextView"
+        android:textColor="#000000"
+        android:textSize="18sp" />
 
-</LinearLayout>
+</RelativeLayout>
