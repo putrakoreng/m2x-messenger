@@ -157,6 +157,7 @@
 		  <string>x(</string>
 		  <string>X-(</string>
 		  <string>x-(</string>
+		  <string>:@</string>
         </array>
         <key>Name</key>
         <string>angry</string>
@@ -754,7 +755,8 @@
         <key>Equivalents</key>
         <array>
           <string>:-/</string>
-          <string>:/</string>
+          <string>:s</string>
+          <string>:-\</string>
         </array>
         <key>Name</key>
         <string>confused</string>

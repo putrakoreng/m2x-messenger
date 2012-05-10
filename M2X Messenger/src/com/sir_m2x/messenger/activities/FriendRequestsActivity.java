@@ -1,6 +1,6 @@
 /*
  * M2X Messenger, an implementation of the Yahoo Instant Messaging Client based on OpenYMSG for Android.
- * Copyright (C) 2011  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
+ * Copyright (C) 2011-2012  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,19 +17,21 @@
  */
 package com.sir_m2x.messenger.activities;
 
+import java.io.IOException;
+
 import org.openymsg.network.YahooProtocol;
 
-import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.method.TextKeyListener;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -40,10 +42,13 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.sir_m2x.messenger.R;
-import com.sir_m2x.messenger.datastructures.FriendRequest;
+import com.sir_m2x.messenger.classes.FriendRequest;
+import com.sir_m2x.messenger.dialogs.CustomDialog;
 import com.sir_m2x.messenger.helpers.NotificationHelper;
+import com.sir_m2x.messenger.helpers.ToastHelper;
 import com.sir_m2x.messenger.services.MessengerService;
 import com.sir_m2x.messenger.utils.Utils;
 
@@ -77,17 +82,9 @@ public class FriendRequestsActivity extends ListActivity
 				txtMessage.setText(request.getMessage());
 			
 			txtTimestamp.setText(request.timeToHtml());
+			if (MessengerService.getFriendAvatars().containsKey(id))
+				img.setImageBitmap(MessengerService.getFriendAvatars().get(id));
 
-			//TODO load the requester avatar
-			//			if (id.equals(MessengerService.getMyId()) && MessengerService.getMyAvatar() != null)
-//				img.setImageBitmap(MessengerService.getMyAvatar());
-//			else if (MessengerService.getFriendAvatars().containsKey(id))
-//				img.setImageBitmap(MessengerService.getFriendAvatars().get(id));
-//			else if (id.contains("M2X Messenger"))
-//				img.setImageResource(R.drawable.ic_launcher_noborder);
-//			else
-//				img.setImageResource(R.drawable.yahoo_no_avatar);
-			
 			return v;
 		}
 		
@@ -129,6 +126,91 @@ public class FriendRequestsActivity extends ListActivity
 		// cancel status bar notification if there are no more requests
 		if (MessengerService.getYahooList().getFriendRequests().size() == 0)
 			MessengerService.getNotificationHelper().cancelNotification(NotificationHelper.NOTIFICATION_CONTACT_REQUEST);
+	}
+	
+	@Override
+	public boolean onCreateOptionsMenu(final Menu menu)
+	{
+		MenuInflater inflater = new MenuInflater(this);
+		inflater.inflate(R.menu.requests_menu, menu);
+		return true;
+	}
+	
+	@Override
+	public boolean onOptionsItemSelected(final MenuItem item)
+	{
+		switch(item.getItemId())
+		{
+			case R.id.mnuAddFriend:
+				try
+				{
+					final CustomDialog dlg = new CustomDialog(this);
+					final EditText txtInput = new EditText(this);
+					txtInput.setBackgroundResource(R.drawable.background_textbox);
+					txtInput.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+					dlg.setTitle("New Contact");
+					dlg.setMessage("Enter a group name for this contact:").setView(txtInput).setPositiveButton("OK", new View.OnClickListener()
+					{
+						@Override
+						public void onClick(final View v)
+						{
+							final String group = txtInput.getText().toString();
+							if (group == null || group.equals(""))
+							{
+								dlg.dismiss();
+								return;
+							}							
+							dlg.dismiss();
+							TextKeyListener.clear(txtInput.getText());
+							dlg.setMessage("Enter the ID of the person you want to add:").setPositiveButton("OK", new View.OnClickListener()
+							{
+								
+								@Override
+								public void onClick(final View v)
+								{
+									String id = txtInput.getText().toString();
+									if (id == null || id.equals(""))
+									{
+										dlg.dismiss();
+										return;
+									}
+									
+									try
+									{
+										MessengerService.getYahooList().addFriend(id, group);
+										ToastHelper.showToast(FriendRequestsActivity.this, R.drawable.ic_stat_notify_event, "Request sent!", Toast.LENGTH_LONG);
+									}
+									catch (IOException e)
+									{
+										e.printStackTrace();
+									}
+									catch (IllegalAccessException e)
+									{
+										e.printStackTrace();
+									}
+									
+									dlg.dismiss();
+								}
+							}).show();
+							
+						}
+					}).setNegativeButton("Cancel", new View.OnClickListener()
+					{
+						@Override
+						public void onClick(final View v)
+						{
+							dlg.cancel();
+						}
+					}).show();
+				}
+				catch (Exception e)
+				{
+					e.printStackTrace();
+				}
+				break;
+		}
+		
+		return true;
 	}
 	
 	@Override
@@ -178,12 +260,15 @@ public class FriendRequestsActivity extends ListActivity
 				try
 				{
 					final EditText txtGroup = new EditText(this);
-					AlertDialog.Builder dlgGetGroupName = new AlertDialog.Builder(this);
+					txtGroup.setBackgroundResource(R.drawable.background_textbox);
+					txtGroup.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+					final CustomDialog dlgGetGroupName = new CustomDialog(this);
 					// get the group name for this new contact 
-					dlgGetGroupName.setTitle("New contact").setMessage("Enter a group name for this contact:").setView(txtGroup).setPositiveButton("Add", new OnClickListener()
+					dlgGetGroupName.setTitle("New contact");
+					dlgGetGroupName.setMessage("Enter a group name for this contact:").setView(txtGroup).setPositiveButton("Add", new View.OnClickListener()
 					{
 						@Override
-						public void onClick(final DialogInterface dialog, final int which)
+						public void onClick(final View v)
 						{
 							String group = txtGroup.getText().toString();
 							if (group == null || group.equals(""))
@@ -202,13 +287,14 @@ public class FriendRequestsActivity extends ListActivity
 								e.printStackTrace();
 							}
 							
+							dlgGetGroupName.dismiss();							
 						}
-					}).setNegativeButton("Cancel", new OnClickListener()
+					}).setNegativeButton("Cancel", new View.OnClickListener()
 					{
 						@Override
-						public void onClick(final DialogInterface dialog, final int which)
+						public void onClick(final View v)
 						{
-							dialog.cancel();
+							dlgGetGroupName.cancel();
 						}
 					}).show();
 				}
@@ -220,12 +306,15 @@ public class FriendRequestsActivity extends ListActivity
 
 			case R.id.mnuReject:
 				final EditText et = new EditText(this);
-				AlertDialog.Builder builder = new AlertDialog.Builder(this);
-				builder.setMessage("Enter decline reason (optional):").setView(et).setPositiveButton("OK", new OnClickListener()
+				et.setBackgroundResource(R.drawable.background_textbox);
+				et.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+				final CustomDialog dlg = new CustomDialog(this);
+				dlg.setTitle("Decline request");
+				dlg.setMessage("Enter decline reason (optional):").setView(et).setPositiveButton("OK", new View.OnClickListener()
 				{
 					
 					@Override
-					public void onClick(final DialogInterface dialog, final int which)
+					public void onClick(final View v)
 					{
 						try
 						{
@@ -237,14 +326,16 @@ public class FriendRequestsActivity extends ListActivity
 						{
 							e.printStackTrace();
 						}						
+						
+						dlg.dismiss();
 					}
-				}).setNegativeButton("Cancel", new OnClickListener()
+				}).setNegativeButton("Cancel", new View.OnClickListener()
 				{
 					
 					@Override
-					public void onClick(final DialogInterface dialog, final int which)
+					public void onClick(final View v)
 					{
-						dialog.cancel();
+						dlg.cancel();
 					}
 				}).show();
 				

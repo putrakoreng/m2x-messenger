@@ -11,7 +11,7 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/shape_top"
-        android:gravity="center" >
+         >
 
         <ImageView
             android:id="@+id/imgTopLogo"
@@ -19,32 +19,26 @@
             android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
             android:layout_centerVertical="true"
-            android:layout_marginLeft="5dp" android:src="@drawable/top_logo_away"/>
-
-        <Spinner
-            android:id="@+id/spnStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="35dp"
-            android:layout_alignParentRight="true"
-            android:layout_centerVertical="true"
-            android:layout_gravity="right"
-            android:layout_marginRight="7dp"
-            android:layout_marginTop="5dp"
-            android:background="@drawable/background_spinner"
-            android:minWidth="115dp" />
-
+            android:layout_marginLeft="5dp"
+            android:src="@drawable/top_logo_away" />
+
         <HorizontalScrollView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
             android:layout_marginLeft="5dp"
-            android:layout_toRightOf="@+id/imgTopLogo" android:layout_toLeftOf="@+id/spnStatus" android:layout_marginRight="5dp" android:scrollbars="none">
+            android:layout_marginRight="5dp"
+            android:layout_toRightOf="@+id/imgTopLogo"
+            android:scrollbars="none" >
 
             <TextView
                 android:id="@+id/txtLoginId"
                 android:layout_width="wrap_content"
                 android:layout_height="fill_parent"
-                android:textAppearance="?android:attr/textAppearanceMedium" android:text="Login ID" android:textColor="#000000" android:textStyle="bold"/>
+                android:text="Login ID"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="#000000"
+                android:textStyle="bold" />
         </HorizontalScrollView>
     </RelativeLayout>
 
@@ -58,15 +52,106 @@
         android:layout_height="1dp"
         android:background="#ffffff" />
 
+    <TextView
+        android:id="@+id/txtProblem"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dp"
+        android:text="Problems are reported here!"
+        android:textColor="#FF0000" />
+
+    <EditText
+        android:id="@+id/txtSearch"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="5dp"
+        android:layout_marginRight="5dp"
+        android:background="@drawable/background_searchbox"
+        android:hint="Search contacts" />
+
     <ExpandableListView
         android:id="@+id/android:list"
         android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:cacheColorHint="#eeeeee"
         android:childDivider="#00eeeeee"
         android:divider="#00eeeeee"
         android:groupIndicator="@null"
         android:longClickable="true" >
     </ExpandableListView>
+
+    <View
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        android:background="#c2c4c6" />
+
+    <View
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        android:background="#ffffff" />
+
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/shape_bottom"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:paddingTop="2dp" >
+
+        <CheckBox
+            android:id="@+id/chkSearch"
+            android:layout_width="wrap_content"
+            android:layout_height="35dp"
+            android:layout_alignParentLeft="true"
+            android:layout_marginTop="-2dp"
+            android:button="@drawable/background_toolbar_search" />
+
+<!--         TODO STOP shimming for God's sake! :D -->
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_toLeftOf="@+id/btnSignout"
+            android:layout_toRightOf="@+id/chkSearch"
+            android:gravity="center" >
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="fill_parent"
+                android:layout_weight="0.24" />
+
+            <Button
+                android:id="@+id/btnConversations"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/background_toolbar_conversations"
+                android:clickable="true" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="fill_parent"
+                android:layout_weight="0.33" />
+
+            <Button
+                android:id="@+id/btnSettings"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/background_toolbar_status" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="fill_parent"
+                android:layout_weight="0.3" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnSignout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:background="@drawable/background_toolbar_signout" />
+    </RelativeLayout>
 
 </LinearLayout>

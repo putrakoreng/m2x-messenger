@@ -30,11 +30,10 @@
             android:id="@+id/txtMessage"
             style="@style/GlossyTextbox"
             android:layout_width="0dp"
-            android:layout_height="fill_parent"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="top"
-            android:imeActionLabel="Send"
-            android:lines="2" >
+            android:imeActionLabel="Send" android:maxLines="2" android:hint="Your message..." android:imeOptions="actionSend">
         </EditText>
 
         <Button
@@ -42,9 +41,8 @@
             style="@style/GlossyButton"
             android:layout_width="wrap_content"
             android:layout_height="fill_parent"
-            android:layout_marginBottom="25dp"
             android:layout_marginLeft="3dp"
-            android:text="Send" />
+            android:text="Send" android:layout_marginBottom="5dp"/>
     </LinearLayout>
 
 </RelativeLayout>

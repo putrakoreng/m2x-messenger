@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) Mehran Maghoumi 2011-2012 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" >
 
-    <corners
-        android:bottomLeftRadius="10dp"
-        android:bottomRightRadius="10dp"
-        android:topLeftRadius="10dp"
-        android:topRightRadius="0dp" />
+    <corners android:radius="10dp" />
 
     <gradient
         android:angle="-90"

@@ -1,56 +1,103 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright (c) Mehran Maghoumi 2011-2012 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:orientation="vertical"
-    android:paddingLeft="10dp"
-    android:paddingRight="10dp"
-    android:paddingTop="4dp" >
+    android:background="#77000000" android:gravity="center" android:padding="20dp">
 
-    <TextView
-        android:id="@+id/textView5"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="3dp"
-        android:text="Status message:"
-        android:textAppearance="?android:attr/textAppearanceMedium" />
+        android:background="@drawable/dialog_background"
+        android:orientation="vertical"
+        android:padding="2dp" >
 
-    <EditText
-        android:id="@+id/txtCustomMessage"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:maxLines="2"
-        android:minLines="2" android:gravity="top|left"/>
-
-    <RelativeLayout
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal" >
-
-        <CheckBox
-            android:id="@+id/chkBusy"
-            android:layout_width="wrap_content"
+        <RelativeLayout
+            android:id="@+id/header"
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_marginRight="20dp"
-            android:text="Busy?"
-            android:textSize="12sp" />
+            android:background="@drawable/shape_top"
+            android:gravity="center_vertical"
+            android:padding="5dp" >
 
-        <Button
-            android:layout_toLeftOf="@+id/btnCancel"
-            android:id="@+id/btnOk"
-            android:layout_width="70dp"
+            <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:text="Change status"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="#000000"
+                android:textStyle="bold" />
+        </RelativeLayout>
+
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="1dp"
+            android:background="#c2c4c6" />
+
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="1dp"
+            android:background="#ffffff" />
+
+        <Spinner
+            android:id="@+id/spnStatus"
+            style="@style/GlossySpinner"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content" android:layout_margin="5dp"/>
+
+        <LinearLayout
+            android:id="@+id/rowCustom"
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="OK" android:layout_marginTop="3dp" android:visibility="gone"/>
+            android:layout_marginTop="10dp" >
 
-        <Button
-            android:id="@+id/btnCancel"
-            android:layout_width="70dp"
-            android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:text="Cancel" android:layout_marginTop="3dp" android:visibility="gone"/>
-    </RelativeLayout>
+            <EditText
+                android:id="@+id/txtCustomMessage"
+                style="@style/GlossyTextbox"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="top|left"
+                android:hint="Status message"
+                android:lines="2" android:layout_marginLeft="5dp"/>
 
-</LinearLayout>
+            <CheckBox
+                android:id="@+id/chkBusy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Busy?"
+                android:textColor="#000000"
+                android:textSize="12sp" android:layout_marginRight="5dp"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="60dp"
+            android:gravity="center"
+            android:padding="10dp" >
+
+            <Button
+                android:id="@+id/btnOk"
+                style="@style/GlossyButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="OK" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="20dp"
+                android:layout_weight="0.1" />
+
+            <Button
+                android:id="@+id/btnCancel"
+                style="@style/GlossyButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="Cancel" />
+        </LinearLayout>
+    </LinearLayout>
+
+</RelativeLayout>

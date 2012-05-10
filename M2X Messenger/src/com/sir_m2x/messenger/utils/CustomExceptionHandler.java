@@ -1,6 +1,6 @@
 /*
  * M2X Messenger, an implementation of the Yahoo Instant Messaging Client based on OpenYMSG for Android.
- * Copyright (C) 2011  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
+ * Copyright (C) 2011-2012  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,6 +40,8 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.os.Build;
 
+import com.sir_m2x.messenger.services.MessengerService;
+
 /**
  * A class to log any uncaught exception. The class's code is derived from: <a
  * href=
@@ -76,6 +78,7 @@ public class CustomExceptionHandler implements UncaughtExceptionHandler
 	public void uncaughtException(final Thread t, final Throwable e)
 	{
 		((NotificationManager)this.context.getSystemService(Context.NOTIFICATION_SERVICE)).cancelAll();
+		Utils.saveEventLog(MessengerService.getEventLog());
 		
 		SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd HHMM");
 		String timestamp = df.format(new Date(System.currentTimeMillis()));

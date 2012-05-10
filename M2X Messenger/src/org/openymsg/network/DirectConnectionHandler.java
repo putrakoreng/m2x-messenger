@@ -50,40 +50,40 @@ public class DirectConnectionHandler extends ConnectionHandler {
 
     private static final Log log = LogFactory.getLog(DirectConnectionHandler.class);
 
-    public DirectConnectionHandler(String h, int p, Integer socketSize) {
-        host = h;
-        port = p;
-        dontUseFallbacks = true;
+    public DirectConnectionHandler(final String h, final int p, final Integer socketSize) {
+        this.host = h;
+        this.port = p;
+        this.dontUseFallbacks = true;
         this.socketSize = socketSize;
     }
 
-    public DirectConnectionHandler(int p) {
+    public DirectConnectionHandler(final int p) {
         this(Util.directHost(), p, null);
     }
 
-    public DirectConnectionHandler(boolean fl) {
+    public DirectConnectionHandler(final boolean fl) {
         this();
-        dontUseFallbacks = fl;
+        this.dontUseFallbacks = fl;
     }
 
     public DirectConnectionHandler() {
         this(Util.directHost(), Util.directPort(), null);
-        dontUseFallbacks = false;
+        this.dontUseFallbacks = false;
     }
 
     public String getHost() {
-        return host;
+        return this.host;
     }
 
     public int getPort() {
-        return port;
+        return this.port;
     }
 
     /**
      * Session calls this when a connection handler is installed
      */
     @Override
-    void install(Session ss) {
+    void install(final Session ss) {
         // session=ss;
     }
 
@@ -92,50 +92,49 @@ public class DirectConnectionHandler extends ConnectionHandler {
      * turn - upon failure will return the last exception (the one for the final port).
      */
     @Override
-    void open(boolean searchForAddress) throws SocketException, IOException {
-        if (dontUseFallbacks) {
+    void open(final boolean searchForAddress) throws SocketException, IOException {
+        if (this.dontUseFallbacks) {
             if (searchForAddress) {
                 GetConnectionServer getConnection = new GetConnectionServer();
                 String otherHost = getConnection.getIpAddress();
                 if (otherHost != null) {
                     log.info("Swapping host: " + otherHost);
-                    host = otherHost;
+                    this.host = otherHost;
                 }
             }
-            socket = new Socket(host, port);
-            if (socketSize != null) {
-                int oldSocketSize = socket.getReceiveBufferSize();
-                socket.setReceiveBufferSize(socketSize);
-                log.debug("Socket before: " + oldSocketSize + ", after: " + socket.getReceiveBufferSize());
+            this.socket = new Socket(this.host, this.port);
+            if (this.socketSize != null) {
+                int oldSocketSize = this.socket.getReceiveBufferSize();
+                this.socket.setReceiveBufferSize(this.socketSize);
+                log.debug("Socket before: " + oldSocketSize + ", after: " + this.socket.getReceiveBufferSize());
             }
         }
         else {
             int[] fallbackPorts = Util.directPorts();
             int i = 0;
-            while (socket == null) {
-                try {
-                    socket = new Socket(host, fallbackPorts[i]);
-                    port = fallbackPorts[i];
+            while (this.socket == null)
+				try {
+                    this.socket = new Socket(this.host, fallbackPorts[i]);
+                    this.port = fallbackPorts[i];
                 }
                 catch (SocketException e) {
-                    socket = null;
+                    this.socket = null;
                     i++;
                     if (i >= fallbackPorts.length) throw e;
                 }
-            }
         }
-        log.debug("Source socket: " + socket.getLocalSocketAddress() + " yahoo socket: " + socket.getInetAddress() + ":"
+        log.debug("Source socket: " + this.socket.getLocalSocketAddress() + " yahoo socket: " + this.socket.getInetAddress() + ":"
                 + this.socket.getPort());
-        ips = new YMSG9InputStream(socket.getInputStream());
-        ops = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+        this.ips = new YMSG9InputStream(this.socket.getInputStream());
+        this.ops = new DataOutputStream(new BufferedOutputStream(this.socket.getOutputStream()));
     }
 
     @Override
     void close() throws IOException {
-        if (socket != null) socket.close();
-        socket = null;
-        ips = null;
-        ops = null;
+        if (this.socket != null) this.socket.close();
+        this.socket = null;
+        this.ips = null;
+        this.ops = null;
     }
 
     /**
@@ -148,27 +147,27 @@ public class DirectConnectionHandler extends ConnectionHandler {
      * Note: it is assumed that 'ops' will have been set by the time this method is called.
      */
     @Override
-    protected void sendPacket(PacketBodyBuffer body, ServiceType service, long status, long sessionId)
+    protected void sendPacket(final PacketBodyBuffer body, final ServiceType service, final long status, final long sessionId)
             throws IOException {
         byte[] b = body.getBuffer();
         // Because the buffer is held at class member level, this method
         // is not automatically thread safe. Besides, we should be only
         // sending one message at a time!
-        synchronized (ops) {
+        synchronized (this.ops) {
             // 20 byte header
-            ops.write(NetworkConstants.MAGIC, 0, 4); // Magic code 'YMSG'
-            ops.write(NetworkConstants.VERSION, 0, 4); // Version
-            ops.writeShort(b.length & 0xFFFF); // Body length (16 bit unsigned)
-            ops.writeShort(service.getValue() & 0xFFFF); // Service ID (16
+            this.ops.write(NetworkConstants.MAGIC, 0, 4); // Magic code 'YMSG'
+            this.ops.write(NetworkConstants.VERSION, 0, 4); // Version
+            this.ops.writeShort(b.length & 0xFFFF); // Body length (16 bit unsigned)
+            this.ops.writeShort(service.getValue() & 0xFFFF); // Service ID (16
             // bit unsigned
-            ops.writeInt((int) (status & 0xFFFFFFFF)); // Status (32 bit
+            this.ops.writeInt((int) (status & 0xFFFFFFFF)); // Status (32 bit
             // unsigned)
-            ops.writeInt((int) (sessionId & 0xFFFFFFFF)); // Session id (32
+            this.ops.writeInt((int) (sessionId & 0xFFFFFFFF)); // Session id (32
             // bit unsigned)
             // Then the body...
-            ops.write(b, 0, b.length);
+            this.ops.write(b, 0, b.length);
             // Now send the buffer
-            ops.flush();
+            this.ops.flush();
         }
     }
 
@@ -177,12 +176,12 @@ public class DirectConnectionHandler extends ConnectionHandler {
      */
     @Override
     protected YMSG9Packet receivePacket() throws IOException {
-        return ips.readPacket();
+        return this.ips.readPacket();
     }
 
     @Override
     public String toString() {
-        StringBuffer sb = new StringBuffer("Direct connection: ").append(host).append(":").append(port);
+        StringBuffer sb = new StringBuffer("Direct connection: ").append(this.host).append(":").append(this.port);
         return sb.toString();
     }
 
@@ -190,7 +189,7 @@ public class DirectConnectionHandler extends ConnectionHandler {
      * Allow changing the host to open a new connection
      * @return ip address
      */
-    public void setHost(String host) {
+    public void setHost(final String host) {
         this.host = host;
         try {
             close();

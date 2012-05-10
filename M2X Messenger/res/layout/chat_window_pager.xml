@@ -20,45 +20,52 @@
         android:layout_height="fill_parent"
         android:layout_below="@+id/chatIndicator" />
 
+    <Button
+        android:id="@+id/btnClose"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_margin="3dp"
+        android:layout_below="@+id/chatIndicator"
+        android:background="@drawable/btn_close" />
+    
+    <Button
+        android:id="@+id/btnSmiley"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="5dp"
+        android:layout_marginBottom="49dp"
+        android:layout_alignParentBottom="true"
+        android:background="@drawable/smiley4" />
+
     <SlidingDrawer
         android:id="@+id/drawer"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
+        android:allowSingleTap="false"
         android:content="@+id/content"
         android:handle="@+id/handle" >
 
         <LinearLayout
             android:id="@+id/handle"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content" >
+            android:layout_width="0dp"
+            android:layout_height="0dp" >
 
-            <!-- <RelativeLayout -->
-            <!-- android:layout_alignParentRight="true" -->
-            <!-- android:layout_width="wrap_content" -->
+            <!-- <View -->
+            <!-- android:layout_width="0dp" -->
+            <!-- android:layout_height="0dp" -->
+            <!-- android:layout_weight="1" /> -->
+
+
+            <!-- <ImageView -->
+            <!-- android:layout_width="50dp" -->
+            <!-- android:layout_marginRight="50dp" -->
             <!-- android:layout_height="wrap_content" -->
             <!-- android:background="@drawable/drawer_handle" -->
-            <!-- android:paddingLeft="5dp" -->
-            <!-- android:paddingRight="5dp" > -->
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
-
-            <ImageView
-                android:layout_width="50dp"
-                android:layout_height="wrap_content"
-                android:background="@drawable/drawer_handle"
-                android:src="@drawable/smiley1" />
-
-            <!-- <TextView -->
-            <!-- android:layout_width="wrap_content" -->
-            <!-- android:layout_height="wrap_content" -->
-            <!-- android:layout_alignParentRight="true" -->
-            <!-- android:text="Smiley" -->
-            <!-- android:textColor="#000000" /> -->
-            <!-- </RelativeLayout> -->
+            <!-- android:visibility="gone" -->
+            <!-- android:src="@drawable/smiley1" /> -->
         </LinearLayout>
 
         <GridView

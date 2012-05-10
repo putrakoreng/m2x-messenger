@@ -1,6 +1,6 @@
 /*
  * M2X Messenger, an implementation of the Yahoo Instant Messaging Client based on OpenYMSG for Android.
- * Copyright (C) 2011  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
+ * Copyright (C) 2011-2012  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,14 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.sir_m2x.messenger.datastructures;
+package com.sir_m2x.messenger.classes;
 
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import android.content.Context;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.text.Html;
 import android.text.Spanned;
@@ -30,14 +29,20 @@ import android.text.Spanned;
 import com.sir_m2x.messenger.utils.Utils;
 
 /**
- * A representaion of a single instant message used throughout various places in
- * this project.
+ * A representation of a single instant message used throughout various places
+ * in this project.
  * 
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
  * 
  */
 public class IM
 {
+	private String sender;
+	private String message;
+	private Date timeStamp = null;
+	private boolean isOfflineMessage = false;
+	private boolean isOld = false;
+
 	public boolean isOfflineMessage()
 	{
 		return this.isOfflineMessage;
@@ -82,7 +87,7 @@ public class IM
 			df = new SimpleDateFormat("hh:mm a");
 		else
 			df = new SimpleDateFormat("yyyy-MM-dd hh:mm a");
-		
+
 		String date = df.format(this.timeStamp);
 
 		return Html.fromHtml("<small>" + date + "</small>");
@@ -95,27 +100,44 @@ public class IM
 
 	public boolean isBuzz()
 	{
-		return this.isBuzz;
+		return this.message.equals("<ding>");
+	}
+	
+	public void setOld(final boolean isOld)
+	{
+		this.isOld = isOld;
+	}
+	
+	public boolean isOld()
+	{
+		return this.isOld;
 	}
 
-	private String sender;
-	private String message;
-	private Date timeStamp = null;
-	private boolean isOfflineMessage = false;
-	private boolean isBuzz = false;
+	public IM()
+	{
+		this(null, null, null, false);
+	}
 
 	public IM(final String sender, final String message, final Date timeStamp)
 	{
-		this(sender, message, timeStamp, false, false);
+		this(sender, message, timeStamp, false);
 	}
 
-	public IM(final String sender, final String message, final Date timeStamp, final boolean isOfflineMessage, final boolean isBuzz)
+	public IM(final String sender, final String message, final Date timeStamp, final boolean isOfflineMessage)
 	{
 		this.timeStamp = timeStamp;
 		this.message = message;
 		this.sender = sender;
 		this.isOfflineMessage = isOfflineMessage;
-		this.isBuzz = isBuzz;
+	}
+	
+	public IM(final String sender, final String message, final Date timeStamp, final boolean isOfflineMessage, final boolean isOld)
+	{
+		this.timeStamp = timeStamp;
+		this.message = message;
+		this.sender = sender;
+		this.isOfflineMessage = isOfflineMessage;
+		this.isOld = isOld;
 	}
 
 	@Override
@@ -126,12 +148,12 @@ public class IM
 
 	public Spanned toHtml(final Context context)
 	{
-		if (this.isBuzz)
+		if (isBuzz())
 			return Html.fromHtml("<html><body><b><font color=\"red\">BUZZ!!!</font></b></body></html>");
-		
+
 		return Html.fromHtml("<html><body>" + Utils.parseTextForSmileys(this.message) + "</body></html>", new ImageGetter(context), null);
 	}
-	
+
 	class ImageGetter implements Html.ImageGetter
 	{
 		Context context;
@@ -140,7 +162,7 @@ public class IM
 		{
 			this.context = context;
 		}
-		
+
 		@Override
 		public Drawable getDrawable(final String source)
 		{
@@ -148,15 +170,15 @@ public class IM
 			Drawable d = null;
 			try
 			{
-				is = this.context.getResources().getAssets().open("smiley/" + source); 
-				d = BitmapDrawable.createFromStream(is, source);
-				d.setBounds(0,0,51,38);
+				is = this.context.getResources().getAssets().open("smiley/" + source);
+				d = Drawable.createFromStream(is, source);
+				d.setBounds(0, 0, (int) (51 * (Utils.deviceDensity / 240)), (int) (38 * (Utils.deviceDensity / 240)));
 			}
 			catch (Exception e)
 			{
 				e.printStackTrace();
 			}
-			
+
 			return d;
 		}
 	}

@@ -1,6 +1,6 @@
 /*
  * M2X Messenger, an implementation of the Yahoo Instant Messaging Client based on OpenYMSG for Android.
- * Copyright (C) 2011  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
+ * Copyright (C) 2011-2012  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ package com.sir_m2x.messenger.utils;
 import org.openymsg.network.SessionState;
 
 import android.os.Handler;
+import android.os.Message;
 
 import com.sir_m2x.messenger.services.MessengerService;
 
@@ -33,6 +34,7 @@ public class ProgressCheckThread extends Thread
 	public static final int PROGRESS_UPDATE = 0;
 	public static final int PROGRESS_FAILED = 1;
 	public static final int PROGRESS_LOGGED_ON = 2;
+	public boolean isRunning = true;
 	
 	private Handler handler;
 	
@@ -48,10 +50,44 @@ public class ProgressCheckThread extends Thread
 			;
 		while (MessengerService.getSession().getSessionStatus() == SessionState.UNSTARTED)
 			;
+		
+		Message msg;
+		String progressMessage = "";
 
-		while (MessengerService.getSession().getSessionStatus() != SessionState.FAILED && MessengerService.getSession().getSessionStatus() != SessionState.LOGGED_ON && MessengerService.getSession().getSessionStatus() != SessionState.UNSTARTED)
+		while ( this.isRunning && /*TODO not good for login screen : MessengerService.getSession().getSessionStatus() != SessionState.FAILED && */MessengerService.getSession().getSessionStatus() != SessionState.LOGGED_ON && MessengerService.getSession().getSessionStatus() != SessionState.UNSTARTED)
 		{
-			this.handler.sendEmptyMessage(PROGRESS_UPDATE);
+			switch(MessengerService.getSession().getSessionStatus())
+			{
+				case INITIALIZING:
+					progressMessage = "Initializing...";
+					break;
+				case CONNECTING:
+					progressMessage ="Sending credentials...";
+					break;
+				case STAGE1:
+					progressMessage ="Authenticating...";
+					break;
+				case STAGE2:
+					progressMessage ="Authenticating(2)...";
+					break;
+				case WAITING:
+					progressMessage ="Waiting to reconnect (" + MessengerService.countDownSec + ")";
+					break;
+				case CONNECTED:
+					progressMessage ="Loading list...";
+					break;
+				case LOGGED_ON:
+					progressMessage ="Logged on!";
+					break;
+				case FAILED:
+					progressMessage ="Failed!";
+					break;
+			}
+			msg = new Message();
+			msg.obj = progressMessage;
+			msg.what = PROGRESS_UPDATE;
+			this.handler.sendMessage(msg);
+			
 			try
 			{
 				Thread.sleep(250);
@@ -64,7 +100,7 @@ public class ProgressCheckThread extends Thread
 
 		if (MessengerService.getSession().getSessionStatus() == SessionState.FAILED || MessengerService.getSession().getSessionStatus() == SessionState.UNSTARTED)
 			this.handler.sendEmptyMessage(PROGRESS_FAILED);
-		else
+		else if (MessengerService.getSession().getSessionStatus() == SessionState.LOGGED_ON)
 			this.handler.sendEmptyMessage(PROGRESS_LOGGED_ON);
 	}
 }

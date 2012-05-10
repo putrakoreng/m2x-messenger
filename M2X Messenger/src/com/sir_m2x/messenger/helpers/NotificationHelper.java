@@ -1,6 +1,6 @@
 /*
  * M2X Messenger, an implementation of the Yahoo Instant Messaging Client based on OpenYMSG for Android.
- * Copyright (C) 2011  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
+ * Copyright (C) 2011-2012  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -126,7 +126,7 @@ public class NotificationHelper
 		Intent intent2 = new Intent(this.context, ContactsListActivity.class);
 		PendingIntent i = PendingIntent.getActivity(this.context, 0, intent2, 0);
 
-		notify.setLatestEventInfo(this.context, "M2X Messenger", MessengerService.getMyId() + " -- " + currentStatus, i);
+		notify.setLatestEventInfo(this.context, "M2X Messenger", MessengerService.getMyId() + " (" + currentStatus + ")", i);
 		this.notificationManager.notify(NOTIFICATION_SIGNED_IN, notify);
 	}
 
@@ -177,7 +177,6 @@ public class NotificationHelper
 		{
 			Log.w("M2X-Messenger", "Unable to play " + uri);
 		}
-
 	}
 	
 	public void vibrate(final int duration)
