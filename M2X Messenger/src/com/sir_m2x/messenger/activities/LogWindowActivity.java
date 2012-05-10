@@ -1,6 +1,6 @@
 /*
  * M2X Messenger, an implementation of the Yahoo Instant Messaging Client based on OpenYMSG for Android.
- * Copyright (C) 2011  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
+ * Copyright (C) 2011-2012  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,18 +23,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.BaseAdapter;
-import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.sir_m2x.messenger.R;
+import com.sir_m2x.messenger.classes.LogWindowAdapter;
 import com.sir_m2x.messenger.services.MessengerService;
-import com.sir_m2x.messenger.utils.EventLogger;
 import com.sir_m2x.messenger.utils.Utils;
 
 /**
@@ -46,54 +40,8 @@ import com.sir_m2x.messenger.utils.Utils;
  */
 public class LogWindowActivity extends ListActivity
 {
-	BaseAdapter adapter = new BaseAdapter()
-	{
-
-		@Override
-		public View getView(final int position, final View convertView, final ViewGroup parent)
-		{
-			View v = ((LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE)).inflate(R.layout.chat_window_row_friend, parent, false);
-			TextView txtMessage = (TextView) v.findViewById(R.id.friendMessageTextView);
-			TextView txtTimeStamp = (TextView) v.findViewById(R.id.timeStampTextView);
-			ImageView img = (ImageView) v.findViewById(R.id.imgFriendAvatarChat);
-
-			EventLogger.LogFormat log = (EventLogger.LogFormat) getItem(position);
-			String id = log.getWho();
-
-			txtMessage.setText(log.eventToHtml());
-			txtTimeStamp.setText(log.timeToHtml());
-
-			if (id.equals(MessengerService.getMyId()) && MessengerService.getMyAvatar() != null)
-				img.setImageBitmap(MessengerService.getMyAvatar());
-			else if (MessengerService.getFriendAvatars().containsKey(id))
-				img.setImageBitmap(MessengerService.getFriendAvatars().get(id));
-			else if (id.contains("M2X Messenger"))
-				img.setImageResource(R.drawable.ic_launcher_noborder);
-			else
-				img.setImageResource(R.drawable.yahoo_no_avatar);
-
-			return v;
-		}
-
-		@Override
-		public long getItemId(final int arg0)
-		{
-			return arg0;
-		}
-
-		@Override
-		public Object getItem(final int arg0)
-		{
-			return MessengerService.getEventLog().getEventLog().get(arg0);
-		}
-
-		@Override
-		public int getCount()
-		{
-			return MessengerService.getEventLog().getEventLog().size();
-		}
-	};
-
+	LogWindowAdapter adapter = new LogWindowAdapter(this);
+	
 	BroadcastReceiver updateReceiver = new BroadcastReceiver()
 	{
 
@@ -114,11 +62,6 @@ public class LogWindowActivity extends ListActivity
 		setListAdapter(this.adapter);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see android.app.Activity#onResume()
-	 */
 	@Override
 	protected void onResume()
 	{
@@ -128,11 +71,6 @@ public class LogWindowActivity extends ListActivity
 		super.onResume();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see android.app.Activity#onPause()
-	 */
 	@Override
 	protected void onPause()
 	{
@@ -140,11 +78,6 @@ public class LogWindowActivity extends ListActivity
 		super.onPause();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see android.app.Activity#onCreateOptionsMenu(android.view.Menu)
-	 */
 	@Override
 	public boolean onCreateOptionsMenu(final Menu menu)
 	{

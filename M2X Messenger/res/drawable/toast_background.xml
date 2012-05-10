@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) Mehran Maghoumi 2011-2012 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" >
 
     <corners android:radius="4dp" />
-    <!-- <solid android:color="#DAAA"/> -->
+
     <gradient
         android:angle="90"
-        android:endColor="#ddf4f4f4"
-        android:startColor="#ddd3d3d3" />
+        android:endColor="#ccf4f4f4"
+        android:startColor="#ccd3d3d3" />
+
+    <stroke
+        android:width="2dp"
+        android:color="#dde0e0e0" />
 
 </shape>

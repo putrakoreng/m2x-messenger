@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) Mehran Maghoumi 2011-2012 -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
 
     <PreferenceCategory android:title="Contacts List" >
@@ -15,15 +16,23 @@
             android:entryValues="@array/avatarPolicy_list_entryValues"
             android:key="avatarPolicy"
             android:summary="Controls avatars refresh interval"
-            android:title="Avatar refresh policy" />
+            android:title="Avatar refresh interval" />
 
-        <Preference android:title="Refresh avatar cache" />
+        <Preference
+            android:key="refresh"
+            android:title="Refresh avatar cache" />
 
         <CheckBoxPreference
             android:defaultValue="true"
             android:key="showOffline"
             android:summary="Show offline contacts in friend list"
             android:title="Show offline contacts" />
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:dependency="showOffline"
+            android:key="onlinesFirst"
+            android:summary="List online contacts first, then other contacts"
+            android:title="Online contacts first" />
     </PreferenceCategory>
     <PreferenceCategory android:title="Notifications" >
         <ListPreference
@@ -47,13 +56,63 @@
             android:key="audibles"
             android:summary="Play sound on new notification"
             android:title="Audible notifications" />
+
+        <PreferenceScreen
+            android:summary="Advanced notification settings"
+            android:title="Advanced..." >
+            <PreferenceCategory android:title="Advanced notification settings" >
+                <ListPreference
+                    android:defaultValue="5"
+                    android:entries="@array/stream_list_entries"
+                    android:entryValues="@array/stream_list_entryValues"
+                    android:key="stream"
+                    android:summary="Changes the stream used to play audibles"
+                    android:title="Audibles stream" />
+                <ListPreference
+                    android:defaultValue="-1"
+                    android:dependency="showToasts"
+                    android:entries="@array/toast_entries"
+                    android:entryValues="@array/toast_entryValues"
+                    android:key="toastGravity"
+                    android:selectable="true"
+                    android:summary="Define the location of the toast"
+                    android:title="Toast location" />
+
+                <EditTextPreference
+                    android:defaultValue="0"
+                    android:dependency="showToasts"
+                    android:key="xOffset"
+                    android:summary="The x-axis offset of the toast [positive or negative integer]"
+                    android:title="Toast X-Offset" />
+                <EditTextPreference
+                    android:defaultValue="0"
+                    android:dependency="showToasts"
+                    android:key="yOffset"
+                    android:summary="The y-axis offset of the toast [positive or negative integer]"
+                    android:title="Toast Y-Offset" />
+            </PreferenceCategory>
+        </PreferenceScreen>
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Conversation Window" >
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="timeStamp"
+            android:summary="Controls whether the timestamp of an IM is shown"
+            android:title="Show timestamp" />
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="history"
+            android:summary="Controls whether history is enabled"
+            android:title="Enable history" />
+
         <ListPreference
-            android:defaultValue="5"
-            android:entries="@array/stream_list_entries"
-            android:entryValues="@array/stream_list_entryValues"
-            android:key="stream"
-            android:summary="Changes the stream used to play audibles"
-            android:title="Audibles stream" />
+            android:defaultValue="-1"
+            android:dependency="history"
+            android:entries="@array/history_entries"
+            android:entryValues="@array/history_entryValues"
+            android:key="historyKeep"
+            android:summary="Amount of time to keep history"
+            android:title="History keep limit" />
     </PreferenceCategory>
     <PreferenceCategory android:title="Miscellaneous" >
         <CheckBoxPreference
@@ -67,5 +126,27 @@
             android:summary="Saves crash logs to SD-Card"
             android:title="Save crash logs" />
     </PreferenceCategory>
+
+    <PreferenceScreen
+        android:summary="M2X Messenger Version and License"
+        android:title="About..." >
+        <PreferenceCategory android:title="About" >
+            <Preference
+                android:summary="v0.95 Beta"
+                android:title="Version" />
+            <Preference
+                android:summary="© 2011-2012 Mehran Maghoumi (SirM2X)"
+                android:title="Copyright" />
+            <Preference
+                android:summary="GPL v3"
+                android:title="License" />
+            <Preference
+                android:key="homepage"
+                android:title="Project&apos;s Page" />
+            <Preference
+                android:key="changelog"
+                android:title="Changelog" />
+        </PreferenceCategory>
+    </PreferenceScreen>
 
 </PreferenceScreen>

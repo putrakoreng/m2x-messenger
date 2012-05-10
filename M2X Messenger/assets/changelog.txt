@@ -1,0 +1,55 @@
+<html>
+<body bgcolor="#eeeeee">
+<b>v0.95 Beta:</b>
+<br/>
+<b>Added:</b>
+<ul style="margin: 0px">
+	<li>Added the remember checkbox in the login screen</li>
+	<li>Added the smiley and close button to conversation window</li>
+	<li>Added toast location and offset settings in preferences</li>
+	<li>Added show/hide timestamp in preferences</li>
+	<li>Added toolbar which contains useful commands</li>
+	<li>Added search feature for contacts list</li>
+	<li>Added better UI for changing presence status</li>
+	<li>Added about screen in the preferences</li>
+	<li>Added menu in "Manage Requests" window</li>
+	<li>Added a preference option to force the contacts list to list online contacts first</li>  
+	<li>Added the ability to save conversation history. Older conversations are shown with a yellow tint in the chat window</li>
+	<li>Added preference entries to control conversation history behavior</li>
+	<li>OpenYMSG : Added the ability to filter out duplicated messages</li>
+	<li>OpenYMSG : Added the ability to receive and process a PICTURE_CHECKSUM packet</li>
+</ul>
+<b>Removed:</b>
+<ul>
+	<li>Removed separate UI for Login window on landscape</li>
+	<li>Removed the ProgressDialog shown when connection is lost while on Contacts list. The contact list now shows its login progress in a red text</li>
+	<li>Removed smiley drawer handle for a better UI design</li>
+	<li>Removed unnecessary pingings from OpenYMSG</li>
+</ul>	
+<b>Fixed:</b>
+<ul>
+	<li>Removed text color effects from new messages -- color attribute was interpreted as plain text</li>
+	<li>Fixed a long-known bug on Android 2.1 causing ListView to throw an IllegalStateException</li>
+	<li>Fixed smiley size on Low DPI screens -- now smileys look almost identical on various screen configurations</li>
+	<li>Fixed offline messages not being received</li>
+	<li>Fixed avatar load preferences -- some of the preferences were not working as expected</li>
+	<li>Fixed some smiley symbols (http links will now look as expected!)</li>
+	<li>Fixed a bug causing Chat Window to crash upon opening</li>
+	<li>Fixed a long-known bug in the Chat Window: Typed message text would not show sometimes (Especially if the message was written in landscape mode)</li>
+	<li>Avatars are now loaded in the "Manage Requests" activity as well</li>
+</ul>
+<b>Changed:</b>
+<ul>
+	<li>Minor UI tweaks</li>
+	<li>Optimized all Lists for better smoother operation, better memory usage and minimum garbage collection</li>	
+	<li>Optimized icons</li>
+	<li>Slightly modified AsyncLogin to use Android's built in CountDownTimer</li>
+	<li>Better login process -- device won't crash easily if something bad happens while logging in</li>
+	<li>Use different bubbles for offline messages/buzz</li>
+	<li>The conversation window is now expanded a bit to show more messages</li>
+	<li>Grouped advanced preferences</li>
+	<li>Unified the look and feel of all dialog messages</li>
+	<li>OpenYMSG: Auto cancel typing notification after some time</li>
+</ul>
+</body>
+</html>

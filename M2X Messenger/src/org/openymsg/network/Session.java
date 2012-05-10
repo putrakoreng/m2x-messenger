@@ -211,6 +211,10 @@ public class Session implements StatusConstants, FriendManager {
 	private static final Log log = LogFactory.getLog(Session.class);
 
 	private static final int LOGIN_HTTP_TIMEOUT = 10000;
+	
+	private boolean cancelLogin = false; // a flag to indicate that we want to cancel the login process mid-way
+	
+	private ArrayList<String> msgSeqs = new ArrayList<String>(20);	// a list containing the last 20 sequence number of IMs received. it is used to avoid duplicated messages.
 
 	public YahooGroup[] groups; // Yahoo user's groups
 
@@ -257,7 +261,7 @@ public class Session implements StatusConstants, FriendManager {
 
 		this.status = Status.WEBLOGIN;
 		this.sessionId = 0;
-		this.sessionStatus = SessionState.UNSTARTED;
+		this.setSessionStatus(SessionState.UNSTARTED);
 
 		this.network.install(this);
 
@@ -342,20 +346,20 @@ public class Session implements StatusConstants, FriendManager {
 			this.eventDispatchQueue.start();
 		}
 		if (username == null || username.length() == 0) {
-			this.sessionStatus = SessionState.FAILED;
+			this.setSessionStatus(SessionState.FAILED);
 			throw new IllegalArgumentException("Argument 'username' cannot be null or an empty String.");
 		}
 
 		if (password == null || password.length() == 0) {
-			this.sessionStatus = SessionState.FAILED;
+			this.setSessionStatus(SessionState.FAILED);
 			throw new IllegalArgumentException("Argument 'password' cannot be null or an empty String.");
 		}
 
 		// Check the session status first
 		synchronized (this) {
-			if (this.sessionStatus != SessionState.UNSTARTED)
+			if (this.getSessionStatus() != SessionState.UNSTARTED)
 				throw new IllegalStateException("Session should be unstarted");
-			this.sessionStatus = SessionState.INITIALIZING;
+			this.setSessionStatus(SessionState.INITIALIZING);
 		}
 
 		// Yahoo ID's are apparently always lower case
@@ -379,27 +383,34 @@ public class Session implements StatusConstants, FriendManager {
 
 			// Begin login process
 			log.trace("Transmitting auth...");
-			this.sessionStatus = SessionState.CONNECTING;
+			this.setSessionStatus(SessionState.CONNECTING);
 			transmitAuth();
 
 			// Wait until connection or timeout
 			long timeout = System.currentTimeMillis() + Util.loginTimeout(NetworkConstants.LOGIN_TIMEOUT);
-			while (this.sessionStatus != SessionState.LOGGED_ON && this.sessionStatus != SessionState.FAILED && !past(timeout)
-					&& this.loginException == null)
+			while (this.getSessionStatus() != SessionState.LOGGED_ON && this.getSessionStatus() != SessionState.FAILED && !past(timeout)
+					&& this.loginException == null && !this.cancelLogin)
 				try {
 					Thread.sleep(10);
 				}
 			catch (InterruptedException e) {
 				// ignore
 			}
-			log.trace("finished waiting for connection: " + this.sessionStatus + "/" + past(timeout) + "/" + this.loginException);
+			log.trace("finished waiting for connection: " + this.getSessionStatus() + "/" + past(timeout) + "/" + this.loginException);
+			
+			if (this.cancelLogin)
+			{
+				forceCloseSession();
+				this.setSessionStatus(SessionState.UNSTARTED);
+				return;
+			}
 
 			if (past(timeout)) {
-				this.sessionStatus = SessionState.FAILED;
+				this.setSessionStatus(SessionState.FAILED);
 				throw new InterruptedIOException("Login timed out");
 			}
 
-			if (this.sessionStatus == SessionState.FAILED) {
+			if (this.getSessionStatus() == SessionState.FAILED) {
 				if (this.loginException instanceof FailedLoginException)
 					throw (FailedLoginException) this.loginException;
 				throw (LoginRefusedException) this.loginException;
@@ -408,9 +419,9 @@ public class Session implements StatusConstants, FriendManager {
 		finally {
 			// Logon failure? When network input finishes, all supporting
 			// threads are stopped.
-			if (this.sessionStatus != SessionState.LOGGED_ON) {
-				log.error("Never logged in, sessionStatus is: " + this.sessionStatus);
-				closeSession(false);
+			if (this.getSessionStatus() != SessionState.LOGGED_ON) {
+				log.error("Never logged in, sessionStatus is: " + this.getSessionStatus());
+				closeSession();
 			}
 		}
 	}
@@ -424,18 +435,18 @@ public class Session implements StatusConstants, FriendManager {
 	public synchronized void logout() throws IllegalStateException, IOException {
 		log.trace("logout");
 		try {
-			if (this.sessionStatus == SessionState.CONNECTING || this.sessionStatus == SessionState.CONNECTED)
+			if (this.getSessionStatus() == SessionState.CONNECTING || this.getSessionStatus() == SessionState.CONNECTED)
 				throw new IllegalStateException("Not logged in or connecting");
 			transmitLogoff();
 		}
 		finally {
-			closeSession(false);
+			closeSession();
 		}
 	}
 
 	public void forceCloseSession() throws IOException {
 		log.trace("force close session");
-		this.sessionStatus = SessionState.UNSTARTED;
+		this.setSessionStatus(SessionState.UNSTARTED);
 		this.cachePacket = null;
 		try {
 			this.network.close();
@@ -443,7 +454,8 @@ public class Session implements StatusConstants, FriendManager {
 		catch (IOException e) {
 		}
 		finally {
-			closeSession(true);
+//			closeSession(true);
+			closeSession();
 		}
 	}
 
@@ -452,9 +464,9 @@ public class Session implements StatusConstants, FriendManager {
 	 * discarded objects for the GC to clean up ;-)
 	 */
 	public synchronized void reset() throws IllegalStateException {
-		if (this.sessionStatus != SessionState.FAILED && this.sessionStatus != SessionState.UNSTARTED)
+		if (this.getSessionStatus() != SessionState.FAILED && this.getSessionStatus() != SessionState.UNSTARTED)
 			throw new IllegalStateException("Session currently active");
-		this.sessionStatus = SessionState.UNSTARTED;
+		this.setSessionStatus(SessionState.UNSTARTED);
 		this.chatSessionStatus = SessionState.UNSTARTED;
 		resetData(); // Just to be on the safe side
 	}
@@ -474,31 +486,31 @@ public class Session implements StatusConstants, FriendManager {
 				this.pingTimestamp = now;
 				pingSent = true;
 			}
-			/////////////////////////////////////////
-			URL url = new URL("http://www.yahoo.com");
-			HttpURLConnection urlc = (HttpURLConnection) url.openConnection();
-		    urlc.setRequestProperty("User-Agent", "Android Application:OpenYMSG");
-		    urlc.setRequestProperty("Connection", "close");
-		    urlc.setConnectTimeout(1000 * 30); // mTimeout is in seconds
-		    urlc.connect();
-		    if (urlc.getResponseCode() == 200)
-		    {
-		    	this.timeoutCount = 0;
-		    	urlc.disconnect();
-				this.transmitKeepAlive();
-		    }
-			else
-			{
-				urlc.disconnect();
-				this.timeoutCount++;
-				if (this.timeoutCount <= NetworkConstants.TIMEOUT_RETRY_COUNT)
-					this.transmitKeepAlive();
-				else
-				{
-					this.timeoutCount = 0;
-					throw new SocketException();
-				}
-			}
+//			/////////////////////////////////////////
+//			URL url = new URL("http://www.yahoo.com");
+//			HttpURLConnection urlc = (HttpURLConnection) url.openConnection();
+//		    urlc.setRequestProperty("User-Agent", "Android Application:OpenYMSG");
+//		    urlc.setRequestProperty("Connection", "close");
+//		    urlc.setConnectTimeout(1000 * 30); // mTimeout is in seconds
+//		    urlc.connect();
+//		    if (urlc.getResponseCode() == 200)
+//		    {
+//		    	this.timeoutCount = 0;
+//		    	urlc.disconnect();
+//				this.transmitKeepAlive();
+//		    }
+//			else
+//			{
+//				urlc.disconnect();
+//				this.timeoutCount++;
+//				if (this.timeoutCount <= NetworkConstants.TIMEOUT_RETRY_COUNT)
+//					this.transmitKeepAlive();
+//				else
+//				{
+//					this.timeoutCount = 0;
+//					throw new SocketException();
+//				}
+//			}
 		    
 		}
 		catch (IOException ex) {
@@ -622,7 +634,7 @@ public class Session implements StatusConstants, FriendManager {
 		this.status = status;
 		this.customStatusMessage = null;
 
-		if (this.sessionStatus != SessionState.UNSTARTED)
+		if (this.getSessionStatus() != SessionState.UNSTARTED)
 			if (status == Status.INVISIBLE)
 			{
 				if (wasInvisible)
@@ -651,7 +663,7 @@ public class Session implements StatusConstants, FriendManager {
 	 */
 	public synchronized void setStatus(final String message, final boolean showBusyIcon) throws IllegalArgumentException,
 	IOException {
-		if (this.sessionStatus == SessionState.UNSTARTED)
+		if (this.getSessionStatus() == SessionState.UNSTARTED)
 			throw new IllegalArgumentException("Unstarted sessions can be available or invisible only");
 
 		if (message == null)
@@ -1128,10 +1140,10 @@ public class Session implements StatusConstants, FriendManager {
 	 * 1 use loginID .
 	 */
 	protected void transmitAuth() throws IOException {
-		if (this.sessionStatus != SessionState.CONNECTING)
+		if (this.getSessionStatus() != SessionState.CONNECTING)
 			throw new IllegalStateException(
 					"Cannot transmit an AUTH packet if you're not completely unconnected to the Yahoo Network. Current state: "
-							+ this.sessionStatus);
+							+ this.getSessionStatus());
 
 		final PacketBodyBuffer body = new PacketBodyBuffer();
 		// FIX: only req. for HTTPConnectionHandler ?
@@ -1145,10 +1157,10 @@ public class Session implements StatusConstants, FriendManager {
 	 * 1 use loginID .
 	 */
 	protected void transmitVerify() throws IOException {
-		if (this.sessionStatus != SessionState.CONNECTING)
+		if (this.getSessionStatus() != SessionState.CONNECTING)
 			throw new IllegalStateException(
 					"Cannot transmit an VERIFY packet if you're not completely unconnected to the Yahoo Network. Current state: "
-							+ this.sessionStatus);
+							+ this.getSessionStatus());
 
 		final PacketBodyBuffer body = new PacketBodyBuffer();
 		sendPacket(body, ServiceType.VERIFY);
@@ -1162,10 +1174,10 @@ public class Session implements StatusConstants, FriendManager {
 	 */
 	private void transmitAuthResp(final String plp, final String crp, final String base64) throws IOException {
 
-		if (this.sessionStatus != SessionState.CONNECTED)
+		if (this.getSessionStatus() != SessionState.CONNECTED)
 			throw new IllegalStateException(
 					"Cannot transmit an AUTHRESP packet if you're not completely connected to the Yahoo Network. Current state: "
-							+ this.sessionStatus);
+							+ this.getSessionStatus());
 
 		if (base64 == null) {
 			final PacketBodyBuffer body = new PacketBodyBuffer();
@@ -1263,7 +1275,7 @@ public class Session implements StatusConstants, FriendManager {
 	 * Note: netname uses network name of "room:lobby".
 	 */
 	protected void transmitChatJoin(final String netname, final long roomId) throws IOException {
-		if (this.sessionStatus != SessionState.CONNECTED)
+		if (this.getSessionStatus() != SessionState.CONNECTED)
 			throw new IllegalStateException(
 					"Logging on is only possible right after successfully connecting to the network.");
 
@@ -2025,9 +2037,9 @@ public class Session implements StatusConstants, FriendManager {
 	 */
 	protected void receiveAuth(final YMSG9Packet pkt) // 0x57
 			throws IOException, YahooException {
-		if (this.sessionStatus != SessionState.CONNECTING)
+		if (this.getSessionStatus() != SessionState.CONNECTING)
 			throw new IllegalStateException("Received a response to an AUTH packet, outside the normal"
-					+ " login flow. Current state: " + this.sessionStatus);
+					+ " login flow. Current state: " + this.getSessionStatus());
 		log.trace("Received AUTH from server. Going to parse challenge...");
 		// Value for key 13: '0'=v9, '1'=v10, '2'=v16
 		String v10 = pkt.getValue("13");
@@ -2060,7 +2072,7 @@ public class Session implements StatusConstants, FriendManager {
 			this.loginException = new FailedLoginException("User " + this.loginID + ": Login failed unexpectedly.", e);
 			throw this.loginException;
 		}
-		this.sessionStatus = SessionState.CONNECTED;
+		this.setSessionStatus(SessionState.CONNECTED);
 		log.trace("Going to transmit Auth response, " + "containing the challenge...");
 		if (s.length > 2)
 			transmitAuthResp(s[0], s[1], s[2]);
@@ -2114,7 +2126,7 @@ public class Session implements StatusConstants, FriendManager {
 				});
 
 			int responseCode = httpUc.getResponseCode();
-			this.sessionStatus = SessionState.STAGE1;
+			this.setSessionStatus(SessionState.STAGE1);
 			if (responseCode == HttpURLConnection.HTTP_OK) {
 				InputStream in = uc.getInputStream();
 
@@ -2206,7 +2218,7 @@ public class Session implements StatusConstants, FriendManager {
 				});
 
 			int responseCode = httpUc.getResponseCode();
-			this.sessionStatus = SessionState.STAGE2;
+			this.setSessionStatus(SessionState.STAGE2);
 			if (responseCode == HttpURLConnection.HTTP_OK) {
 				InputStream in = uc.getInputStream();
 
@@ -2351,7 +2363,7 @@ public class Session implements StatusConstants, FriendManager {
 			// terminate.
 			this.ipThread.stopMe();
 			// Notify login() calling thread of failure
-			this.sessionStatus = SessionState.FAILED;
+			this.setSessionStatus(SessionState.FAILED);
 			this.eventDispatchQueue.append(sessionEvent, ServiceType.LOGOFF);
 		}
 	}
@@ -3435,7 +3447,7 @@ public class Session implements StatusConstants, FriendManager {
 					ServiceType.LIST);
 
 		// Now that we've parsed the buddy list, we can consider login succcess
-		this.sessionStatus = SessionState.LOGGED_ON;
+		this.setSessionStatus(SessionState.LOGGED_ON);
 		log.trace("Yahoo logged in successfully");
 
 		// Only one identity with v16 login
@@ -3470,13 +3482,13 @@ public class Session implements StatusConstants, FriendManager {
 				log.info("Logging out because I received a logoff" + this.primaryID + "/" + pkt);
 				// Note: when this method returns, the input thread loop
 				// which called it exits.
-				this.sessionStatus = SessionState.UNSTARTED;
+				this.setSessionStatus(SessionState.UNSTARTED);
 				this.ipThread.stopMe();
 				SessionLogoutEvent logoutEvent = new SessionLogoutEvent(AuthenticationState.YAHOO_LOGOFF);
 				if (pkt.status == -1)
 					logoutEvent = new SessionLogoutEvent(AuthenticationState.DUPLICATE_LOGIN);
 				this.eventDispatchQueue.append(logoutEvent, ServiceType.LOGOFF);
-				closeSession(false);
+				closeSession();
 			}
 			else
 				// Process optional section, friends going offline
@@ -3513,11 +3525,11 @@ public class Session implements StatusConstants, FriendManager {
 			}
 		}
 		finally {
-			if (this.sessionStatus != SessionState.LOGGED_ON) {
+			if (this.getSessionStatus() != SessionState.LOGGED_ON) {
 				// set inital presence state.
 				setStatus(this.status);
 
-				this.sessionStatus = SessionState.LOGGED_ON;
+				this.setSessionStatus(SessionState.LOGGED_ON);
 				this.eventDispatchQueue.append(ServiceType.LOGON);
 			}
 		}
@@ -3566,11 +3578,25 @@ public class Session implements StatusConstants, FriendManager {
 				final String message = pkt.getValue("14");
 				final String id = pkt.getValue("429");
 
-				final SessionEvent se = new SessionEvent(this, to, from, message);
-				if (se.getMessage().equalsIgnoreCase(NetworkConstants.BUZZ))
-					this.eventDispatchQueue.append(se, ServiceType.X_BUZZ);
+				// filter out duplicated messages
+				if (!this.msgSeqs.contains(id))
+				{
+					final SessionEvent se = new SessionEvent(this, to, from, message);
+					if (se.getMessage().equalsIgnoreCase(NetworkConstants.BUZZ))
+						this.eventDispatchQueue.append(se, ServiceType.X_BUZZ);
+					else
+						this.eventDispatchQueue.append(se, ServiceType.MESSAGE);
+					
+					this.msgSeqs.add(id);
+				}
 				else
-					this.eventDispatchQueue.append(se, ServiceType.MESSAGE);
+					android.util.Log.w("OpenYMSG", "Duplicated message arrived and filtered with seq# " + id);
+				
+				if(this.msgSeqs.size() > 20)
+				{
+					this.msgSeqs.subList(0, 15).clear(); // retain last 5 sequence numbers
+					this.msgSeqs.trimToSize();
+				}
 
 				if (id != null) {
 					/*
@@ -3597,6 +3623,7 @@ public class Session implements StatusConstants, FriendManager {
 	protected void receiveMessageAck(final YMSG9Packet pkt)
 	{
 		String messageNumber = pkt.getValue("430"); //message number
+		android.util.Log.w("Session", "Received ack for " + messageNumber);
 
 		//remove from the resend queue
 		synchronized(this.imQueue)
@@ -3730,50 +3757,82 @@ public class Session implements StatusConstants, FriendManager {
 		this.ipThread.start();
 	}
 
+//	/**
+//	 * If the network isn't closed already, close it.
+//	 */
+//	private void closeSession(final boolean force) throws IOException {
+//		log.trace("close session");
+//		// Close the input thread (unless ipThread itself is calling us)
+//		this.setSessionStatus(SessionState.UNSTARTED);
+//		if (this.ipThread != null && Thread.currentThread() != this.ipThread) {
+//			this.ipThread.stopMe();
+//			this.ipThread.interrupt();
+//			this.ipThread = null;
+//		}
+//
+//		// Remove our pinger task from the timer
+//		if (this.pingerTask != null) {
+//			this.pingerTask.cancel();
+//			this.pingerTask = null;
+//		}
+//
+//		// If the network is open, close it
+//		try {
+//			this.network.close();
+//		}
+//		finally {
+//			if (this.eventDispatchQueue != null) {
+//				this.eventDispatchQueue.kill();
+//				if(force)	// To indicate that the connection has been force closed
+//				{
+//					SessionExceptionEvent e = new SessionExceptionEvent(this, "Connection lost", new Exception(""));
+//					this.eventDispatchQueue.runEventNOW(new FireEvent(e, ServiceType.LOGOFF));
+//				}
+//				else
+//					this.eventDispatchQueue.runEventNOW(new FireEvent(null, ServiceType.LOGOFF));
+//				this.eventDispatchQueue = null;
+//			}
+//		}
+//
+//	}
+	
 	/**
-	 * If the network isn't closed already, close it.
-	 */
-	private void closeSession(final boolean force) throws IOException {
-		log.trace("close session");
-		// Close the input thread (unless ipThread itself is calling us)
-		this.sessionStatus = SessionState.UNSTARTED;
-		if (this.ipThread != null && Thread.currentThread() != this.ipThread) {
-			this.ipThread.stopMe();
-			this.ipThread.interrupt();
-			this.ipThread = null;
-		}
+     * If the network isn't closed already, close it.
+     */
+    private void closeSession() throws IOException {
+        log.trace("close session");
+        // Close the input thread (unless ipThread itself is calling us)
+        this.sessionStatus = SessionState.UNSTARTED;
+        if (this.ipThread != null && Thread.currentThread() != this.ipThread) {
+            this.ipThread.stopMe();
+            this.ipThread.interrupt();
+            this.ipThread = null;
+        }
 
-		// Remove our pinger task from the timer
-		if (this.pingerTask != null) {
-			this.pingerTask.cancel();
-			this.pingerTask = null;
-		}
+        // Remove our pinger task from the timer
+        if (this.pingerTask != null) {
+            this.pingerTask.cancel();
+            this.pingerTask = null;
+        }
 
-		// If the network is open, close it
-		try {
-			this.network.close();
-		}
-		finally {
-			if (this.eventDispatchQueue != null) {
-				this.eventDispatchQueue.kill();
-				if(force)	// To indicate that the connection has been force closed
-				{
-					SessionExceptionEvent e = new SessionExceptionEvent(this, "Connection lost", new Exception(""));
-					this.eventDispatchQueue.runEventNOW(new FireEvent(e, ServiceType.LOGOFF));
-				}
-				else
-					this.eventDispatchQueue.runEventNOW(new FireEvent(null, ServiceType.LOGOFF));
-				this.eventDispatchQueue = null;
-			}
-		}
-
-	}
+        // If the network is open, close it
+        try {
+            this.network.close();
+        }
+        finally {
+            if (this.eventDispatchQueue != null) {
+                this.eventDispatchQueue.kill();
+                this.eventDispatchQueue.runEventNOW(new FireEvent(null, ServiceType.LOGOFF));
+                this.eventDispatchQueue = null;
+            }
+        }
+    }
 
 	/**
 	 * Are we logged into Yahoo?
 	 */
 	protected void checkStatus() throws IllegalStateException {
-		if (this.sessionStatus != SessionState.LOGGED_ON)
+		if (this.getSessionStatus() != SessionState.LOGGED_ON)
 			throw new IllegalStateException("Not logged in");
 	}
 
@@ -3817,7 +3876,7 @@ public class Session implements StatusConstants, FriendManager {
 	 * Handy method: alert application to exception via event
 	 */
 	void sendExceptionEvent(final Exception e, final String msg) {
-		this.sessionStatus = SessionState.FAILED;
+		this.setSessionStatus(SessionState.FAILED);
 		SessionExceptionEvent se = new SessionExceptionEvent(Session.this, msg, e);
 		this.eventDispatchQueue.append(se, ServiceType.X_EXCEPTION);
 	}
@@ -4201,11 +4260,26 @@ public class Session implements StatusConstants, FriendManager {
 	
 	public void setWaiting()
 	{
-		this.sessionStatus = SessionState.WAITING;
+		this.setSessionStatus(SessionState.WAITING);
 	}
 	
 	public void cancelWaiting()
 	{
-		this.sessionStatus = SessionState.UNSTARTED;
+		this.setSessionStatus(SessionState.UNSTARTED);
+	}
+
+	public void setSessionStatus(final SessionState sessionStatus)
+	{
+		this.sessionStatus = sessionStatus;
+	}
+
+	/**
+	 * Tell the session to cancel the login process mid-way
+	 * @param cancelLogin
+	 * 		Pass true if you want to cancel login process mid-way
+	 */
+	public void setCancelLogin(final boolean cancelLogin)
+	{
+		this.cancelLogin = cancelLogin;
 	}
 }

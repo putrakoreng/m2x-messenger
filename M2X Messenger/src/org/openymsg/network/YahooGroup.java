@@ -81,6 +81,11 @@ public class YahooGroup {
         this.isOpen = isOpen;
     }
 
+    public void setUsers(final Set<YahooUser> users)
+    {
+    	this.users = (TreeSet<YahooUser>) users;    	
+    }
+    
     public Set<YahooUser> getUsers() {
         return this.users;
     }

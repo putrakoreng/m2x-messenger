@@ -1,6 +1,6 @@
 /*
  * M2X Messenger, an implementation of the Yahoo Instant Messaging Client based on OpenYMSG for Android.
- * Copyright (C) 2011  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
+ * Copyright (C) 2011-2012  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.sir_m2x.messenger.datastructures;
+package com.sir_m2x.messenger.classes;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;

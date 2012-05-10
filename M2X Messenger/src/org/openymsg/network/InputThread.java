@@ -243,6 +243,7 @@ public class InputThread extends Thread {
             this.parentSession.receiveContactRejected(pkt);
             break;
         case PICTURE:
+        case PICTURE_CHECKSUM:	// a friend has changed his/her avatar
             this.parentSession.receivePicture(pkt);
             break;
         case Y7_AUTHORIZATION:

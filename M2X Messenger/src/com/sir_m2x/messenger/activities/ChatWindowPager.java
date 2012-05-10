@@ -1,6 +1,6 @@
 /*
  * M2X Messenger, an implementation of the Yahoo Instant Messaging Client based on OpenYMSG for Android.
- * Copyright (C) 2011  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
+ * Copyright (C) 2011-2012  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedList;
 
+import org.openymsg.network.NetworkConstants;
 import org.openymsg.network.YahooGroup;
 import org.openymsg.network.YahooUser;
 
@@ -42,10 +42,12 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
+import android.widget.Button;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.SlidingDrawer;
@@ -53,7 +55,8 @@ import android.widget.TextView;
 
 import com.longevitysoft.android.xml.plist.domain.Dict;
 import com.sir_m2x.messenger.R;
-import com.sir_m2x.messenger.datastructures.IM;
+import com.sir_m2x.messenger.classes.IM;
+import com.sir_m2x.messenger.dialogs.CustomDialog;
 import com.sir_m2x.messenger.services.MessengerService;
 import com.sir_m2x.messenger.utils.Utils;
 import com.viewpagerindicator.TabPageIndicator;
@@ -71,6 +74,8 @@ public class ChatWindowPager extends FragmentActivity
 	public TabPageIndicator mTabPageIndicator = null;
 	private ChatFragmentAdapter mAdapter = null;
 	private SlidingDrawer drawer = null;
+	private Button btnClose = null;
+	private Button btnSmiley = null;
 	public static String currentFriendId = "";
 	public static int currentItem = 0;
 	public static boolean isActive = false;
@@ -86,8 +91,10 @@ public class ChatWindowPager extends FragmentActivity
 		this.mViewPager.setAdapter(this.mAdapter);
 
 		this.drawer = (SlidingDrawer) findViewById(R.id.drawer);
+		this.btnClose = (Button) findViewById(R.id.btnClose);
+		this.btnSmiley = (Button) findViewById(R.id.btnSmiley);
 		GridView gv = (GridView) this.drawer.findViewById(R.id.content);
-		gv.setAdapter(new SmileyAdapter(this));
+		gv.setAdapter(new SmileyAdapter());
 		gv.setOnItemClickListener(new OnItemClickListener()
 		{
 
@@ -108,7 +115,7 @@ public class ChatWindowPager extends FragmentActivity
 		{
 			currentFriendId = getIntent().getExtras().getString(Utils.qualify("friendId"));
 			if (!MessengerService.getFriendsInChat().keySet().contains(currentFriendId))
-				MessengerService.getFriendsInChat().put(currentFriendId, new LinkedList<IM>());
+				MessengerService.getFriendIMs(this, currentFriendId);
 		}
 		else if (currentFriendId == "" || !MessengerService.getFriendsInChat().keySet().contains(currentFriendId))
 			currentFriendId = MessengerService.getFriendsInChat().keySet().toArray()[0].toString();
@@ -148,6 +155,46 @@ public class ChatWindowPager extends FragmentActivity
 				}
 			}
 		});
+		
+		this.btnClose.setOnClickListener(new OnClickListener()
+		{
+			
+			@Override
+			public void onClick(final View v)
+			{
+				Utils.saveConversationHistory(ChatWindowPager.this, currentFriendId);
+				MessengerService.getFriendsInChat().remove(currentFriendId);
+				currentItem--;
+				if (currentItem < 0)
+					if (MessengerService.getFriendsInChat().size() == 0)
+					{
+						finish();
+						return;
+					}
+					else
+						currentItem++;
+
+				currentFriendId = MessengerService.getFriendsInChat().keySet().toArray()[currentItem].toString();
+
+				
+				Intent intent = getIntent();
+				overridePendingTransition(0, 0);
+				intent.putExtra(Utils.qualify("friendId"), currentFriendId);
+				intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+				finish();
+				overridePendingTransition(0, 0);
+				startActivity(intent);
+			}
+		});
+		this.btnSmiley.setOnClickListener(new OnClickListener()
+		{
+			
+			@Override
+			public void onClick(final View v)
+			{
+				ChatWindowPager.this.drawer.animateOpen();
+			}
+		});
 
 		MessengerService.getUnreadIMs().remove(currentFriendId);
 		this.mViewPager.setCurrentItem(currentItem);
@@ -171,6 +218,7 @@ public class ChatWindowPager extends FragmentActivity
 	@Override
 	protected void onPause()
 	{
+		MessengerService.getNotificationHelper().showDefaultNotification(false, false);
 		isActive = false;
 		unregisterReceiver(this.listener);
 		super.onPause();
@@ -210,7 +258,7 @@ public class ChatWindowPager extends FragmentActivity
 			ImageView imgBulb = (ImageView) v.findViewById(R.id.imgBulb);
 			ImageView imgIsTyping = (ImageView) v.findViewById(R.id.imgIsTyping);
 			ImageView imgUnreadIm = (ImageView) v.findViewById(R.id.imgUnreadIm);
-
+			
 			String friendId = MessengerService.getFriendsInChat().keySet().toArray()[position].toString();
 			YahooUser user = null;
 
@@ -305,8 +353,10 @@ public class ChatWindowPager extends FragmentActivity
 	{
 		if (item.getItemId() == R.id.mnuClose)
 		{
+			//TODO find a better solution for this than restarting the activity
 
-			MessengerService.getFriendsInChat().get(currentFriendId).clear();
+			//MessengerService.getFriendsInChat().get(currentFriendId).clear();
+			Utils.saveConversationHistory(this, currentFriendId);
 			MessengerService.getFriendsInChat().remove(currentFriendId);
 			currentItem--;
 			if (currentItem < 0)
@@ -320,7 +370,7 @@ public class ChatWindowPager extends FragmentActivity
 
 			currentFriendId = MessengerService.getFriendsInChat().keySet().toArray()[currentItem].toString();
 
-			//TODO find a better solution for this than restarting the activity
+			
 			Intent intent = getIntent();
 			overridePendingTransition(0, 0);
 			intent.putExtra(Utils.qualify("friendId"), currentFriendId);
@@ -328,7 +378,6 @@ public class ChatWindowPager extends FragmentActivity
 			finish();
 			overridePendingTransition(0, 0);
 			startActivity(intent);
-
 			/*
 			 * Not working properly: removing the fragment and selecting another
 			 * fragment will not destroy the already instantiated one and
@@ -348,9 +397,9 @@ public class ChatWindowPager extends FragmentActivity
 		else if (item.getItemId() == R.id.mnuBuzz)
 			try
 			{
-				IM im = new IM(MessengerService.getMyId(), "", new Date(System.currentTimeMillis()), false, true);
-				MessengerService.getFriendsInChat().get(currentFriendId).add(im);
+				IM im = new IM(MessengerService.getMyId(), NetworkConstants.BUZZ, new Date(System.currentTimeMillis()), false);
 				MessengerService.getSession().sendBuzz(currentFriendId);
+				MessengerService.addIm(this, currentFriendId, im);
 				Intent intent = new Intent();
 				intent.setAction(MessengerService.INTENT_BUZZ);
 				intent.putExtra(Utils.qualify("from"), MessengerService.getMyId());
@@ -367,7 +416,32 @@ public class ChatWindowPager extends FragmentActivity
 			{
 				e.printStackTrace();
 			}
-
+		else if (item.getItemId() == R.id.mnuClear)
+		{
+			final CustomDialog dlg = new CustomDialog(this);
+			dlg.setTitle("Clear history");
+			dlg.setMessage("Are you sure you want to clear the history for this contact (all messages will be cleared)?").setPositiveButton("Yes", new View.OnClickListener()
+			{
+				
+				@Override
+				public void onClick(final View v)
+				{
+					Utils.clearHistory(ChatWindowPager.this, currentFriendId);
+					Intent intent = new Intent(MessengerService.INTENT_LIST_CHANGED);
+					sendBroadcast(intent);
+					dlg.dismiss();
+				}
+			}).setNegativeButton("No", new View.OnClickListener()
+			{
+				
+				@Override
+				public void onClick(final View v)
+				{
+					dlg.dismiss();
+				}
+			}).show();			
+		}
+		
 		return true;
 	}
 
@@ -387,11 +461,11 @@ public class ChatWindowPager extends FragmentActivity
 	@Override
 	protected void onNewIntent(final Intent intent)
 	{
-		if (getIntent().hasExtra(Utils.qualify("friendId")))
+		if (intent.hasExtra(Utils.qualify("friendId")))
 		{
 			currentFriendId = intent.getExtras().getString(Utils.qualify("friendId"));
 			if (!MessengerService.getFriendsInChat().keySet().contains(currentFriendId))
-				MessengerService.getFriendsInChat().put(currentFriendId, new LinkedList<IM>());
+				MessengerService.getFriendIMs(this, currentFriendId);
 		}
 		else if (currentFriendId == "" || !MessengerService.getFriendsInChat().keySet().contains(currentFriendId))
 			currentFriendId = MessengerService.getFriendsInChat().keySet().toArray()[0].toString();
@@ -417,12 +491,6 @@ public class ChatWindowPager extends FragmentActivity
 	class SmileyAdapter extends BaseAdapter
 	{
 		private final int COUNT = 94; // count of smileys
-		private Context mContext = null;
-
-		public SmileyAdapter(final Context context)
-		{
-			this.mContext = context;
-		}
 
 		@Override
 		public int getCount()
@@ -445,8 +513,13 @@ public class ChatWindowPager extends FragmentActivity
 		@Override
 		public View getView(final int position, final View convertView, final ViewGroup parent)
 		{
-			ImageView iv = new ImageView(getApplicationContext());
-			iv.setLayoutParams(new GridView.LayoutParams(GridView.LayoutParams.WRAP_CONTENT, GridView.LayoutParams.WRAP_CONTENT));
+			ImageView iv;
+			if (convertView == null)
+				iv = new ImageView(ChatWindowPager.this);
+			else
+				iv = (ImageView)convertView;
+			
+			iv.setLayoutParams(new GridView.LayoutParams((int)(51*(Utils.deviceDensity/240)),(int)(38*(Utils.deviceDensity/240))));
 			String smileyName = "smiley" + (position <= 78 ? position + 1 : position + 21) + ".png";
 			InputStream is = null;
 

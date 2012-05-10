@@ -20,6 +20,8 @@ package org.openymsg.network;
 
 import java.util.Comparator;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.TreeSet;
 
 import org.openymsg.addressBook.YahooAddressBookEntry;
@@ -48,6 +50,11 @@ import org.openymsg.addressBook.YahooAddressBookEntry;
 public class YahooUser
 {
 	/**
+	 * a flag to indicate that all online users in a yahoo list should be shown first.
+	 */
+	public static boolean onlinesFirst = false;
+	
+	/**
 	 * A comparator to compare YahooUsers against one another.
 	 * @return
 	 * 		The implemented comparator
@@ -59,7 +66,13 @@ public class YahooUser
 			@Override
 			public int compare(final YahooUser lhs,
 					final YahooUser rhs)
-			{						
+			{
+				if (onlinesFirst)
+					if (lhs.status == Status.OFFLINE && rhs.status != Status.OFFLINE)
+						return 1;
+					else if (lhs.status != Status.OFFLINE && rhs.status == Status.OFFLINE)
+						return -1;
+				
 				return lhs.getId().compareTo(rhs.getId());
 			}
 		};
@@ -74,6 +87,11 @@ public class YahooUser
 		this.groupIds.remove(from);
 		this.groupIds.add(to);
 	}
+	
+	/**
+	 * A timer to cancel typing notification after a specific time
+	 */
+	private Timer typingCanceler = null;
 	
 	/**
 	 * A flag to indicate that this user is pending and not currently on the friends list.
@@ -496,6 +514,19 @@ public class YahooUser
 	public void setIsTyping(final boolean isTyping)
 	{
 		this.isTyping = isTyping;
+		// the notification should be auto cancelled after sometime if we received nothing from Yahoo
+		if (this.typingCanceler != null)
+			this.typingCanceler.cancel();
+		this.typingCanceler = new Timer();
+		this.typingCanceler.schedule(new TimerTask()
+		{
+			
+			@Override
+			public void run()
+			{
+				YahooUser.this.isTyping = false;
+			}
+		}, 20000);
 	}
 
 	/**

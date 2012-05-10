@@ -1,24 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<!-- 	Copyright (c) Mehran Maghoumi 2011-2012 -->
+<!-- Copyright (c) Mehran Maghoumi 2011-2012 -->
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/toast_layout_root"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:orientation="horizontal"
-    android:background="@drawable/toast_background" android:paddingLeft="2dp" android:paddingRight="2dp" android:paddingTop="1dp">
+    android:paddingLeft="2dp"
+    android:paddingRight="2dp"
+    android:paddingTop="1dp" android:background="@drawable/toast_background">
 
     <ImageView
         android:id="@+id/imgIcon"
         android:layout_width="wrap_content"
         android:layout_height="22dp"
-        android:src="@drawable/ic_stat_notify" android:layout_marginLeft="1dp"/>
+        android:layout_marginLeft="1dp"
+        android:src="@drawable/ic_stat_notify" />
 
     <TextView
         android:id="@+id/txtMessage"
         android:layout_width="wrap_content"
         android:layout_height="fill_parent"
-        android:textColor="#000000" android:text="sir_m2x has signed on" android:gravity="top|center" android:layout_marginLeft="1dp" android:paddingRight="2dp"/>
+        android:layout_marginLeft="1dp"
+        android:gravity="top|center"
+        android:paddingRight="2dp"
+        android:text="sir_m2x has signed on"
+        android:textColor="#000000" />
 
 </LinearLayout>

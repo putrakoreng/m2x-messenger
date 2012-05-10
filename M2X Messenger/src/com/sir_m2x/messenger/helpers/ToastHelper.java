@@ -1,6 +1,6 @@
 /*
  * M2X Messenger, an implementation of the Yahoo Instant Messaging Client based on OpenYMSG for Android.
- * Copyright (C) 2011  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
+ * Copyright (C) 2011-2012  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,19 @@ import com.sir_m2x.messenger.utils.Preferences;
  */
 public class ToastHelper
 {
-	public static void showToast(final Context context, final int resIcon, final String message, final int duration, final int gravity)
+	/**
+	 * A static utility method to ease showing toast notifications.
+	 * 
+	 * @param context
+	 * 		Android context
+	 * @param resIcon
+	 * 		The resource ID of the Icon to be shown in the toast message.
+	 * @param message
+	 * 		A string representing the message to be shown
+	 * @param duration
+	 * 		The duration of the toast (Toast.LONG or Toast.SHORT)
+	 */
+	public static void showToast(final Context context, final int resIcon, final String message, final int duration)
 	{
 		if (!Preferences.showToasts)
 			return;
@@ -49,8 +61,8 @@ public class ToastHelper
 		txtMessage.setText(message);
 
 		Toast toast = new Toast(context);
-		if (gravity != -1)
-			toast.setGravity(gravity, 0, 0);
+		if (Preferences.toastGravity != -1)
+			toast.setGravity(Preferences.toastGravity, Preferences.xOffset, Preferences.yOffset);
 		toast.setDuration(duration);
 		toast.setView(view);
 		toast.show();

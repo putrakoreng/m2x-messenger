@@ -1,6 +1,6 @@
 /*
  * M2X Messenger, an implementation of the Yahoo Instant Messaging Client based on OpenYMSG for Android.
- * Copyright (C) 2011  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
+ * Copyright (C) 2011-2012  Mehran Maghoumi [aka SirM2X], maghoumi@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,47 +26,44 @@ import org.openymsg.network.StealthStatus;
 import org.openymsg.network.YahooGroup;
 import org.openymsg.network.YahooUser;
 
-import android.app.AlertDialog;
 import android.app.ExpandableListActivity;
-import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
-import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.Bitmap;
-import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.text.Html;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
-import android.util.TypedValue;
-import android.view.LayoutInflater;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemSelectedListener;
-import android.widget.ArrayAdapter;
-import android.widget.BaseExpandableListAdapter;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.ExpandableListView.ExpandableListContextMenuInfo;
 import android.widget.ImageView;
-import android.widget.Spinner;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.sir_m2x.messenger.R;
-import com.sir_m2x.messenger.helpers.AvatarHelper;
+import com.sir_m2x.messenger.classes.ContactsListAdapter;
+import com.sir_m2x.messenger.dialogs.ChangeStatusDialog;
+import com.sir_m2x.messenger.dialogs.CustomDialog;
+import com.sir_m2x.messenger.helpers.ToastHelper;
 import com.sir_m2x.messenger.services.MessengerService;
-import com.sir_m2x.messenger.utils.Preferences;
 import com.sir_m2x.messenger.utils.ProgressCheckThread;
 import com.sir_m2x.messenger.utils.Utils;
 
@@ -74,7 +71,6 @@ import com.sir_m2x.messenger.utils.Utils;
  * The buddy list of the messenger
  * 
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
- * 
  */
 public class ContactsListActivity extends ExpandableListActivity
 {
@@ -88,17 +84,15 @@ public class ContactsListActivity extends ExpandableListActivity
 	private final int DELETE_GROUP = 1;
 	private final int RENAME_GROUP = 2;
 
-	private final String[] statusArray = { "Available", "Busy", "Away", "Invisible", "Custom" };
-
 	private ContactsListAdapter adapter;
-	private ProgressDialog pd = null;
-	private String lastLoginStatus = "Connection lost! Retrying...";
 	private ProgressCheckThread progressCheck = null;
-	private Spinner spnStatus = null;
-	private Status currentStatus = Status.AVAILABLE;
 	private ImageView imgTopLogo = null;
-	private int currentSelection = 0;
-	private boolean isInitializing = true;	// flag to prevent spinner from firing its callback on activity initialization
+	private TextView txtProblem = null;
+	private EditText txtSearch = null;
+	private CheckBox chkSearch = null;
+	private Button btnConversations = null;
+	private Button btnSettings = null;
+	private Button btnSignout = null;
 
 	// ContextMenuInfo for keeping track of the selected item between submenus. Apparently Android has a bug...
 	ExpandableListContextMenuInfo cmInfo = null;
@@ -107,219 +101,120 @@ public class ContactsListActivity extends ExpandableListActivity
 	public void onCreate(final Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-		this.isInitializing = true;
 		getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 		setContentView(R.layout.contacts_list);
-		this.adapter = new ContactsListAdapter();
+		this.adapter = new ContactsListAdapter(this);
 		setListAdapter(this.adapter);
 		registerForContextMenu(getExpandableListView());
-		
-		((TextView)findViewById(R.id.txtLoginId)).setText(MessengerService.getMyId());
 
-		this.pd = new ProgressDialog(this);
-		this.pd.setIndeterminate(true);
-		this.pd.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-		this.pd.setMessage(this.lastLoginStatus);
-		this.pd.setOnCancelListener(this.pdCancelListener);
-		
-		this.imgTopLogo = (ImageView)findViewById(R.id.imgTopLogo);
-		
-		/*
-		 * Initialize the status spinner
-		 */
-		this.spnStatus = (Spinner) findViewById(R.id.spnStatus);
-		this.currentStatus = MessengerService.getSession().getStatus();
-		
-		@SuppressWarnings({ "unchecked", "rawtypes" })
-		ArrayAdapter adapter = new ArrayAdapter(this, android.R.layout.simple_spinner_item, this.statusArray);
-		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		this.spnStatus.setAdapter(adapter);
-		
-		this.currentSelection = 0;
-		
-		switch (this.currentStatus)
+		((TextView) findViewById(R.id.txtLoginId)).setText(MessengerService.getMyId());
+
+		this.imgTopLogo = (ImageView) findViewById(R.id.imgTopLogo);
+		this.txtProblem = (TextView) findViewById(R.id.txtProblem);
+		this.txtProblem.setVisibility(View.GONE);
+		this.txtSearch = (EditText) findViewById(R.id.txtSearch);
+		this.txtSearch.setVisibility(View.GONE);
+		this.txtSearch.addTextChangedListener(new TextWatcher()
 		{
-			case AVAILABLE:
-				this.currentSelection = 0;
-				this.imgTopLogo.setImageResource(R.drawable.top_logo_available);
-				break;
-			case BUSY:
-				this.currentSelection = 1;
-				this.imgTopLogo.setImageResource(R.drawable.top_logo_busy);
-				break;
-			case IDLE:
-				this.currentSelection = 2;
-				this.imgTopLogo.setImageResource(R.drawable.top_logo_away);
-				break;
-			case INVISIBLE:
-				this.currentSelection = 3;
-				this.imgTopLogo.setImageResource(R.drawable.top_logo_invisible);
-				break;
-			case CUSTOM:
-				this.currentSelection = 4;
-				
-				if(MessengerService.getSession().isCustomBusy())
-					this.imgTopLogo.setImageResource(R.drawable.top_logo_busy);
+
+			@Override
+			public void onTextChanged(final CharSequence s, final int start, final int before, final int count)
+			{
+				ContactsListActivity.this.adapter.setFilter(ContactsListActivity.this.txtSearch.getText().toString());
+				getExpandableListView().expandGroup(0);
+			}
+
+			@Override
+			public void beforeTextChanged(final CharSequence s, final int start, final int count, final int after)
+			{
+			}
+
+			@Override
+			public void afterTextChanged(final Editable s)
+			{
+			}
+		});
+
+		determineTopLogo();
+
+		this.chkSearch = (CheckBox) findViewById(R.id.chkSearch);
+		this.chkSearch.setOnCheckedChangeListener(new OnCheckedChangeListener()
+		{
+			@Override
+			public void onCheckedChanged(final CompoundButton buttonView, final boolean isChecked)
+			{
+				if (isChecked)
+				{
+					ContactsListActivity.this.txtSearch.setVisibility(View.VISIBLE);
+					ContactsListActivity.this.txtSearch.requestFocus();
+					// show the virtual keyboard for txtSearch
+					InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+					imm.showSoftInput(ContactsListActivity.this.txtSearch, InputMethodManager.SHOW_IMPLICIT);
+				}
 				else
-					this.imgTopLogo.setImageResource(R.drawable.top_logo_available);
-				
-				break;
-
-			default:
-				break;
-		}
-
-		this.spnStatus.setSelection(this.currentSelection);
-		this.spnStatus.setOnItemSelectedListener(this.spnItem_Selected);
-	}
-	
-	OnItemSelectedListener spnItem_Selected = new OnItemSelectedListener()
-	{
-
-		@Override
-		public void onItemSelected(final AdapterView<?> arg0, final View arg1, final int arg2, final long arg3)
-		{
-			if (ContactsListActivity.this.isInitializing)
-			{
-				ContactsListActivity.this.isInitializing = false;
-				return;
+				{
+					ContactsListActivity.this.txtSearch.setVisibility(View.GONE);
+					ContactsListActivity.this.txtSearch.setText(""); // clear any filter
+				}
 			}
-			
-			switch (arg2)
+		});
+
+		this.btnConversations = (Button) findViewById(R.id.btnConversations);
+		this.btnConversations.setOnClickListener(new View.OnClickListener()
+		{
+
+			@Override
+			public void onClick(final View v)
 			{
-				case 0:
-					ContactsListActivity.this.currentStatus = Status.AVAILABLE;
-					ContactsListActivity.this.imgTopLogo.setImageResource(R.drawable.top_logo_available);
-					break;
-				case 1:
-					ContactsListActivity.this.currentStatus = Status.BUSY;
-					ContactsListActivity.this.imgTopLogo.setImageResource(R.drawable.top_logo_busy);
-					break;
-				case 2:
-					ContactsListActivity.this.currentStatus = Status.IDLE;
-					ContactsListActivity.this.imgTopLogo.setImageResource(R.drawable.top_logo_away);
-					break;
-				case 3:
-					ContactsListActivity.this.currentStatus = Status.INVISIBLE;
-					ContactsListActivity.this.imgTopLogo.setImageResource(R.drawable.top_logo_invisible);
-					break;
-				case 4:
-					ContactsListActivity.this.currentStatus = Status.CUSTOM;
-					ContactsListActivity.this.imgTopLogo.setImageResource(R.drawable.top_logo_available);
-
-					//show the dialog so that the user can type the new status message
-					AlertDialog.Builder dlgCustomStatus = new AlertDialog.Builder(ContactsListActivity.this);
-					final View v = getLayoutInflater().inflate(R.layout.change_status_dialog, null);
-
-					dlgCustomStatus.setTitle("New status").setView(v).setCancelable(false).setPositiveButton("OK", new OnClickListener()
-					{
-						@Override
-						public void onClick(final DialogInterface dialog, final int which)
-						{
-							String message = ((EditText) v.findViewById(R.id.txtCustomMessage)).getText().toString();
-							CheckBox chkBusy = (CheckBox) v.findViewById(R.id.chkBusy);
-
-							try
-							{
-								MessengerService.getSession().setStatus(message, chkBusy.isChecked());
-								if (chkBusy.isChecked())
-									ContactsListActivity.this.imgTopLogo.setImageResource(R.drawable.top_logo_busy);
-								
-								sendBroadcast(new Intent(MessengerService.INTENT_STATUS_CHANGED));
-							}
-							catch (IllegalArgumentException e)
-							{
-								e.printStackTrace();
-							}
-							catch (IOException e)
-							{
-								e.printStackTrace();
-							}
-
-						}
-					}).setNegativeButton("Cancel", new OnClickListener()
-					{
-						@Override
-						public void onClick(final DialogInterface dialog, final int which)
-						{
-							switch (MessengerService.getSession().getStatus())
-							{
-								case AVAILABLE:
-									ContactsListActivity.this.currentSelection = 0;
-									break;
-								case BUSY:
-									ContactsListActivity.this.currentSelection = 1;
-									break;
-								case IDLE:
-									ContactsListActivity.this.currentSelection = 2;
-									break;
-								case INVISIBLE:
-									ContactsListActivity.this.currentSelection = 3;
-									break;
-								case CUSTOM:
-									ContactsListActivity.this.currentSelection = 4;
-									break;
-
-								default:
-									break;
-							}
-
-							ContactsListActivity.this.currentStatus = MessengerService.getSession().getStatus();
-							ContactsListActivity.this.spnStatus.setSelection(ContactsListActivity.this.currentSelection);
-							dialog.cancel();
-						}
-					}).show();
+				if (MessengerService.getFriendsInChat().isEmpty())
 					return;
+				startActivity(new Intent(ContactsListActivity.this, ChatWindowPager.class));
 			}
-
-			try
-			{
-				MessengerService.getSession().setStatus(ContactsListActivity.this.currentStatus);
-
-				// update status bar notification
-				sendBroadcast(new Intent(MessengerService.INTENT_STATUS_CHANGED));
-			}
-			catch (IllegalArgumentException e)
-			{
-				e.printStackTrace();
-			}
-			catch (IOException e)
-			{
-				e.printStackTrace();
-			}
-		}
-
-		@Override
-		public void onNothingSelected(final AdapterView<?> arg0)
+		});
+		this.btnSettings = (Button) findViewById(R.id.btnSettings);
+		this.btnSettings.setOnClickListener(new View.OnClickListener()
 		{
 
-		}
-	};
+			@Override
+			public void onClick(final View v)
+			{
+				ChangeStatusDialog dlg = new ChangeStatusDialog(ContactsListActivity.this);
+				dlg.show();
+			}
+		});
+		this.btnSignout = (Button) findViewById(R.id.btnSignout);
+		this.btnSignout.setOnClickListener(new View.OnClickListener()
+		{
+
+			@Override
+			public void onClick(final View v)
+			{
+				confirmSignOut();
+			}
+		});
+	}
 
 	@Override
 	protected void onResume()
 	{
 		if (MessengerService.getSession().getSessionStatus() != SessionState.LOGGED_ON)
-			showProgressAndWaitLogin();
-
+			if (this.progressCheck == null || this.progressCheck != null && !this.progressCheck.isAlive())
+			{
+				this.progressCheck = new ProgressCheckThread(this.progressHandler);
+				this.progressCheck.start();
+			}
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_IS_TYPING));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_NEW_IM));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_BUZZ));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_ON));
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_STATUS_CHANGED));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_FRIEND_UPDATE_RECEIVED));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_FRIEND_SIGNED_OFF));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_LIST_CHANGED));
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_CONNECTION_LOST));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_DESTROY));
 		this.adapter.notifyDataSetChanged();
 		super.onResume();
-	}
-
-	@Override
-	protected void onPause()
-	{
-		if (this.pd != null)
-			this.pd.dismiss();
-		super.onPause();
 	}
 
 	@Override
@@ -333,262 +228,12 @@ public class ContactsListActivity extends ExpandableListActivity
 	@Override
 	public boolean onChildClick(final ExpandableListView parent, final View v, final int groupPosition, final int childPosition, final long id)
 	{
-		//		Intent intent = new Intent(ContactsListActivity.this, ChatWindowTabActivity.class);
-		//		intent.putExtra(Utils.qualify("friendId"), this.adapter.getChild(groupPosition, childPosition).toString());
-		//		startActivity(intent);
-
 		Intent intent = new Intent(ContactsListActivity.this, ChatWindowPager.class);
 		intent.putExtra(Utils.qualify("friendId"), this.adapter.getChild(groupPosition, childPosition).toString());
 		startActivity(intent);
 
 		return true;
 	};
-
-	private class ContactsListAdapter extends BaseExpandableListAdapter
-	{
-		@Override
-		public Object getChild(final int groupPosition, final int childPosition)
-		{
-			YahooGroup group = (YahooGroup) getGroup(groupPosition);
-			int i = 0;
-
-			for (YahooUser user : group.getUsers())
-			{
-				if (i == childPosition)
-					if (Preferences.showOffline)
-						return user;
-					else if (user.getStatus() != Status.OFFLINE) // if this user is online, show it!
-						return user;
-					else
-						continue; // this user is offline and based on the preferences, we should not list him/her
-				if (Preferences.showOffline)
-					i++;
-				else if (user.getStatus() != Status.OFFLINE)
-					i++;
-
-			}
-
-			return null;
-		}
-
-		@Override
-		public long getChildId(final int groupPosition, final int childPosition)
-		{
-			return childPosition;
-		}
-
-		@Override
-		public View getChildView(final int groupPosition, final int childPosition, final boolean isLastChild, final View convertView, final ViewGroup parent)
-		{
-			YahooUser user = (YahooUser) getChild(groupPosition, childPosition);
-			String friendId = user.getId().toString();
-			LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-			View v = inflater.inflate(R.layout.contacts_list_child_view, parent, false);
-
-			boolean isOnline = false;
-
-			if (user.getStatus() != Status.OFFLINE)
-				isOnline = true;
-
-			TextView txtId = (TextView) v.findViewById(R.id.txtId);
-			TextView txtStatus = (TextView) v.findViewById(R.id.txtStatus);
-			TextView txtUnreadCount = (TextView) v.findViewById(R.id.txtNewImCount);
-			ImageView imgIsTyping = (ImageView) v.findViewById(R.id.imgIsTyping);
-			ImageView imgEnvelope = (ImageView) v.findViewById(R.id.imgEnvelope);
-			ImageView imgAvatar = (ImageView) v.findViewById(R.id.imgAvatar);
-			ImageView imgBulb = (ImageView) v.findViewById(R.id.imgBulb);
-
-			int unread = 0;
-
-			if (MessengerService.getFriendAvatars().containsKey(friendId))
-				imgAvatar.setImageBitmap(MessengerService.getFriendAvatars().get(friendId));
-			else
-			{
-				Bitmap b = AvatarHelper.loadAvatarFromSD(friendId);
-				if (b != null)
-					imgAvatar.setImageBitmap(b);
-			}
-
-			if (MessengerService.getUnreadIMs().containsKey(friendId))
-			{
-				unread = MessengerService.getUnreadIMs().get(friendId).intValue();
-				txtUnreadCount.setText(String.valueOf(unread));
-			}
-
-			String friendIdText = isOnline ? Utils.toBold(friendId) : friendId;
-			String friendStatus = "";
-
-			if (user.getStealth() == StealthStatus.STEALTH_PERMENANT)
-				friendIdText = Utils.toItalic(friendId);
-
-			if (user.getCustomStatusMessage() != null)
-				friendStatus += user.getCustomStatusMessage();
-			if (user.isPending())
-				friendStatus += "<i>[Add request pending]</i>";
-
-			txtId.setText(Html.fromHtml(friendIdText));
-
-			if (friendStatus.equals("") || friendStatus == null)
-				txtStatus.setVisibility(View.GONE);
-			else
-				txtStatus.setText(Html.fromHtml(friendStatus));
-
-			if (!isOnline)
-			{
-				txtId.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-				txtId.setTextColor(txtId.getTextColors().withAlpha(200));
-				imgAvatar.setAlpha(130);
-			}
-
-			switch (user.getStatus())
-			{
-				case AVAILABLE:
-					imgBulb.setImageResource(R.drawable.presence_online);
-					break;
-				case BUSY:
-					imgBulb.setImageResource(R.drawable.presence_busy);
-					break;
-				case IDLE:
-					imgBulb.setImageResource(R.drawable.presence_away);
-					break;
-				case CUSTOM:
-					if (user.isCustomStatusBusy())
-						imgBulb.setImageResource(R.drawable.presence_busy);
-					else
-						imgBulb.setImageResource(R.drawable.presence_online);
-					break;
-				case OFFLINE:
-					imgBulb.setImageResource(R.drawable.presence_offline);
-					break;
-				default:
-					imgBulb.setImageResource(R.drawable.presence_busy);
-			}
-
-			txtUnreadCount.setVisibility(unread == 0 ? View.GONE : View.VISIBLE);
-			imgEnvelope.setVisibility(unread == 0 ? View.GONE : View.VISIBLE);
-
-			imgIsTyping.setVisibility(user.isTyping() == true ? View.VISIBLE : View.GONE);
-			v.setTag(friendId);
-			return v;
-		}
-
-		@Override
-		public int getChildrenCount(final int groupPosition)
-		{
-			if (Preferences.showOffline)
-				return ((YahooGroup) (MessengerService.getYahooList().getFriendsList().values().toArray()[groupPosition])).getUsers().size();
-
-			int count = 0;
-			YahooGroup group = (YahooGroup) getGroup(groupPosition);
-			for (YahooUser user : group.getUsers())
-				if (user.getStatus() != Status.OFFLINE)
-					count++;
-
-			return count;
-		}
-
-		/**
-		 * The count of all of the contacts in this group (regardless of their
-		 * status)
-		 * 
-		 * @param groupPosition
-		 *            The index of the group;
-		 * @return The total count of the contacts in this group.
-		 */
-		public int getTotalChildrenCount(final int groupPosition)
-		{
-			return ((YahooGroup) (MessengerService.getYahooList().getFriendsList().values().toArray()[groupPosition])).getUsers().size();
-		}
-
-		@Override
-		public Object getGroup(final int groupPosition)
-		{
-			int i = 0;
-			TreeMap<String, YahooGroup> friendsList = MessengerService.getYahooList().getFriendsList();
-
-			for (String group : friendsList.keySet())
-			{
-				if (i == groupPosition)
-					return friendsList.get(group);
-				i++;
-			}
-
-			return null;
-		}
-
-		@Override
-		public int getGroupCount()
-		{
-			if (MessengerService.getYahooList() == null)
-			{
-				Log.e("M2X", "YahooList is null");
-				return 0;
-			}
-			if (MessengerService.getYahooList().getFriendsList() == null)
-			{
-				Log.e("M2X", "Friends list is null");
-				return 0;
-			}
-			return MessengerService.getYahooList().getFriendsList().size();
-		}
-
-		@Override
-		public long getGroupId(final int groupPosition)
-		{
-			return groupPosition;
-		}
-
-		@Override
-		public View getGroupView(final int groupPosition, final boolean isExpanded, final View convertView, final ViewGroup parent)
-		{
-			LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-			View v = inflater.inflate(R.layout.contacts_list_group_view, parent, false);
-
-			TextView txtGroupName = (TextView) v.findViewById(R.id.txtGroupName);
-			TextView txtGroupCount = (TextView) v.findViewById(R.id.txtGroupCount);
-			ImageView imgEnvelope = (ImageView) v.findViewById(R.id.imgEnvelope);
-			ImageView imgIndicator = (ImageView) v.findViewById(R.id.imgIndicator);
-			int unreadCount = 0;
-
-			YahooGroup group = (YahooGroup) getGroup(groupPosition);
-			txtGroupName.setText(group.getName());
-
-			Integer totalCount = getTotalChildrenCount(groupPosition);
-			Integer onlineCount = 0;
-
-			for (YahooUser user : group.getUsers())
-			{
-				if (user.getStatus() != Status.OFFLINE)
-					onlineCount++;
-				if (MessengerService.getUnreadIMs().keySet().contains(user.getId()))
-					unreadCount += MessengerService.getUnreadIMs().get(user.getId());
-			}
-
-			txtGroupCount.setText(onlineCount + "/" + totalCount);
-			imgEnvelope.setVisibility(unreadCount == 0 ? View.GONE : View.VISIBLE);
-			txtGroupName.setTypeface(unreadCount == 0 ? Typeface.DEFAULT : Typeface.DEFAULT_BOLD);
-
-			if (isExpanded)
-				imgIndicator.setImageResource(R.drawable.list_arrow_down);
-			else
-				imgIndicator.setImageResource(R.drawable.list_arrow_right);
-
-			return v;
-		}
-
-		@Override
-		public boolean hasStableIds()
-		{
-			return true;
-		}
-
-		@Override
-		public boolean isChildSelectable(final int groupPosition, final int childPosition)
-		{
-			return true;
-		}
-
-	}
 
 	@Override
 	public boolean onCreateOptionsMenu(final Menu menu)
@@ -603,26 +248,7 @@ public class ContactsListActivity extends ExpandableListActivity
 		switch (item.getItemId())
 		{
 			case R.id.mnuSignOut:
-				AlertDialog.Builder builder = new AlertDialog.Builder(this);
-				//confirm sign out
-				builder.setTitle("Confirm sign out").setMessage("Are you sure you want to sing out?").setPositiveButton("Yes", new OnClickListener()
-				{
-
-					@Override
-					public void onClick(final DialogInterface dialog, final int which)
-					{
-						stopService(new Intent(ContactsListActivity.this, MessengerService.class));
-						finish();
-					}
-				}).setNegativeButton("No", new OnClickListener()
-				{
-
-					@Override
-					public void onClick(final DialogInterface dialog, final int which)
-					{
-						dialog.cancel();
-					}
-				}).show();
+				confirmSignOut();
 				break;
 
 			case R.id.mnuShowConversations:
@@ -637,12 +263,15 @@ public class ContactsListActivity extends ExpandableListActivity
 
 			case R.id.mnuNewIm:
 				final EditText txtId = new EditText(this);
-				AlertDialog.Builder dlgGetId = new AlertDialog.Builder(this);
+				txtId.setBackgroundResource(R.drawable.background_textbox);
+				txtId.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+				final CustomDialog dlgGetId = new CustomDialog(this);
+				dlgGetId.setTitle("New IM");
 				// get the ID of the recipient 
-				dlgGetId.setTitle("New IM").setMessage("Enter the recipient's ID:").setView(txtId).setPositiveButton("OK", new OnClickListener()
+				dlgGetId.setMessage("Enter the recipient's ID:").setView(txtId).setPositiveButton("OK", new View.OnClickListener()
 				{
 					@Override
-					public void onClick(final DialogInterface dialog, final int which)
+					public void onClick(final View v)
 					{
 						String id = txtId.getText().toString();
 						if (id == null || id.equals(""))
@@ -651,16 +280,18 @@ public class ContactsListActivity extends ExpandableListActivity
 						Intent intent = new Intent(ContactsListActivity.this, ChatWindowPager.class);
 						intent.putExtra(Utils.qualify("friendId"), id);
 						startActivity(intent);
+						dlgGetId.dismiss();
 					}
-				}).setNegativeButton("Cancel", new OnClickListener()
+				}).setNegativeButton("Cancel", new View.OnClickListener()
 				{
 					@Override
-					public void onClick(final DialogInterface dialog, final int which)
+					public void onClick(final View v)
 					{
-						dialog.cancel();
+						dlgGetId.cancel();
 					}
 				}).show();
 				break;
+
 			case R.id.mnuPreferences:
 				startActivityForResult(new Intent(this, PreferencesActivity.class), 0);
 				break;
@@ -715,6 +346,9 @@ public class ContactsListActivity extends ExpandableListActivity
 		}
 		else if (type == ExpandableListView.PACKED_POSITION_TYPE_GROUP) // Show the pop-up menu for a group
 		{
+			if (!this.adapter.getFilter().equals("")) // don't show menu for "search result" group
+				return;
+
 			String groupName = ((YahooGroup) this.adapter.getGroup(group)).getName();
 			menu.setHeaderTitle(groupName);
 			menu.add(1, this.ADD_FIRNED, 0, "Add a friend...");
@@ -748,6 +382,11 @@ public class ContactsListActivity extends ExpandableListActivity
 				{
 					e.printStackTrace();
 				}
+				catch (IllegalAccessException e)
+				{
+					ToastHelper.showToast(ContactsListActivity.this, R.drawable.ic_stat_notify_busy, "Your are not logged in!", Toast.LENGTH_LONG);
+					e.printStackTrace();
+				}
 				return true;
 			}
 			//TODO implement this for session stealth support
@@ -762,19 +401,24 @@ public class ContactsListActivity extends ExpandableListActivity
 				{
 					e.printStackTrace();
 				}
+				catch (IllegalAccessException e)
+				{
+					ToastHelper.showToast(ContactsListActivity.this, R.drawable.ic_stat_notify_busy, "Your are not logged in!", Toast.LENGTH_LONG);
+					e.printStackTrace();
+				}
 				return true;
 			}
 			else if (item.getItemId() == this.REMOVE_FIRNED) //Delete
 			{
-				AlertDialog.Builder builder = new AlertDialog.Builder(this);
-				builder.setTitle("Remove friend");
-				builder.setMessage("Are you sure you want to remove \"" + user.getId() + "\" from your friends list?");
-				builder.setCancelable(true);
-				builder.setPositiveButton("Yes", new OnClickListener()
+				final CustomDialog dlg = new CustomDialog(this);
+				dlg.setTitle("Remove friend");
+				dlg.setMessage("Are you sure you want to remove \"" + user.getId() + "\" from your friends list?");
+				dlg.setCancelable(true);
+				dlg.setPositiveButton("Yes", new View.OnClickListener()
 				{
 
 					@Override
-					public void onClick(final DialogInterface dialog, final int which)
+					public void onClick(final View v)
 					{
 						try
 						{
@@ -783,56 +427,67 @@ public class ContactsListActivity extends ExpandableListActivity
 						}
 						catch (IOException e)
 						{
+
 							e.printStackTrace();
 						}
+						catch (IllegalAccessException e)
+						{
+							ToastHelper.showToast(ContactsListActivity.this, R.drawable.ic_stat_notify_busy, "Your are not logged in!", Toast.LENGTH_LONG);
+							e.printStackTrace();
+						}
+						dlg.dismiss();
 					}
 				});
 
-				builder.setNegativeButton("No", new OnClickListener()
+				dlg.setNegativeButton("No", new View.OnClickListener()
 				{
 
 					@Override
-					public void onClick(final DialogInterface dialog, final int which)
+					public void onClick(final View v)
 					{
-						dialog.cancel();
+						dlg.cancel();
 					}
 				});
 
-				builder.create().show();
+				dlg.show();
 				return true;
 			}
 			else if (item.getItemId() == this.MOVE_NEW_GROUP)
 			{
 				final EditText txtId = new EditText(this);
-				AlertDialog.Builder builder = new AlertDialog.Builder(this);
-				builder.setTitle("Move group").setMessage("Enter the name of the group you want to move this friend to:").setView(txtId)
-						.setPositiveButton("Move", new OnClickListener()
+				txtId.setBackgroundResource(R.drawable.background_textbox);
+				txtId.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+				final CustomDialog dlg = new CustomDialog(this);
+				dlg.setTitle("Move group");
+				dlg.setMessage("Enter the name of the group you want to move this friend to:").setView(txtId).setPositiveButton("Move", new View.OnClickListener()
+				{
+					@Override
+					public void onClick(final View v)
+					{
+						String destinationGroup = txtId.getText().toString();
+						if (destinationGroup == null || destinationGroup.equals(""))
+							return;
+						try
 						{
-							@Override
-							public void onClick(final DialogInterface dialog, final int which)
-							{
-								String destinationGroup = txtId.getText().toString();
-								if (destinationGroup == null || destinationGroup.equals(""))
-									return;
-								try
-								{
-									MessengerService.getYahooList().moveFriend(user, sourceGroup, destinationGroup);
-									ContactsListActivity.this.adapter.notifyDataSetChanged();
-								}
-								catch (Exception ex)
-								{
-									ex.printStackTrace();
-								}
-							}
-						}).setNegativeButton("Cancel", new OnClickListener()
+							MessengerService.getYahooList().moveFriend(user, sourceGroup, destinationGroup);
+							ContactsListActivity.this.adapter.notifyDataSetChanged();
+						}
+						catch (Exception ex)
 						{
+							ex.printStackTrace();
+						}
 
-							@Override
-							public void onClick(final DialogInterface dialog, final int which)
-							{
-								dialog.cancel();
-							}
-						}).show();
+						dlg.dismiss();
+					}
+				}).setNegativeButton("Cancel", new View.OnClickListener()
+				{
+
+					@Override
+					public void onClick(final View v)
+					{
+						dlg.cancel();
+					}
+				}).show();
 				return true;
 			}
 
@@ -847,6 +502,11 @@ public class ContactsListActivity extends ExpandableListActivity
 			{
 				e.printStackTrace();
 			}
+			catch (IllegalAccessException e)
+			{
+				ToastHelper.showToast(ContactsListActivity.this, R.drawable.ic_stat_notify_busy, "Your are not logged in!", Toast.LENGTH_LONG);
+				e.printStackTrace();
+			}
 
 		}
 
@@ -855,17 +515,20 @@ public class ContactsListActivity extends ExpandableListActivity
 
 			final YahooGroup chosenGroup = (YahooGroup) this.adapter.getGroup(group);
 			final String groupName = chosenGroup.getName();
-			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			final CustomDialog dlg = new CustomDialog(this);
 
 			switch (item.getItemId())
 			{
 				case ADD_FIRNED://add friend
 					final EditText txtId = new EditText(this);
-					builder.setTitle("Add friend").setMessage("Enter the ID of the person you want to add:").setView(txtId).setPositiveButton("Add", new OnClickListener()
+					txtId.setBackgroundResource(R.drawable.background_textbox);
+					txtId.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+					dlg.setTitle("Add friend");
+					dlg.setMessage("Enter the ID of the person you want to add:").setView(txtId).setPositiveButton("Add", new View.OnClickListener()
 					{
 
 						@Override
-						public void onClick(final DialogInterface dialog, final int which)
+						public void onClick(final View v)
 						{
 							String friendId = txtId.getText().toString();
 							if (friendId == null || friendId.equals(""))
@@ -879,22 +542,25 @@ public class ContactsListActivity extends ExpandableListActivity
 							{
 								ex.printStackTrace();
 							}
+
+							dlg.dismiss();
 						}
-					}).setNegativeButton("Cancel", new OnClickListener()
+					}).setNegativeButton("Cancel", new View.OnClickListener()
 					{
 
 						@Override
-						public void onClick(final DialogInterface dialog, final int which)
+						public void onClick(final View v)
 						{
-							dialog.cancel();
+							dlg.cancel();
 						}
 					}).show();
 					break;
 				case DELETE_GROUP: //delete this group and all its contents
-					builder.setTitle("Confrim delete").setMessage("Are you sure you want to delete group \"" + groupName + "\"?").setPositiveButton("Yes", new OnClickListener()
+					dlg.setTitle("Confrim delete");
+					dlg.setMessage("Are you sure you want to delete group \"" + groupName + "\"?").setPositiveButton("Yes", new View.OnClickListener()
 					{
 						@Override
-						public void onClick(final DialogInterface dialog, final int which)
+						public void onClick(final View v)
 						{
 							try
 							{
@@ -906,23 +572,28 @@ public class ContactsListActivity extends ExpandableListActivity
 								ex.printStackTrace();
 							}
 
+							dlg.dismiss();
+
 						}
-					}).setNegativeButton("No", new OnClickListener()
+					}).setNegativeButton("No", new View.OnClickListener()
 					{
 						@Override
-						public void onClick(final DialogInterface dialog, final int which)
+						public void onClick(final View v)
 						{
-							dialog.cancel();
+							dlg.cancel();
 						}
 					}).show();
 
 					break;
 				case RENAME_GROUP: //rename this group
 					final EditText txtGroupNewName = new EditText(this);
-					builder.setTitle("Group rename").setMessage("Enter a new name for this group:").setView(txtGroupNewName).setPositiveButton("OK", new OnClickListener()
+					txtGroupNewName.setBackgroundResource(R.drawable.background_textbox);
+					txtGroupNewName.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+					dlg.setTitle("Group rename");
+					dlg.setMessage("Enter a new name for this group:").setView(txtGroupNewName).setPositiveButton("OK", new View.OnClickListener()
 					{
 						@Override
-						public void onClick(final DialogInterface dialog, final int which)
+						public void onClick(final View v)
 						{
 							String groupNewName = txtGroupNewName.getText().toString();
 							if (groupNewName == null || groupNewName.equals(""))
@@ -936,13 +607,15 @@ public class ContactsListActivity extends ExpandableListActivity
 							{
 								e.printStackTrace();
 							}
+
+							dlg.dismiss();
 						}
-					}).setNegativeButton("Cancel", new OnClickListener()
+					}).setNegativeButton("Cancel", new View.OnClickListener()
 					{
 						@Override
-						public void onClick(final DialogInterface dialog, final int which)
+						public void onClick(final View v)
 						{
-							dialog.cancel();
+							dlg.cancel();
 						}
 					}).show();
 					break;
@@ -954,17 +627,6 @@ public class ContactsListActivity extends ExpandableListActivity
 		return true;
 	}
 
-	private void showProgressAndWaitLogin()
-	{
-		if (this.progressCheck == null || !this.progressCheck.isAlive())
-		{
-			this.progressCheck = new ProgressCheckThread(this.progressHandler);
-			this.progressCheck.start();
-		}
-
-		this.pd.show();
-	}
-
 	BroadcastReceiver listener = new BroadcastReceiver()
 	{
 
@@ -973,9 +635,23 @@ public class ContactsListActivity extends ExpandableListActivity
 		{
 			if (intent.getAction().equals(MessengerService.INTENT_NEW_IM) || intent.getAction().equals(MessengerService.INTENT_IS_TYPING)
 					|| intent.getAction().equals(MessengerService.INTENT_BUZZ) || intent.getAction().equals(MessengerService.INTENT_FRIEND_SIGNED_ON)
-					|| intent.getAction().equals(MessengerService.INTENT_FRIEND_SIGNED_OFF) || intent.getAction().equals(MessengerService.INTENT_FRIEND_UPDATE_RECEIVED)
-					|| intent.getAction().equals(MessengerService.INTENT_LIST_CHANGED))
+					|| intent.getAction().equals(MessengerService.INTENT_FRIEND_SIGNED_OFF) || intent.getAction().equals(MessengerService.INTENT_FRIEND_UPDATE_RECEIVED))
 				ContactsListActivity.this.adapter.notifyDataSetChanged();
+			else if (intent.getAction().equals(MessengerService.INTENT_LIST_CHANGED))
+			{
+				MessengerService.getYahooList().resortList(true);
+				ContactsListActivity.this.adapter.notifyDataSetChanged();
+			}
+			else if (intent.getAction().equals(MessengerService.INTENT_CONNECTION_LOST))
+			{
+				if (ContactsListActivity.this.progressCheck == null || ContactsListActivity.this.progressCheck != null && !ContactsListActivity.this.progressCheck.isAlive())
+				{
+					ContactsListActivity.this.progressCheck = new ProgressCheckThread(ContactsListActivity.this.progressHandler);
+					ContactsListActivity.this.progressCheck.start();
+				}
+			}
+			else if (intent.getAction().equals(MessengerService.INTENT_STATUS_CHANGED))
+				determineTopLogo();
 			else if (intent.getAction().equals(MessengerService.INTENT_DESTROY))
 				finish();
 		}
@@ -997,46 +673,110 @@ public class ContactsListActivity extends ExpandableListActivity
 		@Override
 		public void handleMessage(final Message msg)
 		{
+			getExpandableListView().setEnabled(false);
 			switch (msg.what)
 			{
 				case ProgressCheckThread.PROGRESS_UPDATE:
-					switch (MessengerService.getSession().getSessionStatus())
-					{
-						case INITIALIZING:
-							ContactsListActivity.this.pd.setMessage("Initializing...");
-							break;
-						case CONNECTING:
-							ContactsListActivity.this.pd.setMessage("Sending credentials...");
-							break;
-						case STAGE1:
-							ContactsListActivity.this.pd.setMessage("Authenticating...");
-							break;
-						case STAGE2:
-							ContactsListActivity.this.pd.setMessage("Authenticating(2)...");
-							break;
-						case WAITING:
-							ContactsListActivity.this.pd.setMessage("Waiting to reconnect...");
-							break;
-						case CONNECTED:
-							ContactsListActivity.this.pd.setMessage("Loading list...");
-							break;
-						case LOGGED_ON:
-							ContactsListActivity.this.pd.setMessage("Logged on!");
-							break;
-						case FAILED:
-							ContactsListActivity.this.pd.setMessage("Failed!");
-							break;
-					}
+					ContactsListActivity.this.txtProblem.setVisibility(View.VISIBLE);
+
+					ContactsListActivity.this.txtProblem.setText((String) msg.obj);
 					break;
 				case ProgressCheckThread.PROGRESS_FAILED:
-					ContactsListActivity.this.pd.dismiss();
+					ContactsListActivity.this.txtProblem.setVisibility(View.VISIBLE);
+					ContactsListActivity.this.txtProblem.setText("Failed");
 					break;
 				case ProgressCheckThread.PROGRESS_LOGGED_ON:
-					ContactsListActivity.this.pd.dismiss();
-					//TODO do something else in here...
+					getExpandableListView().setEnabled(true);
+					ContactsListActivity.this.txtProblem.setVisibility(View.GONE);
 					break;
 			}
 		}
 	};
+
+	private void confirmSignOut()
+	{
+		final CustomDialog dlg = new CustomDialog(this);
+		dlg.setTitle("Confirm sign out");
+		dlg.setMessage("Are you sure you want to sign out?").setPositiveButton("Yes", new View.OnClickListener()
+		{
+
+			@Override
+			public void onClick(final View v)
+			{
+				stopService(new Intent(ContactsListActivity.this, MessengerService.class));
+				finish();
+				dlg.dismiss();
+			}
+		}).setNegativeButton("No", new View.OnClickListener()
+		{
+
+			@Override
+			public void onClick(final View v)
+			{
+				dlg.cancel();
+			}
+		}).show();
+	}
+
+	private void determineTopLogo()
+	{
+		Status currentStatus = MessengerService.getSession().getStatus();
+
+		switch (currentStatus)
+		{
+			case AVAILABLE:
+				this.imgTopLogo.setImageResource(R.drawable.top_logo_available);
+				break;
+			case BUSY:
+				this.imgTopLogo.setImageResource(R.drawable.top_logo_busy);
+				break;
+			case IDLE:
+				this.imgTopLogo.setImageResource(R.drawable.top_logo_away);
+				break;
+			case INVISIBLE:
+				this.imgTopLogo.setImageResource(R.drawable.top_logo_invisible);
+				break;
+			case CUSTOM:
+				if (MessengerService.getSession().isCustomBusy())
+					this.imgTopLogo.setImageResource(R.drawable.top_logo_busy);
+				else
+					this.imgTopLogo.setImageResource(R.drawable.top_logo_available);
+
+				break;
+
+			default:
+				break;
+		}
+	}
+
+	@Override
+	public boolean onSearchRequested()
+	{
+		this.chkSearch.setChecked(true);
+		return true;
+	};
+
+	@Override
+	public boolean onKeyLongPress(final int keyCode, final KeyEvent event)
+	{
+		if (keyCode == KeyEvent.KEYCODE_MENU)
+		{
+			onSearchRequested();
+			return true;
+		}
+		return super.onKeyLongPress(keyCode, event);
+	}
+
+	@Override
+	public void onBackPressed()
+	{
+		if (this.chkSearch.isChecked())
+		{
+			this.chkSearch.setChecked(false);
+			return;
+		}
+
+		super.onBackPressed();
+	}
 
 }

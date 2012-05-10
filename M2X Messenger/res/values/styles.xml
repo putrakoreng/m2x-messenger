@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) Mehran Maghoumi 2011-2012 -->
 <resources>
 
     <style name="StyledIndicators" parent="@android:style/Theme.NoTitleBar">
@@ -23,9 +24,14 @@
     <style name="GlossyButton" parent="@android:style/Widget.Button">
         <item name="android:background">@drawable/background_button</item>
     </style>
-    
+
     <style name="PreferencesTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">@drawable/global_background</item>
+        <item name="android:listViewStyle">@style/ListViewStyles</item>
+    </style>
+
+    <style name="ListViewStyles" parent="@android:style/Widget.ListView">
+        <item name="android:cacheColorHint">#eeeeee</item>
     </style>
 
     <style name="GlossyTextbox" parent="@android:style/Widget.TextView">
