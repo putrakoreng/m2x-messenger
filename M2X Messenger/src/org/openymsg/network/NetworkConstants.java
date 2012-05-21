@@ -94,4 +94,7 @@ public abstract class NetworkConstants {
 
     // Buzz string
     public final static String BUZZ = "<ding>";
+    
+    // delay between consecutive BUZZes in milli seconds
+    public static final int BUZZ_SEND_DELAY = 15000;
 }

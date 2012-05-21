@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) Mehran Maghoumi 2011-2012 -->
+<resources>
+
+    <style name="Animation" />
+
+    <style name="Animation.DefaultAnimation">
+
+        <item name="android:activityOpenEnterAnimation">@anim/zoom_enter</item>
+        <item name="android:activityOpenExitAnimation">@anim/zoom_exit</item>
+        <item name="android:activityCloseEnterAnimation">@anim/reverse_zoom_exit</item>
+        <item name="android:activityCloseExitAnimation">@anim/reverse_zoom_enter</item>
+
+        <item name="android:taskOpenEnterAnimation">@anim/zoom_enter</item>
+        <item name="android:taskOpenExitAnimation">@anim/zoom_exit</item>
+        <item name="android:taskCloseEnterAnimation">@anim/reverse_zoom_exit</item>
+        <item name="android:taskCloseExitAnimation">@anim/reverse_zoom_enter</item>
+        
+        <item name="android:taskToFrontEnterAnimation">@anim/zoom_enter</item>
+        <item name="android:taskToFrontExitAnimation">@anim/zoom_exit</item>
+        <item name="android:taskToBackEnterAnimation">@anim/reverse_zoom_exit</item>
+        <item name="android:taskToBackExitAnimation">@anim/reverse_zoom_enter</item>
+        
+        
+        <item name="android:wallpaperOpenEnterAnimation">@anim/zoom_enter</item>
+        <item name="android:wallpaperOpenExitAnimation">@anim/zoom_exit</item>
+        <item name="android:wallpaperCloseEnterAnimation">@anim/reverse_zoom_exit</item>
+        <item name="android:wallpaperCloseExitAnimation">@anim/reverse_zoom_enter</item>
+        
+        <item name="android:wallpaperIntraOpenEnterAnimation">@anim/zoom_enter</item>
+        <item name="android:wallpaperIntraOpenExitAnimation">@anim/zoom_enter</item>
+        <item name="android:wallpaperIntraCloseEnterAnimation">@anim/reverse_zoom_exit</item>
+        <item name="android:wallpaperIntraCloseExitAnimation">@anim/reverse_zoom_enter</item>
+    </style>
+
+</resources>

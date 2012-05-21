@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.openymsg.network.NetworkConstants;
 import org.openymsg.network.YahooGroup;
@@ -31,25 +32,35 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.BitmapFactory;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.os.Vibrator;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v4.view.ViewPager.OnPageChangeListener;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.SlidingDrawer;
 import android.widget.TextView;
 
@@ -58,6 +69,7 @@ import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.classes.IM;
 import com.sir_m2x.messenger.dialogs.CustomDialog;
 import com.sir_m2x.messenger.services.MessengerService;
+import com.sir_m2x.messenger.utils.Preferences;
 import com.sir_m2x.messenger.utils.Utils;
 import com.viewpagerindicator.TabPageIndicator;
 import com.viewpagerindicator.ViewProvider;
@@ -68,7 +80,7 @@ import com.viewpagerindicator.ViewProvider;
  * @author Mehran Maghoumi [aka SirM2X] (maghoumi@gmail.com)
  * 
  */
-public class ChatWindowPager extends FragmentActivity
+public class ChatWindowPager extends FragmentActivity implements SensorEventListener
 {
 	private ViewPager mViewPager = null;
 	public TabPageIndicator mTabPageIndicator = null;
@@ -80,11 +92,36 @@ public class ChatWindowPager extends FragmentActivity
 	public static int currentItem = 0;
 	public static boolean isActive = false;
 
+	private RelativeLayout rootLayout = null;
+	private Animation buzzAnimation = null;
+
+	// a flag to prevent sending consecutive BUZZes!
+	// this flag should be reset after a specific timeout 
+	private static final AtomicBoolean buzzWaitElapsed = new AtomicBoolean(true);
+	private SensorManager sensorMgr = null;
+	
+	private CountDownTimer buzzAllower = new CountDownTimer(NetworkConstants.BUZZ_SEND_DELAY, 1000)
+	{
+		@Override
+		public void onTick(final long millisUntilFinished)
+		{			
+		}
+		
+		@Override
+		public void onFinish()
+		{
+			buzzWaitElapsed.set(true);
+		}
+	};
+
 	@Override
 	protected void onCreate(final Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.chat_window_pager);
+
+		this.rootLayout = (RelativeLayout) findViewById(R.id.chatPagerParent);
+		this.buzzAnimation = AnimationUtils.loadAnimation(this, R.anim.shake);
 
 		this.mViewPager = (ViewPager) findViewById(R.id.chatPager);
 		this.mAdapter = new ChatFragmentAdapter(getSupportFragmentManager());
@@ -103,8 +140,7 @@ public class ChatWindowPager extends FragmentActivity
 			{
 				String smiley = arg1.getTag().toString();
 				Intent intent = new Intent();
-				intent.setAction(MessengerService.INTENT_INSERT_SMILEY).putExtra(Utils.qualify("from"), ChatWindowPager.currentFriendId)
-						.putExtra(Utils.qualify("symbol"), smiley);
+				intent.setAction(MessengerService.INTENT_INSERT_SMILEY).putExtra(Utils.qualify("from"), ChatWindowPager.currentFriendId).putExtra(Utils.qualify("symbol"), smiley);
 
 				sendBroadcast(intent);
 				ChatWindowPager.this.drawer.animateClose();
@@ -145,6 +181,8 @@ public class ChatWindowPager extends FragmentActivity
 			@Override
 			public void onPageSelected(final int arg0)
 			{
+				buzzWaitElapsed.set(true);
+				ChatWindowPager.this.buzzAllower.cancel();
 				ChatWindowPager.currentFriendId = ChatWindowPager.this.mAdapter.getId(arg0);
 				currentItem = arg0;
 
@@ -155,10 +193,10 @@ public class ChatWindowPager extends FragmentActivity
 				}
 			}
 		});
-		
+
 		this.btnClose.setOnClickListener(new OnClickListener()
 		{
-			
+
 			@Override
 			public void onClick(final View v)
 			{
@@ -176,7 +214,6 @@ public class ChatWindowPager extends FragmentActivity
 
 				currentFriendId = MessengerService.getFriendsInChat().keySet().toArray()[currentItem].toString();
 
-				
 				Intent intent = getIntent();
 				overridePendingTransition(0, 0);
 				intent.putExtra(Utils.qualify("friendId"), currentFriendId);
@@ -188,7 +225,7 @@ public class ChatWindowPager extends FragmentActivity
 		});
 		this.btnSmiley.setOnClickListener(new OnClickListener()
 		{
-			
+
 			@Override
 			public void onClick(final View v)
 			{
@@ -211,6 +248,15 @@ public class ChatWindowPager extends FragmentActivity
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_IS_TYPING));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_NEW_IM));
 		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_DESTROY));
+		registerReceiver(this.listener, new IntentFilter(MessengerService.INTENT_BUZZ));
+
+		this.sensorMgr = (SensorManager) getSystemService(SENSOR_SERVICE);
+		this.mAccel = 0.00f;
+		this.mAccelCurrent = SensorManager.GRAVITY_EARTH;
+		this.mAccelLast = SensorManager.GRAVITY_EARTH;
+
+		if (Preferences.shake2Buzz)
+			this.sensorMgr.registerListener(this, this.sensorMgr.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_UI);
 
 		super.onResume();
 	}
@@ -221,6 +267,7 @@ public class ChatWindowPager extends FragmentActivity
 		MessengerService.getNotificationHelper().showDefaultNotification(false, false);
 		isActive = false;
 		unregisterReceiver(this.listener);
+		this.sensorMgr.unregisterListener(this);
 		super.onPause();
 	}
 
@@ -258,7 +305,7 @@ public class ChatWindowPager extends FragmentActivity
 			ImageView imgBulb = (ImageView) v.findViewById(R.id.imgBulb);
 			ImageView imgIsTyping = (ImageView) v.findViewById(R.id.imgIsTyping);
 			ImageView imgUnreadIm = (ImageView) v.findViewById(R.id.imgUnreadIm);
-			
+
 			String friendId = MessengerService.getFriendsInChat().keySet().toArray()[position].toString();
 			YahooUser user = null;
 
@@ -335,6 +382,8 @@ public class ChatWindowPager extends FragmentActivity
 				}
 				ChatWindowPager.this.mTabPageIndicator.notifyDataSetChanged();
 			}
+			else if (intent.getAction().equals(MessengerService.INTENT_BUZZ))
+				startBuzzAnimation();
 			else if (intent.getAction().equals(MessengerService.INTENT_DESTROY))
 				finish();
 		}
@@ -370,7 +419,6 @@ public class ChatWindowPager extends FragmentActivity
 
 			currentFriendId = MessengerService.getFriendsInChat().keySet().toArray()[currentItem].toString();
 
-			
 			Intent intent = getIntent();
 			overridePendingTransition(0, 0);
 			intent.putExtra(Utils.qualify("friendId"), currentFriendId);
@@ -395,34 +443,14 @@ public class ChatWindowPager extends FragmentActivity
 
 		}
 		else if (item.getItemId() == R.id.mnuBuzz)
-			try
-			{
-				IM im = new IM(MessengerService.getMyId(), NetworkConstants.BUZZ, new Date(System.currentTimeMillis()), false);
-				MessengerService.getSession().sendBuzz(currentFriendId);
-				MessengerService.addIm(this, currentFriendId, im);
-				Intent intent = new Intent();
-				intent.setAction(MessengerService.INTENT_BUZZ);
-				intent.putExtra(Utils.qualify("from"), MessengerService.getMyId());
-				sendBroadcast(intent);
-
-				intent = new Intent();
-				intent.setAction(MessengerService.INTENT_NEW_IM);
-				intent.putExtra(Utils.qualify("from"), currentFriendId);
-				sendBroadcast(intent);
-
-				this.mTabPageIndicator.notifyDataSetChanged();
-			}
-			catch (Exception e)
-			{
-				e.printStackTrace();
-			}
+			doBuzz();
 		else if (item.getItemId() == R.id.mnuClear)
 		{
 			final CustomDialog dlg = new CustomDialog(this);
 			dlg.setTitle("Clear history");
 			dlg.setMessage("Are you sure you want to clear the history for this contact (all messages will be cleared)?").setPositiveButton("Yes", new View.OnClickListener()
 			{
-				
+
 				@Override
 				public void onClick(final View v)
 				{
@@ -433,15 +461,15 @@ public class ChatWindowPager extends FragmentActivity
 				}
 			}).setNegativeButton("No", new View.OnClickListener()
 			{
-				
+
 				@Override
 				public void onClick(final View v)
 				{
 					dlg.dismiss();
 				}
-			}).show();			
+			}).show();
 		}
-		
+
 		return true;
 	}
 
@@ -453,9 +481,12 @@ public class ChatWindowPager extends FragmentActivity
 			this.drawer.animateClose();
 			return;
 		}
-		
-		startActivity(new Intent(this, ContactsListActivity.class));
-		super.onBackPressed();
+
+		Intent intent = new Intent(this, ContactsListActivity.class);
+		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+		finish();
+		startActivity(intent);
+		overridePendingTransition(R.anim.reverse_zoom_exit, R.anim.reverse_zoom_enter);
 	};
 
 	@Override
@@ -488,6 +519,11 @@ public class ChatWindowPager extends FragmentActivity
 		super.onNewIntent(intent);
 	}
 
+	void startBuzzAnimation()
+	{
+		this.rootLayout.startAnimation(this.buzzAnimation);
+	}
+
 	class SmileyAdapter extends BaseAdapter
 	{
 		private final int COUNT = 94; // count of smileys
@@ -517,9 +553,9 @@ public class ChatWindowPager extends FragmentActivity
 			if (convertView == null)
 				iv = new ImageView(ChatWindowPager.this);
 			else
-				iv = (ImageView)convertView;
-			
-			iv.setLayoutParams(new GridView.LayoutParams((int)(51*(Utils.deviceDensity/240)),(int)(38*(Utils.deviceDensity/240))));
+				iv = (ImageView) convertView;
+
+			iv.setLayoutParams(new GridView.LayoutParams((int) (51 * (Utils.deviceDensity / 240)), (int) (38 * (Utils.deviceDensity / 240))));
 			String smileyName = "smiley" + (position <= 78 ? position + 1 : position + 21) + ".png";
 			InputStream is = null;
 
@@ -540,5 +576,71 @@ public class ChatWindowPager extends FragmentActivity
 			return iv;
 		}
 
+	}
+
+	private float mAccel; // acceleration apart from gravity
+	private float mAccelCurrent; // current acceleration including gravity
+	private float mAccelLast; // last acceleration including gravity
+
+	@Override
+	public void onSensorChanged(final SensorEvent event)
+	{
+		float x = event.values[0];
+		float y = event.values[1];
+		float z = event.values[2];
+		this.mAccelLast = this.mAccelCurrent;
+		this.mAccelCurrent = (float) Math.sqrt((x * x + y * y + z * z));
+		float delta = this.mAccelCurrent - this.mAccelLast;
+		this.mAccel = this.mAccel * 0.9f + delta; // perform low-cut filter
+
+		if (this.mAccel > Preferences.shakeSensitivity)
+			if (doBuzz())
+			{
+				Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+				v.vibrate(new long[] { 0, 100, 200, 100, 200, 100 }, -1);
+			}
+
+	}
+
+	boolean doBuzz()
+	{
+		synchronized (buzzWaitElapsed)
+		{
+			Log.w("M2X", "" + buzzWaitElapsed.get());
+			if (!buzzWaitElapsed.get())
+				return false;
+
+			buzzWaitElapsed.set(false);
+			try
+			{
+				this.buzzAllower.start();
+
+				IM im = new IM(MessengerService.getMyId(), NetworkConstants.BUZZ, new Date(System.currentTimeMillis()), false);
+				MessengerService.getSession().sendBuzz(currentFriendId);
+				MessengerService.addIm(this, currentFriendId, im);
+				Intent intent = new Intent();
+				intent.setAction(MessengerService.INTENT_BUZZ);
+				intent.putExtra(Utils.qualify("from"), MessengerService.getMyId());
+				sendBroadcast(intent);
+
+				intent = new Intent();
+				intent.setAction(MessengerService.INTENT_NEW_IM);
+				intent.putExtra(Utils.qualify("from"), currentFriendId);
+				sendBroadcast(intent);
+
+				this.mTabPageIndicator.notifyDataSetChanged();
+				startBuzzAnimation();
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+			}
+			return true;
+		}
+	}
+
+	@Override
+	public void onAccuracyChanged(final Sensor sensor, final int accuracy)
+	{
 	}
 }

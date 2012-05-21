@@ -55,7 +55,7 @@ public class NotificationHelper
 	private NotificationManager notificationManager = null;
 
 	/**
-	 * Public accessor 
+	 * Public accessor
 	 */
 	public Context getContext()
 	{
@@ -63,7 +63,7 @@ public class NotificationHelper
 	}
 
 	/**
-	 * Public accessor 
+	 * Public accessor
 	 */
 	public void setContext(final Context context)
 	{
@@ -78,15 +78,24 @@ public class NotificationHelper
 
 	/**
 	 * Shows the default notification in the status bar.
+	 * 
 	 * @param firstTime
-	 * 		Indicated weather it is the first time the notification is being shown
+	 *            Indicated weather it is the first time the notification is
+	 *            being shown
 	 * @param statusChanged
-	 * 		Indicated weather this notification has been shown to indicate that user's status has changed
+	 *            Indicated weather this notification has been shown to indicate
+	 *            that user's status has changed
 	 */
 	public void showDefaultNotification(final boolean firstTime, final boolean statusChanged)
 	{
 		if (MessengerService.getSession().getSessionStatus() == SessionState.UNSTARTED)
 			return;
+
+		if (!Preferences.showNotification)
+		{
+			cancelNotification(NOTIFICATION_SIGNED_IN);
+			return;
+		}
 
 		Notification notify = null;
 		String currentStatus;
@@ -137,21 +146,24 @@ public class NotificationHelper
 		if (defaults)
 			notification.defaults = Notification.DEFAULT_VIBRATE | Notification.DEFAULT_SOUND;
 		notification.audioStreamType = Preferences.audibleStream;
-		notification.flags = flags | Notification.FLAG_SHOW_LIGHTS;
-		notification.ledARGB = 0xFFFFFFFF;
-		notification.ledOnMS = 1;
-		notification.ledOffMS = 0;
+		if (Preferences.ledNotification)
+		{
+			notification.flags = flags | Notification.FLAG_SHOW_LIGHTS;
+			notification.ledARGB = 0xFFFFFFFF;
+			notification.ledOnMS = 1;
+			notification.ledOffMS = 0;
+		}
 		PendingIntent pending = PendingIntent.getActivity(this.context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 		notification.setLatestEventInfo(this.context, title, message, pending);
 		notification.number = notificationCount > 1 ? notificationCount : 0;
 		this.notificationManager.notify(notificationId, notification);
 	}
-	
+
 	public void cancelNotification(final int notificationId)
 	{
 		this.notificationManager.cancel(notificationId);
 	}
-	
+
 	public void playAudio(final Uri uri, final int streamType, final boolean isIm)
 	{
 		if (Preferences.audibles.equals(Preferences.AUDIBLE_DONT_PLAY))
@@ -178,7 +190,7 @@ public class NotificationHelper
 			Log.w("M2X-Messenger", "Unable to play " + uri);
 		}
 	}
-	
+
 	public void vibrate(final int duration)
 	{
 		if (Preferences.vibration.equals(Preferences.VIBRATE_OFF))
