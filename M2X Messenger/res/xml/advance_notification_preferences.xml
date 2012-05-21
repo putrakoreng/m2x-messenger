@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <PreferenceCategory android:title="Advanced notification settings" >
+        <ListPreference
+            android:defaultValue="5"
+            android:entries="@array/stream_list_entries"
+            android:entryValues="@array/stream_list_entryValues"
+            android:key="stream"
+            android:summary="Changes the stream used to play audibles"
+            android:title="Audibles stream" />
+        <ListPreference
+            android:defaultValue="-1"
+            android:entries="@array/toast_entries"
+            android:entryValues="@array/toast_entryValues"
+            android:key="toastGravity"
+            android:selectable="true"
+            android:summary="Define the location of the toast"
+            android:title="Toast location" />
+
+        <EditTextPreference
+            android:defaultValue="0"
+            android:key="xOffset"
+            android:summary="The x-axis offset of the toast [positive or negative integer]"
+            android:title="Toast X-Offset" />
+        <EditTextPreference
+            android:defaultValue="0"
+            android:key="yOffset"
+            android:summary="The y-axis offset of the toast [positive or negative integer]"
+            android:title="Toast Y-Offset" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

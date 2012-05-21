@@ -55,6 +55,7 @@ import android.widget.ExpandableListView;
 import android.widget.ExpandableListView.ExpandableListContextMenuInfo;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.SlidingDrawer;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -168,7 +169,7 @@ public class ContactsListActivity extends ExpandableListActivity
 			{
 				if (MessengerService.getFriendsInChat().isEmpty())
 					return;
-				startActivity(new Intent(ContactsListActivity.this, ChatWindowPager.class));
+				showActivity(new Intent(ContactsListActivity.this, ChatWindowPager.class));
 			}
 		});
 		this.btnSettings = (Button) findViewById(R.id.btnSettings);
@@ -192,6 +193,8 @@ public class ContactsListActivity extends ExpandableListActivity
 				confirmSignOut();
 			}
 		});
+		
+		((SlidingDrawer)findViewById(R.id.footerSlider)).open();
 	}
 
 	@Override
@@ -230,7 +233,7 @@ public class ContactsListActivity extends ExpandableListActivity
 	{
 		Intent intent = new Intent(ContactsListActivity.this, ChatWindowPager.class);
 		intent.putExtra(Utils.qualify("friendId"), this.adapter.getChild(groupPosition, childPosition).toString());
-		startActivity(intent);
+		showActivity(intent);
 
 		return true;
 	};
@@ -254,11 +257,11 @@ public class ContactsListActivity extends ExpandableListActivity
 			case R.id.mnuShowConversations:
 				if (MessengerService.getFriendsInChat().isEmpty())
 					break;
-				startActivity(new Intent(this, ChatWindowPager.class));
+				showActivity(new Intent(this, ChatWindowPager.class));
 				break;
 
 			case R.id.mnuLog:
-				startActivity(new Intent(this, LogWindowActivity.class));
+				showActivity(new Intent(this, LogWindowActivity.class));
 				break;
 
 			case R.id.mnuNewIm:
@@ -279,7 +282,7 @@ public class ContactsListActivity extends ExpandableListActivity
 
 						Intent intent = new Intent(ContactsListActivity.this, ChatWindowPager.class);
 						intent.putExtra(Utils.qualify("friendId"), id);
-						startActivity(intent);
+						showActivity(intent);
 						dlgGetId.dismiss();
 					}
 				}).setNegativeButton("Cancel", new View.OnClickListener()
@@ -293,10 +296,10 @@ public class ContactsListActivity extends ExpandableListActivity
 				break;
 
 			case R.id.mnuPreferences:
-				startActivityForResult(new Intent(this, PreferencesActivity.class), 0);
+				showActivity(new Intent(this, PreferencesActivity.class));
 				break;
 			case R.id.mnuRequests:
-				startActivity(new Intent(this, FriendRequestsActivity.class));
+				showActivity(new Intent(this, FriendRequestsActivity.class));
 				break;
 			default:
 				break;
@@ -777,6 +780,13 @@ public class ContactsListActivity extends ExpandableListActivity
 		}
 
 		super.onBackPressed();
+	}
+
+	void showActivity(final Intent intent)
+	{
+		startActivity(intent);
+		//overridePendingTransition(R.anim.zoom_enter, R.anim.zoom_exit);
+		//overridePendingTransition(R.anim.zoom_in, R.anim.zoom_out);
 	}
 
 }

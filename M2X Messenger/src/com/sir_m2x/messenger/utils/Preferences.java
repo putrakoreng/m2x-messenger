@@ -64,10 +64,13 @@ public class Preferences
 	 */
 	public static String loadAvatars = AVATAR_LOAD_NEEDED;
 	public static String vibration = VIBRATE_ON;
+	public static boolean showNotification = true;
 	public static boolean showToasts = true;
+	public static boolean ledNotification = true;
 	public static int toastGravity = 0;
 	public static int xOffset = 0;
 	public static int yOffset = 0;
+	public static float shakeSensitivity = 7.5f;
 	public static String audibles = AUDIBLE_PLAY_ALL;
 	public static boolean showOffline = true;
 	public static boolean onlinesFirst = false;
@@ -76,8 +79,10 @@ public class Preferences
 	public static int audibleStream = 5;
 	public static boolean logCrash = true;
 	public static boolean timeStamp = true;
+	public static boolean shake2Buzz = true;
 	public static boolean history = true;
 	public static int historyKeep = HISTORY_ALWAYS_KEEP;
+	
 
 	/**
 	 * Reads the Shared Preferences for this application and loads them into
@@ -100,6 +105,8 @@ public class Preferences
 		Preferences.loadAvatars = preferences.getString("loadAvatars", "loadNeeded");
 		Preferences.vibration = preferences.getString("vibration", "on");
 		Preferences.showToasts = preferences.getBoolean("showToasts", true);
+		Preferences.showNotification = preferences.getBoolean("showNotification", true);
+		Preferences.ledNotification = preferences.getBoolean("ledNotification", true);
 		Preferences.toastGravity = Integer.parseInt(preferences.getString("toastGravity", "-1"));
 		try
 		{
@@ -113,6 +120,16 @@ public class Preferences
 			editor.putString("yOffset", "0");
 			editor.commit();
 		}
+		try
+		{
+			Preferences.shakeSensitivity = Float.parseFloat(preferences.getString("shakeSensitivity", "7.5"));
+		}
+		catch (Exception e)
+		{
+			SharedPreferences.Editor editor = preferences.edit();
+			editor.putString("shakeSensitivity", "7.5");
+			editor.commit();
+		}
 		Preferences.audibles = preferences.getString("audibles", "playAll");
 		Preferences.audibleStream = Integer.parseInt(preferences.getString("stream", "1"));
 		Preferences.showOffline = preferences.getBoolean("showOffline", true);
@@ -123,6 +140,7 @@ public class Preferences
 		Preferences.saveLog = preferences.getBoolean("saveLog", true);
 		Preferences.logCrash = preferences.getBoolean("logCrash", true);
 		Preferences.timeStamp = preferences.getBoolean("timeStamp", true);
+		Preferences.shake2Buzz = preferences.getBoolean("shake2Buzz", true);
 		Preferences.history = preferences.getBoolean("history", true);
 		Preferences.historyKeep = Integer.parseInt(preferences.getString("historyKeep", String.valueOf(HISTORY_ALWAYS_KEEP)));
 	}

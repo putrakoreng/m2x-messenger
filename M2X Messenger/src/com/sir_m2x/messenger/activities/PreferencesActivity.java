@@ -32,6 +32,7 @@ import android.widget.Toast;
 import com.sir_m2x.messenger.R;
 import com.sir_m2x.messenger.dialogs.CustomDialog;
 import com.sir_m2x.messenger.helpers.AvatarHelper;
+import com.sir_m2x.messenger.helpers.NotificationHelper;
 import com.sir_m2x.messenger.helpers.ToastHelper;
 import com.sir_m2x.messenger.services.MessengerService;
 import com.sir_m2x.messenger.utils.Preferences;
@@ -51,10 +52,24 @@ public class PreferencesActivity extends PreferenceActivity
 	protected void onCreate(final Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-		addPreferencesFromResource(R.xml.preferences);
-		this.refreshPref = findPreference("refresh");
-		this.homepage = findPreference("homepage");
-		this.changelog = findPreference("changelog");
+		String data = "";
+		if (getIntent().getData() != null)
+			data = getIntent().getData().toString();
+		if (data.equals("preferences://advanced_notification"))
+			addPreferencesFromResource(R.xml.advance_notification_preferences);
+		else if (data.equals("preferences://about"))
+		{
+			addPreferencesFromResource(R.xml.about_preferences);
+			this.homepage = findPreference("homepage");
+			this.changelog = findPreference("changelog");
+		}
+		else
+		{
+			addPreferencesFromResource(R.xml.preferences);
+			this.refreshPref = findPreference("refresh");
+			this.homepage = findPreference("homepage");
+			this.changelog = findPreference("changelog");
+		}
 	}
 
 	@Override
@@ -64,6 +79,9 @@ public class PreferencesActivity extends PreferenceActivity
 
 		Preferences.loadPreferences(getApplicationContext());
 		sendBroadcast(new Intent(MessengerService.INTENT_LIST_CHANGED));
+		
+		if (!Preferences.showNotification)
+			MessengerService.getNotificationHelper().cancelNotification(NotificationHelper.NOTIFICATION_SIGNED_IN);
 	}
 
 	@Override
@@ -88,7 +106,7 @@ public class PreferencesActivity extends PreferenceActivity
 				dlg.setTitle("Changelog");
 				WebView v = (WebView) getLayoutInflater().inflate(R.layout.changelog_view, null);
 				v.loadData(changelog, "text/html", "utf8");
-//				((TextView)v.findViewById(R.id.txtChangelog)).setText(Html.fromHtml());
+				//				((TextView)v.findViewById(R.id.txtChangelog)).setText(Html.fromHtml());
 				dlg.setCancelable(true);
 				dlg.setView(v).show();
 			}

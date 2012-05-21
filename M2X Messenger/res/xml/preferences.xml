@@ -45,9 +45,21 @@
 
         <CheckBoxPreference
             android:defaultValue="true"
+            android:key="showNotification"
+            android:summary="Display an icon in the notification bar when messenger is running"
+            android:title="Show notification icon" />
+        
+        <CheckBoxPreference
+            android:defaultValue="true"
             android:key="showToasts"
             android:summary="Display notification when a friend&apos;s status has changed"
             android:title="Friend status notifications" />
+        
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="ledNotification"
+            android:summary="Flash LED on new notification"
+            android:title="LED Notification" />
 
         <ListPreference
             android:defaultValue="playAll"
@@ -57,41 +69,13 @@
             android:summary="Play sound on new notification"
             android:title="Audible notifications" />
 
-        <PreferenceScreen
+        <Preference
             android:summary="Advanced notification settings"
             android:title="Advanced..." >
-            <PreferenceCategory android:title="Advanced notification settings" >
-                <ListPreference
-                    android:defaultValue="5"
-                    android:entries="@array/stream_list_entries"
-                    android:entryValues="@array/stream_list_entryValues"
-                    android:key="stream"
-                    android:summary="Changes the stream used to play audibles"
-                    android:title="Audibles stream" />
-                <ListPreference
-                    android:defaultValue="-1"
-                    android:dependency="showToasts"
-                    android:entries="@array/toast_entries"
-                    android:entryValues="@array/toast_entryValues"
-                    android:key="toastGravity"
-                    android:selectable="true"
-                    android:summary="Define the location of the toast"
-                    android:title="Toast location" />
-
-                <EditTextPreference
-                    android:defaultValue="0"
-                    android:dependency="showToasts"
-                    android:key="xOffset"
-                    android:summary="The x-axis offset of the toast [positive or negative integer]"
-                    android:title="Toast X-Offset" />
-                <EditTextPreference
-                    android:defaultValue="0"
-                    android:dependency="showToasts"
-                    android:key="yOffset"
-                    android:summary="The y-axis offset of the toast [positive or negative integer]"
-                    android:title="Toast Y-Offset" />
-            </PreferenceCategory>
-        </PreferenceScreen>
+            <intent
+                android:action=".activities.PreferencesActivity"
+                android:data="preferences://advanced_notification" />
+        </Preference>
     </PreferenceCategory>
     <PreferenceCategory android:title="Conversation Window" >
         <CheckBoxPreference
@@ -99,6 +83,17 @@
             android:key="timeStamp"
             android:summary="Controls whether the timestamp of an IM is shown"
             android:title="Show timestamp" />
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="shake2Buzz"
+            android:summary="Enables or disables Shake2Buzz!! in the conversation window"
+            android:title="Shake2Buzz!!" />
+        <EditTextPreference
+            android:dependency="shake2Buzz"
+            android:key="shakeSensitivity"
+            android:defaultValue="7.5"
+            android:summary="Adjust the shake sensitivity [positive float -- default: 7.5]"
+            android:title="Shake sensitivity" />
         <CheckBoxPreference
             android:defaultValue="true"
             android:key="history"
@@ -127,26 +122,12 @@
             android:title="Save crash logs" />
     </PreferenceCategory>
 
-    <PreferenceScreen
+    <Preference
         android:summary="M2X Messenger Version and License"
         android:title="About..." >
-        <PreferenceCategory android:title="About" >
-            <Preference
-                android:summary="v0.95 Beta"
-                android:title="Version" />
-            <Preference
-                android:summary="© 2011-2012 Mehran Maghoumi (SirM2X)"
-                android:title="Copyright" />
-            <Preference
-                android:summary="GPL v3"
-                android:title="License" />
-            <Preference
-                android:key="homepage"
-                android:title="Project&apos;s Page" />
-            <Preference
-                android:key="changelog"
-                android:title="Changelog" />
-        </PreferenceCategory>
-    </PreferenceScreen>
+        <intent
+            android:action=".activities.PreferencesActivity"
+            android:data="preferences://about" />
+    </Preference>
 
 </PreferenceScreen>

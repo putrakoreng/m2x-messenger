@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) Mehran Maghoumi 2011-2012 -->
+<resources>
+
+    <style name="Theme.M2X" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:buttonStyle">@style/GlossyButton</item>
+        <item name="android:windowAnimationStyle">@style/Animation.DefaultAnimation</item>
+        <item name="vpiTabPageIndicatorStyle">@style/CustomTabPageIndicator</item>
+        <item name="vpiTabTextStyle">@style/CustomTabPageIndicator.Text</item>
+    </style>
+    
+    <style name="Theme.M2X.Preferences" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@drawable/global_background</item>
+        <item name="android:listViewStyle">@style/PrefListViewStyles</item>
+    </style>
+
+</resources>
